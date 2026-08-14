@@ -351,7 +351,7 @@ export class SearchModal {
     this.overlay = document.createElement('div');
     this.overlay.setAttribute('role', 'dialog');
     this.overlay.setAttribute('aria-modal', 'true');
-    this.overlay.setAttribute('aria-label', 'World Monitor intelligence command deck');
+    this.overlay.setAttribute('aria-label', 'SITREP intelligence command deck');
     this.overlay.dataset.searchScope = this.activeScope;
 
     if (this.isMobile) {

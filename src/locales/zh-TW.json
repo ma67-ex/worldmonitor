@@ -614,7 +614,7 @@
         "needsKeys": "配置API金鑰以解鎖功能",
         "some": "部分功能需要API金鑰"
       },
-      "skipSetup": "跳過設定 — 一個World Monitor許可證即可解鎖全部功能。加入候補名單搶先體驗。",
+      "skipSetup": "跳過設定 — 一個SITREP許可證即可解鎖全部功能。加入候補名單搶先體驗。",
       "summary": {
         "desktop": "桌面模式",
         "web": "網頁模式（只讀，伺服器管理憑證）",
@@ -679,7 +679,7 @@
         "status": "狀態",
         "duration": "耗時"
       },
-      "shellTitle": "World Monitor 設定",
+      "shellTitle": "SITREP 設定",
       "shellSearchPlaceholder": "搜尋設定...",
       "shellCancel": "取消",
       "shellSaveClose": "儲存並關閉",
@@ -1956,7 +1956,7 @@
       "tripDays": "行程天數"
     },
     "chatAnalyst": {
-      "infoTooltip": "<strong>WM 分析師</strong> 具有地緣政治、市場、軍事和經濟領域即時上下文的AI分析師。由Claude驅動，注入WorldMonitor活躍資料來源的即時資料。"
+      "infoTooltip": "<strong>WM 分析師</strong> 具有地緣政治、市場、軍事和經濟領域即時上下文的AI分析師。由Claude驅動，注入SITREP活躍資料來源的即時資料。"
     },
     "cotPositioning": {
       "infoTooltip": "<strong>CFTC COT 持倉</strong> 交易者承諾報告：商品和金融期貨中商業機構、大型投機者和小型交易者的淨持倉。每週五發布。來源：CFTC。"
@@ -2083,7 +2083,7 @@
       "infoTooltip": "<strong>宏觀指標</strong> 美國和歐元區關鍵宏觀經濟指標：CPI、失業率、GDP和央行利率。顯示值含與前期的差值。來源：FRED（聯邦儲備經濟資料）。"
     },
     "monitors": {
-      "infoTooltip": "<strong>關鍵詞監控</strong> 新增任何詞彙，即時追蹤WorldMonitor所有來源中的新聞提及。匹配文章被收錄時結果即時更新。"
+      "infoTooltip": "<strong>關鍵詞監控</strong> 新增任何詞彙，即時追蹤SITREP所有來源中的新聞提及。匹配文章被收錄時結果即時更新。"
     },
     "renewable": {
       "infoTooltip": "<strong>可再生能源</strong> 按地區和年份顯示可再生能源在發電量中的佔比，以及美國太陽能、風能和煤炭的裝機容量（兆瓦）。來源：世界銀行（EG.ELC.RNEW.ZS）和 EIA。"
@@ -3282,10 +3282,10 @@
     "copyCoordinates": "複製座標"
   },
   "shell": {
-    "documentTitle": "World Monitor — 即時全球情報儀表板",
+    "documentTitle": "SITREP — 即時全球情報儀表板",
     "metaDescription": "即時全球情報平臺。刊登於 WIRED。全球 190 個國家 200 萬+ 使用者使用。衝突、市場、軍事、OSINT 資訊一覽無遺。",
     "offlineTitle": "您已離線",
-    "offlineMessage": "World Monitor 需要網際網路連線來獲取即時情報資料。",
+    "offlineMessage": "SITREP 需要網際網路連線來獲取即時情報資料。",
     "offlineRetry": "重試"
   },
   "widgets": {
@@ -3323,12 +3323,12 @@
     "phaseError": "錯誤",
     "previewCheckingHeading": "連線小元件生成器中",
     "previewReadyHeading": "描述您想要的小元件",
-    "previewFetchingHeading": "正在獲取即時 WorldMonitor 資料",
+    "previewFetchingHeading": "正在獲取即時 SITREP 資料",
     "previewComposingHeading": "正在構建小元件佈局",
     "previewErrorHeading": "預覽需要處理",
     "previewCheckingCopy": "我們正在驗證您的小元件金鑰和後端可用性，然後啟用生成。",
     "previewReadyCopy": "使用提示示例或描述您想要的精確即時檢視。預覽將在此處更新，然後您可以儲存。",
-    "previewFetchingCopy": "代理正在呼叫已批准的 WorldMonitor 端點併為小元件塑形資料集。",
+    "previewFetchingCopy": "代理正在呼叫已批准的 SITREP 端點併為小元件塑形資料集。",
     "previewComposingCopy": "預覽正在使用最新的即時資料和儀表板樣式進行呈現。",
     "previewErrorCopy": "修復問題後重試。您現有的小元件不受影響。",
     "createInteractive": "建立互動式小元件",
@@ -3357,7 +3357,7 @@
   },
   "premium": {
     "pro": "PRO",
-    "lockedDesc": "需要 World Monitor 許可證金鑰",
+    "lockedDesc": "需要 SITREP 許可證金鑰",
     "signInToUnlock": "登入以解鎖高階功能",
     "signIn": "登入以解鎖",
     "upgradeDesc": "升級到 Pro 以獲得完整的高階分析訪問許可權",

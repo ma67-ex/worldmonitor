@@ -119,12 +119,12 @@ const ISO2 = /^[A-Z]{2}$/;
 const MAX_OUTPUT_CHARS = 1_500;
 const TARGET_OUTPUT_CHARS = 1_400;
 const TOOL_FAILURE_MESSAGES: Record<DashboardWebMcpToolName, string> = {
-  openCountryBrief: 'World Monitor could not open that country brief.',
-  openSearch: 'World Monitor could not open search.',
-  get_dashboard_context: 'World Monitor could not read dashboard context.',
-  open_dashboard_panel: 'World Monitor could not open that dashboard panel.',
-  set_map_view: 'World Monitor could not move the map.',
-  set_map_layers: 'World Monitor could not update map layers.',
+  openCountryBrief: 'SITREP could not open that country brief.',
+  openSearch: 'SITREP could not open search.',
+  get_dashboard_context: 'SITREP could not read dashboard context.',
+  open_dashboard_panel: 'SITREP could not open that dashboard panel.',
+  set_map_view: 'SITREP could not move the map.',
+  set_map_layers: 'SITREP could not update map layers.',
 };
 
 class SafeWebMcpError extends Error {
@@ -316,7 +316,7 @@ export function buildWebMcpTools(
       name: 'openSearch',
       title: 'Open Search',
       description:
-        'Open the global search command palette so the user can find countries, signals, alerts, and other entities tracked by World Monitor.',
+        'Open the global search command palette so the user can find countries, signals, alerts, and other entities tracked by SITREP.',
       inputSchema: {
         type: 'object',
         properties: {},
@@ -347,7 +347,7 @@ export function buildWebMcpTools(
       name: 'open_dashboard_panel',
       title: 'Open Dashboard Panel',
       description:
-        'Open and scroll to an already-live dashboard panel through the same entitlement-aware control path used by World Monitor.',
+        'Open and scroll to an already-live dashboard panel through the same entitlement-aware control path used by SITREP.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -434,7 +434,7 @@ export function buildWebMcpTools(
       name: 'set_map_layers',
       title: 'Set Map Layers',
       description:
-        'Enable or disable explicit visible map layers through World Monitor’s variant, renderer, and entitlement-aware control path.',
+        'Enable or disable explicit visible map layers through SITREP’s variant, renderer, and entitlement-aware control path.',
       inputSchema: {
         type: 'object',
         properties: {

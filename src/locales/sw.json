@@ -1,9 +1,9 @@
 {
   "shell": {
-    "documentTitle": "World Monitor — Dashibodi ya Ujasusi ya Ulimwenguni ya Wakati Halisi",
+    "documentTitle": "SITREP — Dashibodi ya Ujasusi ya Ulimwenguni ya Wakati Halisi",
     "metaDescription": "Jukwaa la kijasusi la ulimwengu la wakati halisi. Imeangaziwa katika WIRED. Inatumiwa na watu milioni 2+ katika nchi 190. Migogoro, masoko, kijeshi, OSINT katika mtazamo mmoja.",
     "offlineTitle": "Uko Nje ya Mtandao",
-    "offlineMessage": "World Monitor inahitaji muunganisho wa intaneti kwa data ya wakati halisi ya kijasusi.",
+    "offlineMessage": "SITREP inahitaji muunganisho wa intaneti kwa data ya wakati halisi ya kijasusi.",
     "offlineRetry": "Jaribu tena"
   },
   "widgets": {
@@ -41,12 +41,12 @@
     "phaseError": "Hitilafu",
     "previewCheckingHeading": "Kuunganisha kijenzi cha wijeti",
     "previewReadyHeading": "Eleza wijeti unayotaka",
-    "previewFetchingHeading": "Inaleta data ya moja kwa moja ya WorldMonitor",
+    "previewFetchingHeading": "Inaleta data ya moja kwa moja ya SITREP",
     "previewComposingHeading": "Kuunda mpangilio wa wijeti",
     "previewErrorHeading": "Onyesho la kuchungulia linahitaji umakini",
     "previewCheckingCopy": "Tunathibitisha ufunguo wako wa wijeti na upatikanaji wa mandharinyuma kabla ya kuwezesha utengenezaji.",
     "previewReadyCopy": "Tumia mfano wa papo hapo au ueleze mwonekano halisi wa moja kwa moja unaotaka. Onyesho la kuchungulia litasasishwa hapa kabla ya kulihifadhi.",
-    "previewFetchingCopy": "Wakala anapiga simu kwenye sehemu za mwisho za WorldMonitor zilizoidhinishwa na kuunda mkusanyiko wa data wa wijeti.",
+    "previewFetchingCopy": "Wakala anapiga simu kwenye sehemu za mwisho za SITREP zilizoidhinishwa na kuunda mkusanyiko wa data wa wijeti.",
     "previewComposingCopy": "Onyesho la kuchungulia linaonyesha data ya moja kwa moja na mitindo ya dashibodi ya hivi punde.",
     "previewErrorCopy": "Rekebisha suala hilo, kisha ujaribu tena. Wijeti zako zilizopo hazijaathiriwa.",
     "createInteractive": "Unda Wijeti inayoingiliana",
@@ -694,7 +694,7 @@
         "some": "Baadhi ya vipengele vinahitaji funguo za API"
       },
       "reserveEarlyAccess": "Hifadhi Ufikiaji Wako wa Mapema",
-      "skipSetup": "Ruka usanidi - leseni moja ya World Monitor itafungua kila kitu. Jiunge na orodha ya wanaosubiri ili upate ufikiaji wa mapema.",
+      "skipSetup": "Ruka usanidi - leseni moja ya SITREP itafungua kila kitu. Jiunge na orodha ya wanaosubiri ili upate ufikiaji wa mapema.",
       "summary": {
         "desktop": "Hali ya eneo-kazi",
         "web": "Hali ya wavuti (kusoma pekee, vitambulisho vinavyodhibitiwa na seva)",
@@ -2151,7 +2151,7 @@
       "loadError": "Habari za hali ya hewa hazipatikani kwa sasa"
     },
     "chatAnalyst": {
-      "infoTooltip": "<strong>Mchambuzi wa WM</strong> Mchambuzi wa AI aliye na muktadha wa moja kwa moja katika nyanja za jiografia, soko, kijeshi na kiuchumi. Inaendeshwa na Claude na data ya wakati halisi iliyoingizwa kutoka kwa milisho inayotumika ya WorldMonitor."
+      "infoTooltip": "<strong>Mchambuzi wa WM</strong> Mchambuzi wa AI aliye na muktadha wa moja kwa moja katika nyanja za jiografia, soko, kijeshi na kiuchumi. Inaendeshwa na Claude na data ya wakati halisi iliyoingizwa kutoka kwa milisho inayotumika ya SITREP."
     },
     "cotPositioning": {
       "infoTooltip": "<strong>Msimamo wa CFTC COT</strong> Ahadi za Wafanyabiashara zinaripoti: nafasi halisi ya matangazo ya biashara, walanguzi wakubwa, na wafanyabiashara wadogo katika mustakabali wa bidhaa na kifedha. Huchapishwa kila wiki (Ijumaa). Chanzo: CFTC."
@@ -2303,7 +2303,7 @@
       "infoTooltip": "<strong>Viashiria vya Jumla</strong> Viashirio vikuu vya uchumi mkuu kwa Marekani, Eneo la Euro na Uchina. Uchina inaonekana tu wakati bei ya sasa, shughuli, sera, na chanjo ya FX inapita lango la uzinduzi; kila kigae cha China huweka chanzo chake na tarehe ya uchunguzi kuonekana. Vyanzo: FRED, Eurostat, ECB, OECD, BIS, na HKMA."
     },
     "monitors": {
-      "infoTooltip": "<strong>Vichunguzi vya Neno Muhimu</strong> Ongeza neno lolote ili kufuatilia kutajwa kwa habari za moja kwa moja kwenye vyanzo vyote vya WorldMonitor. Matokeo husasishwa katika muda halisi huku makala yanayolingana yanapomezwa."
+      "infoTooltip": "<strong>Vichunguzi vya Neno Muhimu</strong> Ongeza neno lolote ili kufuatilia kutajwa kwa habari za moja kwa moja kwenye vyanzo vyote vya SITREP. Matokeo husasishwa katika muda halisi huku makala yanayolingana yanapomezwa."
     },
     "renewable": {
       "infoTooltip": "<strong>Nishati Mbadala</strong> Mgao wa uzalishaji wa umeme kutoka kwa mbadala kwa eneo na mwaka, pamoja na uwezo uliowekwa wa Marekani wa nishati ya jua, upepo na makaa ya mawe (MW). Vyanzo: Benki ya Dunia (EG.ELC.RNEW.ZS) na EIA."
