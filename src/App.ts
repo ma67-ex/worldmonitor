@@ -2117,7 +2117,6 @@ export class App {
     await this.panelLayout.init();
     markLcpDebug('wm:layout:init-complete');
     this.eventHandlers.setupSearchControls();
-    showProBanner(this.state.container);
     this.updateConnectivityUi();
     window.addEventListener('online', this.handleConnectivityChange);
     window.addEventListener('offline', this.handleConnectivityChange);
