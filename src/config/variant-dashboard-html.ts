@@ -109,7 +109,7 @@ export function renderVariantDashboardHtml(fullDashboardHtml: string, variant: s
   // the exact-count guard makes a reintroduced ?lang alternate fail the build.
   html = replaceCounted(
     html,
-    /(<link rel="alternate" hreflang="[^"]+" href=")https:\/\/www\.worldmonitor\.app\/dashboard((?:\?[^"]*)?" \/>)/g,
+    /(<link rel="alternate" hreflang="[^"]+" href=")https:\/\/sitrep\.app\/dashboard((?:\?[^"]*)?" \/>)/g,
     (_m, a, b) => `${a}${escHtml(meta.url)}${b}`,
     TWO,
     'hreflang alternates',
