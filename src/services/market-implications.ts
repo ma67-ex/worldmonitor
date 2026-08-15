@@ -1,6 +1,8 @@
 import { toApiUrl } from '@/services/runtime';
 import { premiumFetch } from '@/services/premium-fetch';
 import { getHydratedData } from '@/services/bootstrap';
+import { hasUserAiKey, generateStructuredCompletion } from '@/services/user-ai-keys';
+import type { NewsItem } from '@/types';
 
 export interface TransmissionNode {
   node: string;
