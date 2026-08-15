@@ -4060,12 +4060,16 @@ export class DataLoaderManager implements AppModule {
       ]);
 
       if (status.locationsMonitored === 0) {
-        this.ctx.pizzintIndicator?.hide();
+        // No live backend behind this fork -- keep whatever was last rendered
+        // (e.g. the bundled hydrated snapshot) instead of hiding it. Only
+        // hide if we've genuinely never shown real data.
+        if (!this.pizzintHasShownData) this.ctx.pizzintIndicator?.hide();
         this.ctx.statusPanel?.updateApi('PizzINT', { status: 'error' });
         dataFreshness.recordError('pizzint', 'No monitored locations returned');
         return;
       }
 
+      this.pizzintHasShownData = true;
       this.ctx.pizzintIndicator?.show();
       this.ctx.pizzintIndicator?.updateStatus(status);
       this.ctx.pizzintIndicator?.updateTensions(tensions);
@@ -4073,7 +4077,7 @@ export class DataLoaderManager implements AppModule {
       dataFreshness.recordUpdate('pizzint', Math.max(status.locationsMonitored, tensions.length));
     } catch (error) {
       console.error('[App] PizzINT load failed:', error);
-      this.ctx.pizzintIndicator?.hide();
+      if (!this.pizzintHasShownData) this.ctx.pizzintIndicator?.hide();
       this.ctx.statusPanel?.updateApi('PizzINT', { status: 'error' });
       dataFreshness.recordError('pizzint', String(error));
     }
