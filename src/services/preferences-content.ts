@@ -457,6 +457,12 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
       container.addEventListener('change', (e) => {
         const target = e.target as HTMLInputElement;
 
+        if (target.classList.contains('us-userkey-input')) {
+          const provider = target.dataset.provider as UserAiProvider;
+          setUserAiKey(provider, target.value.trim());
+          return;
+        }
+
         if (target.id === 'usImportInput') {
           const file = target.files?.[0];
           if (!file) return;
