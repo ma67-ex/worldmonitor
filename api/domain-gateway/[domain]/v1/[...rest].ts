@@ -21,7 +21,7 @@
 // this only replaces how many separate Vercel functions wrap them.
 export const config = { runtime: 'edge' };
 
-import { createDomainGateway, serverOptions } from '../../../../server/gateway';
+import { createDomainGateway, serverOptions, type GatewayCtx } from '../../../../server/gateway';
 
 import { createNewsServiceRoutes as newsRoutes } from '../../../../src/generated/server/worldmonitor/news/v1/service_server';
 import { newsHandler } from '../../../../server/worldmonitor/news/v1/handler';
