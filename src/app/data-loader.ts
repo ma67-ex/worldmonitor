@@ -386,6 +386,7 @@ export class DataLoaderManager implements AppModule {
   private ctx: AppContext;
   private callbacks: DataLoaderCallbacks;
 
+  private pizzintHasShownData = false;
   private mapFlashCache: Map<string, number> = new Map();
   private readonly MAP_FLASH_COOLDOWN_MS = 10 * 60 * 1000;
   private readonly applyTimeRangeFilterToNewsPanelsDebounced = debounce(() => {
