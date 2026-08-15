@@ -259,6 +259,25 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
         <a href="${DESKTOP_RELEASES_URL}" target="_blank" rel="noopener noreferrer" class="ai-flow-cta-link">${t('components.insights.aiFlowDownloadDesktop')}</a>
       </div>
     `;
+
+    const groqKey = getUserAiKey('groq');
+    const openrouterKey = getUserAiKey('openrouter');
+    html += `
+      <div class="ai-flow-cta" style="margin-top:12px">
+        <div class="ai-flow-cta-title">Your Own AI Key</div>
+        <div class="ai-flow-cta-desc">Locked panels (market implications, deduction, stock analysis) need a structured LLM response the built-in browser model can't produce. Paste your own free Groq or OpenRouter key here — it's stored only in this browser and called directly, no server in between.</div>
+        <div class="us-data-mgmt" style="margin-top:8px">
+          <input type="password" class="us-userkey-input" data-provider="groq" placeholder="Groq API key" value="${escapeHtml(groqKey)}" autocomplete="off" style="flex:1;min-width:0" />
+        </div>
+        <div class="us-data-mgmt" style="margin-top:6px">
+          <input type="password" class="us-userkey-input" data-provider="openrouter" placeholder="OpenRouter API key" value="${escapeHtml(openrouterKey)}" autocomplete="off" style="flex:1;min-width:0" />
+        </div>
+        <div style="display:flex;gap:12px;margin-top:6px">
+          <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" class="ai-flow-cta-link" style="font-size:11px">Get a free Groq key</a>
+          <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer" class="ai-flow-cta-link" style="font-size:11px">Get a free OpenRouter key</a>
+        </div>
+      </div>
+    `;
   }
 
   // Headline Memory requires Browser Local Model (it loads an embeddings
