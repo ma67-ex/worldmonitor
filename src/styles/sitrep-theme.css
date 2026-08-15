@@ -1,0 +1,19 @@
+/* ============================================================
+   SITREP Theme — brand accent override.
+   Keeps the existing dark/monospace/information-dense identity
+   (Akul's explicit call: re-theme within it, not a new visual
+   language) — only the accent/wordmark color changes, so this
+   stays a small override, not a full token duplication like
+   happy-theme.css (which genuinely swaps the whole palette family).
+   Unlayered CSS — wins over main.css, which base-layer.css wraps
+   in @layer base.
+   ============================================================ */
+
+:root {
+  /* Wordmark / header logo (.logo, .logo-mobile use --accent directly) */
+  --accent: #f0a828;
+}
+
+:root[data-theme="light"] {
+  --accent: #b5720a;
+}
