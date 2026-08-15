@@ -1078,6 +1078,10 @@ export class DeckGLMap {
       renderWorldCopies: false,
       attributionControl: false,
       interactive: true,
+      // Full-bleed map means every wheel event over it would otherwise zoom
+      // instead of scrolling the page. Require ctrl/cmd+scroll to zoom so
+      // plain scroll passes through to reveal the panel grid below.
+      cooperativeGestures: true,
       canvasContextAttributes: { powerPreference: 'high-performance' },
       ...(MAP_INTERACTION_MODE === 'flat'
         ? {
