@@ -673,6 +673,9 @@
       "references": [
         {
           "path": "server/_shared/llm-health.ts"
+        },
+        {
+          "path": "src/services/user-ai-keys.ts"
         }
       ]
     },
@@ -3320,6 +3323,9 @@
           "path": "api/download.js"
         },
         {
+          "path": "api/pizzint-proxy.js"
+        },
+        {
           "path": "scripts/generate-airline-codes.mjs"
         },
         {
@@ -4805,6 +4811,9 @@
         },
         {
           "path": "scripts/lib/company-monitoring-classifier-client.mjs"
+        },
+        {
+          "path": "src/services/user-ai-keys.ts"
         }
       ]
     },
@@ -9507,6 +9516,9 @@
       "attribution": "Credit www.pizzint.watch and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
+        {
+          "path": "api/pizzint-proxy.js"
+        },
         {
           "path": "scripts/ais-relay.cjs"
         },
