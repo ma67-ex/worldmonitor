@@ -2644,11 +2644,13 @@ export class DataLoaderManager implements AppModule {
   }
 
   async loadMarketImplications(): Promise<void> {
-    if (!hasPremiumAccess()) return;
+    if (!hasPremiumAccess() && !hasUserAiKey()) return;
     if (this.ctx.isDestroyed || this.ctx.inFlight.has('marketImplications')) return;
     this.ctx.inFlight.add('marketImplications');
     try {
-      const data = await fetchMarketImplications(getActiveFrameworkForPanel('market-implications')?.id ?? '');
+      const data = hasPremiumAccess()
+        ? await fetchMarketImplications(getActiveFrameworkForPanel('market-implications')?.id ?? '')
+        : await generateMarketImplicationsFromUserKey(this.ctx.allNews);
       if (!data) {
         this.callPanel('market-implications', 'showUnavailable');
         return;
