@@ -113,3 +113,37 @@ export async function fetchMarketImplications(frameworkId = ''): Promise<MarketI
     return cached?.data ?? null;
   }
 }
+
+const SYSTEM_PROMPT = `You are a markets analyst turning geopolitical/macro news into tradeable implications.
+Given a list of recent headlines, output 3-6 market implication cards as JSON.
+Respond ONLY with a JSON object: { "cards": [ { "ticker": string, "name": string, "direction": "LONG"|"SHORT"|"HEDGE", "timeframe": string, "confidence": "HIGH"|"MEDIUM"|"LOW", "title": string, "narrative": string, "riskCaveat": string, "driver": string } ] }.
+Use real, liquid tickers (equities, ETFs, commodities, currencies). Keep narrative to 1-2 sentences. Be specific about the causal driver. This is not financial advice — riskCaveat must always note real uncertainty.`;
+
+/**
+ * Client-side fallback for non-premium users: generates the same
+ * MarketImplicationsData shape as the server RPC, but from the user's own
+ * Groq/OpenRouter key (see services/user-ai-keys.ts) instead of
+ * WorldMonitor's paid backend. Returns null if no user key is configured or
+ * generation fails — callers should treat that the same as "unavailable".
+ */
+export async function generateMarketImplicationsFromUserKey(
+  headlines: NewsItem[],
+): Promise<MarketImplicationsData | null> {
+  if (!hasUserAiKey()) return null;
+  const top = headlines.slice(0, 25).map(h => `- ${h.title} (${h.source})`).join('\n');
+  if (!top) return null;
+
+  try {
+    const parsed = await generateStructuredCompletion(SYSTEM_PROMPT, `Recent headlines:\n${top}`) as { cards?: unknown[] };
+    if (!Array.isArray(parsed.cards) || parsed.cards.length === 0) return null;
+    return {
+      cards: parsed.cards.map(c => normalizeCard(c as Record<string, unknown>)),
+      degraded: false,
+      emptyReason: '',
+      generatedAt: new Date().toISOString(),
+    };
+  } catch (err) {
+    console.warn('[MarketImplications] User-key generation failed:', err);
+    return null;
+  }
+}
