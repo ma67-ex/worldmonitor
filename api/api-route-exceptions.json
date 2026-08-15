@@ -446,6 +446,13 @@
       "removal_issue": null
     },
     {
+      "path": "api/pizzint-proxy.js",
+      "category": "upstream-proxy",
+      "reason": "Transparent proxy to pizzint.watch's public dashboard-data endpoint (no CORS header on their side, so the browser can't call it directly). Shape is pizzint.watch's; we don't remodel it. SITREP-fork-specific, not part of upstream WorldMonitor.",
+      "owner": "AkulxSharma",
+      "removal_issue": null
+    },
+    {
       "path": "api/polymarket.js",
       "category": "upstream-proxy",
       "reason": "Transparent proxy to Polymarket gamma API. Shape is Polymarket's.",
