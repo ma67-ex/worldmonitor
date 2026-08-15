@@ -3,19 +3,7 @@
 }
 
 .pro-banner-slot {
-  box-sizing: border-box;
-  flex: 0 0 auto;
-  min-height: 0;
-}
-
-html.wm-pro-banner-reserved .pro-banner-slot {
-  min-height: var(--wm-pro-banner-slot-height, 40px);
-}
-
-.pro-banner-slot .pro-banner {
-  box-sizing: border-box;
-  min-height: var(--wm-pro-banner-slot-height, 40px);
-  width: 100%;
+  display: none;
 }
 
 .header-right {
