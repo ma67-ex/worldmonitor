@@ -92,7 +92,7 @@ import { aviationHandler } from '../../../../server/worldmonitor/aviation/v1/han
 import { createScenarioServiceRoutes as scenarioRoutes } from '../../../../src/generated/server/worldmonitor/scenario/v1/service_server';
 import { scenarioHandler } from '../../../../server/worldmonitor/scenario/v1/handler';
 
-type EdgeHandler = (req: Request, ctx?: unknown) => Promise<Response>;
+type EdgeHandler = (req: Request, ctx?: GatewayCtx) => Promise<Response>;
 
 // Exported (not just module-local) because api/scenario/v1/status.ts,
 // templates.ts, run.ts and api/supply-chain/v1/country-products.ts,
