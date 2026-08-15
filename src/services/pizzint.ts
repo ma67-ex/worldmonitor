@@ -108,11 +108,81 @@ const defaultStatus: PizzIntStatus = {
   locations: []
 };
 
+// ---- pizzint.watch direct source (SITREP fork, no WorldMonitor backend) ----
+// pizzint.watch sends no Access-Control-Allow-Origin, so the browser can't
+// call it directly -- api/pizzint-proxy.js re-serves it same-origin with
+// permissive CORS. See docs/plans/2026-08-15-...-plan.md.
+
+interface PizzintWatchLocation {
+  place_id: string;
+  name: string;
+  address: string;
+  current_popularity: number;
+  percentage_of_usual: number | null;
+  is_spike: boolean;
+  data_source: string;
+  recorded_at: string;
+  data_freshness: 'fresh' | 'stale';
+  is_closed_now: boolean;
+}
+
+interface PizzintWatchResponse {
+  success: boolean;
+  data: PizzintWatchLocation[];
+  overall_index: number;
+  defcon_level: number;
+  active_spikes: number;
+  timestamp: string;
+  data_freshness: 'fresh' | 'stale';
+}
+
+function fromPizzintWatch(raw: PizzintWatchResponse): PizzIntStatus {
+  const level = (raw.defcon_level >= 1 && raw.defcon_level <= 5 ? raw.defcon_level : 5) as PizzIntDefconLevel;
+  return {
+    defconLevel: level,
+    defconLabel: t(DEFCON_LABELS[level] ?? DEFCON_LABELS[5]!),
+    aggregateActivity: raw.overall_index,
+    activeSpikes: raw.active_spikes,
+    locationsMonitored: raw.data.length,
+    locationsOpen: raw.data.filter(l => !l.is_closed_now).length,
+    lastUpdate: new Date(raw.timestamp),
+    dataFreshness: raw.data_freshness,
+    locations: raw.data.map(l => ({
+      place_id: l.place_id,
+      name: l.name,
+      address: l.address,
+      current_popularity: l.current_popularity,
+      percentage_of_usual: l.percentage_of_usual,
+      is_spike: l.is_spike,
+      spike_magnitude: null,
+      data_source: l.data_source,
+      recorded_at: l.recorded_at,
+      data_freshness: l.data_freshness,
+      is_closed_now: l.is_closed_now,
+    })),
+  };
+}
+
+async function fetchFromPizzintWatch(): Promise<PizzIntStatus | null> {
+  try {
+    const resp = await fetch('/api/pizzint-proxy', { signal: AbortSignal.timeout(10_000) });
+    if (!resp.ok) return null;
+    const raw = await resp.json() as PizzintWatchResponse;
+    if (!raw.success || !Array.isArray(raw.data)) return null;
+    return fromPizzintWatch(raw);
+  } catch {
+    return null;
+  }
+}
+
 // ---- Public API ----
 
 export async function fetchPizzIntStatus(): Promise<PizzIntStatus> {
   const hydrated = getHydratedData('pizzint') as GetPizzintStatusResponse | undefined;
   if (hydrated?.pizzint) return toStatus(hydrated.pizzint);
+
+  const direct = await fetchFromPizzintWatch();
+  if (direct && direct.locationsMonitored > 0) return direct;
 
   return pizzintBreaker.execute(async () => {
     const resp: GetPizzintStatusResponse = await getClient().getPizzintStatus({ includeGdelt: false });
