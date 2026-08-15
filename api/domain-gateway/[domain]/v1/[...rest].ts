@@ -136,7 +136,7 @@ export const REGISTRY: Record<string, EdgeHandler> = {
   scenario: createDomainGateway(scenarioRoutes(scenarioHandler, serverOptions)),
 };
 
-export default async function handler(req: Request, ctx?: unknown): Promise<Response> {
+export default async function handler(req: Request, ctx?: GatewayCtx): Promise<Response> {
   const url = new URL(req.url);
   // Vercel rewrites the client's real /api/<domain>/v1/<rpc> call to
   // /api/domain-gateway/<domain>/v1/<rpc> (vercel.json). Parse from the
