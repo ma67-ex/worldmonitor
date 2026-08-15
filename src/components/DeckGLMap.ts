@@ -1111,6 +1111,7 @@ export class DeckGLMap {
         zoom: preset.zoom,
         renderWorldCopies: false,
         attributionControl: false,
+        cooperativeGestures: true,
         interactive: true,
         canvasContextAttributes: { powerPreference: 'high-performance' },
         ...(MAP_INTERACTION_MODE === 'flat'
