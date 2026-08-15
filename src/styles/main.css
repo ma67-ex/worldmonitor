@@ -1415,10 +1415,12 @@ canvas,
 }
 
 .map-section {
-  height: 50vh;
+  height: calc(100vh - 48px);
   min-height: 350px;
-  max-height: 90vh;
-  /* Allow resize up to 90% of viewport */
+  max-height: 100vh;
+  /* Full-bleed hero: map fills the viewport below the header by default;
+     scrolling reveals the panel grid. Still user-resizable via the drag
+     handle below. */
   border: 1px solid var(--border);
   background: var(--surface);
   display: flex;
