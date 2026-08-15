@@ -199,7 +199,8 @@ import type {
 import { fetchCachedRiskScores, getCachedScores, toCountryScore, type CachedRiskScores } from '@/services/cached-risk-scores';
 import type { ThreatLevel as ClientThreatLevel } from '@/types';
 import type { NewsItem as ProtoNewsItem } from '@/generated/client/worldmonitor/news/v1/service_client';
-import { fetchMarketImplications } from '@/services/market-implications';
+import { fetchMarketImplications, generateMarketImplicationsFromUserKey } from '@/services/market-implications';
+import { hasUserAiKey } from '@/services/user-ai-keys';
 import { fetchDiseaseOutbreaks } from '@/services/disease-outbreaks';
 import { fetchSocialVelocity } from '@/services/social-velocity';
 import {
