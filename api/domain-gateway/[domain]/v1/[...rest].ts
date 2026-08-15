@@ -4,17 +4,24 @@
 // WorldMonitor's upstream codebase ships one function per domain
 // (api/<domain>/v1/[rpc].ts x 34, each a 3-line createDomainGateway(...)
 // wrapper), which only works on a paid team plan. This single file replaces
-// all 34 of those with ONE function matching the same /api/<domain>/v1/<rpc>
-// URL shape via Vercel's dynamic route segments -- Vercel always prefers a
-// more specific literal-path file over this dynamic one, so sibling files
-// like scenario/v1/status.ts or supply-chain/v1/country-products.ts are
-// completely unaffected and keep routing to themselves.
+// all 34 of those.
+//
+// Can't live at api/[domain]/v1/[rpc].ts (a dynamic segment at the api/
+// root's first path position) -- Vercel's build rejects that as an
+// unresolvable conflict with the existing root catch-all
+// api/[...notfound].ts. Living under the literal "domain-gateway/" prefix
+// instead avoids that conflict entirely. vercel.json carries one explicit
+// rewrite per domain mapping the real client-facing URL
+// (/api/<domain>/v1/<rpc>) to this file's path
+// (/api/domain-gateway/<domain>/v1/<rpc>) -- the handler below reconstructs
+// the original pathname before dispatching so nothing downstream needs to
+// know the rewrite happened.
 //
 // Every domain's actual logic (routes factory + handler) is untouched --
 // this only replaces how many separate Vercel functions wrap them.
 export const config = { runtime: 'edge' };
 
-import { createDomainGateway, serverOptions } from '../../../server/gateway';
+import { createDomainGateway, serverOptions } from '../../../../server/gateway';
 
 import { createNewsServiceRoutes as newsRoutes } from '../../../src/generated/server/worldmonitor/news/v1/service_server';
 import { newsHandler } from '../../../server/worldmonitor/news/v1/handler';
