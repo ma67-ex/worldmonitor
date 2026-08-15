@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <rect width="1024" height="1024" rx="180" fill="#0a0f0a"/>
-  <circle cx="512" cy="512" r="420" fill="none" stroke="#2f8f68" stroke-width="24"/>
-  <text x="512" y="700" font-family="'SF Mono','Menlo','Courier New',monospace" font-weight="700" font-size="560" fill="#4ade80" text-anchor="middle">S</text>
-</svg>
