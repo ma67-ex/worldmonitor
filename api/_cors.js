@@ -5,6 +5,15 @@ const ALLOWED_ORIGIN_PATTERNS = [
   //   worldmonitor-<hash>-eliewm.vercel.app        (deployment URL)
   // Tight on purpose: never a bare *.vercel.app (this is a security allowlist).
   /^https:\/\/worldmonitor-[a-z0-9-]+-eliewm\.vercel\.app$/,
+  // SITREP fork (github.com/AkulxSharma/worldmonitor) -- Vercel project
+  // "akul-sharmas-projects-8d7c98ac". Covers the short alias, the team-scope
+  // default alias, the git-branch alias, and per-deployment hash URLs. Same
+  // "never a bare *.vercel.app" tightness as the eliewm pattern above.
+  /^https:\/\/worldmonitor-one-theta\.vercel\.app$/,
+  /^https:\/\/worldmonitor(-[a-z0-9-]+)?-akul-sharmas-projects-8d7c98ac\.vercel\.app$/,
+  // Future custom domain (src/config/brand.ts BRAND_DOMAIN), not live yet but
+  // safe to allow ahead of time.
+  /^https:\/\/(.*\.)?sitrep\.app$/,
   /^https?:\/\/tauri\.localhost(:\d+)?$/,
   /^https?:\/\/[a-z0-9-]+\.tauri\.localhost(:\d+)?$/i,
   /^tauri:\/\/localhost$/,
