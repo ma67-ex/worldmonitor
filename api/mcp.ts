@@ -3,8 +3,8 @@
 
 export const config = { runtime: 'edge' };
 
-export { default } from './mcp/handler';
-export { mcpHandler } from './mcp/handler';
+export { default } from './mcp/_handler';
+export { mcpHandler } from './mcp/_handler';
 export {
   applyPerMinuteLimit,
   buildAuthHeaders,

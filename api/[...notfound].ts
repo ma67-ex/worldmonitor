@@ -13,7 +13,7 @@
 // versioned REST surface (#4724). A filesystem catch-all runs AFTER all
 // more-specific routes, fixing the shadow while preserving the JSON 404 body.
 
-import handler from './not-found';
+import handler from './_not-found';
 
 export const config = { runtime: 'edge' };
 

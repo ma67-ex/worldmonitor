@@ -122,7 +122,7 @@ const REGISTRY: Record<string, EdgeHandler> = {
   'wm-session': wmSessionHandler,
 };
 
-export default async function handler(req: Request, ctx?: EdgeCtx): Promise<Response> {
+export default async function handler(req: Request, ctx: EdgeCtx): Promise<Response> {
   const url = new URL(req.url);
   const parts = url.pathname.split('/');
   const name = parts[3] ?? '';
