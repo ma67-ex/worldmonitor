@@ -209,7 +209,7 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/skills/fetch-agentskills.ts"
+          "path": "api/skills/_fetch-agentskills.ts"
         }
       ]
     },
@@ -1141,13 +1141,13 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/a2a.ts"
+          "path": "api/_a2a.ts"
         },
         {
-          "path": "api/internal/mcp-grant-mint.ts"
+          "path": "api/internal/_mcp-grant-mint.ts"
         },
         {
-          "path": "api/mcp/downstream.ts"
+          "path": "api/mcp/_downstream.ts"
         },
         {
           "path": "scripts/ais-relay.cjs"
@@ -1750,10 +1750,10 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/_notification-webhook-ssrf.ts"
+          "path": "api/_mcp-proxy.ts"
         },
         {
-          "path": "api/mcp-proxy.ts"
+          "path": "api/_notification-webhook-ssrf.ts"
         },
         {
           "path": "server/_shared/email-validation.ts"
@@ -2311,10 +2311,10 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/discord/oauth/callback.ts"
+          "path": "api/discord/oauth/_callback.ts"
         },
         {
-          "path": "api/discord/oauth/start.ts"
+          "path": "api/discord/oauth/_start.ts"
         }
       ]
     },
@@ -3096,7 +3096,7 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/symbol-search.ts"
+          "path": "api/_symbol-search.ts"
         },
         {
           "path": "scripts/ais-relay.cjs"
@@ -3320,10 +3320,10 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/download.js"
+          "path": "api/_download.js"
         },
         {
-          "path": "api/pizzint-proxy.js"
+          "path": "api/_pizzint-proxy.js"
         },
         {
           "path": "scripts/generate-airline-codes.mjs"
@@ -3710,7 +3710,7 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/notification-channels.ts"
+          "path": "api/_notification-channels.ts"
         }
       ]
     },
@@ -3848,7 +3848,7 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/mcp/constants.ts"
+          "path": "api/mcp/_constants.ts"
         }
       ]
     },
@@ -4084,7 +4084,7 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/product-catalog.js"
+          "path": "api/_product-catalog.js"
         },
         {
           "path": "scripts/ais-relay.cjs"
@@ -4663,7 +4663,7 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/reverse-geocode.js"
+          "path": "api/_reverse-geocode.js"
         },
         {
           "path": "server/worldmonitor/infrastructure/v1/reverse-geocode.ts"
@@ -5128,7 +5128,7 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/widget-agent.ts"
+          "path": "api/_widget-agent.ts"
         },
         {
           "path": "scripts/seed-security-advisories.mjs"
@@ -5677,7 +5677,7 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/ask.ts"
+          "path": "api/_ask.ts"
         },
         {
           "path": "scripts/build-crawlable-corpus.mjs"
@@ -5940,10 +5940,10 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/slack/oauth/callback.ts"
+          "path": "api/slack/oauth/_callback.ts"
         },
         {
-          "path": "api/slack/oauth/start.ts"
+          "path": "api/slack/oauth/_start.ts"
         }
       ]
     },
@@ -6403,7 +6403,7 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/product-catalog.js"
+          "path": "api/_product-catalog.js"
         },
         {
           "path": "scripts/ais-relay.cjs"
@@ -7053,7 +7053,7 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/oauth-authorization-server.ts"
+          "path": "api/_oauth-authorization-server.ts"
         }
       ]
     },
@@ -7067,31 +7067,31 @@
       "status": "excluded",
       "references": [
         {
+          "path": "api/_a2a.ts"
+        },
+        {
           "path": "api/_agent-metadata.ts"
         },
         {
-          "path": "api/a2a.ts"
+          "path": "api/_ask.ts"
         },
         {
-          "path": "api/ask.ts"
+          "path": "api/_fwdstart.js"
         },
         {
-          "path": "api/fwdstart.js"
+          "path": "api/_not-found.ts"
         },
         {
-          "path": "api/not-found.ts"
+          "path": "api/_reverse-geocode.js"
         },
         {
-          "path": "api/oauth/authorize.js"
+          "path": "api/oauth/_authorize.js"
         },
         {
           "path": "api/og-story.js"
         },
         {
-          "path": "api/referral/me.ts"
-        },
-        {
-          "path": "api/reverse-geocode.js"
+          "path": "api/referral/_me.ts"
         },
         {
           "path": "api/story.js"
@@ -7221,7 +7221,7 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/docs-mcp.ts"
+          "path": "api/_docs-mcp.ts"
         }
       ]
     },
@@ -8487,7 +8487,7 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/fwdstart.js"
+          "path": "api/_fwdstart.js"
         }
       ]
     },
@@ -9517,7 +9517,7 @@
       "status": "terms-review",
       "references": [
         {
-          "path": "api/pizzint-proxy.js"
+          "path": "api/_pizzint-proxy.js"
         },
         {
           "path": "scripts/ais-relay.cjs"
@@ -10589,7 +10589,7 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/fwdstart.js"
+          "path": "api/_fwdstart.js"
         }
       ]
     },
@@ -10722,13 +10722,13 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/a2a.ts"
+          "path": "api/_a2a.ts"
         },
         {
-          "path": "api/ask.ts"
+          "path": "api/_ask.ts"
         },
         {
-          "path": "api/not-found.ts"
+          "path": "api/_not-found.ts"
         },
         {
           "path": "scripts/build-crawlable-corpus.mjs"
@@ -10858,10 +10858,10 @@
       "status": "excluded",
       "references": [
         {
-          "path": "api/youtube/embed.js"
+          "path": "api/youtube/_embed.js"
         },
         {
-          "path": "api/youtube/live.js"
+          "path": "api/youtube/_live.js"
         },
         {
           "path": "scripts/ais-relay.cjs"

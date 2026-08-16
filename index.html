@@ -53,14 +53,47 @@
       "description": "Real-time global intelligence dashboard aggregating conflicts, military movements, markets, infrastructure, and geopolitical data.",
       "applicationCategory": "SecurityApplication",
       "operatingSystem": "Web, Windows, macOS, Linux",
-      "offers": {
-        "@type": "Offer",
-        "name": "Free",
-        "price": "0",
-        "priceCurrency": "USD",
-        "availability": "https://schema.org/InStock",
-        "description": "All dashboard panels and data — no paid tier."
-      },
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Free",
+          "price": "0",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock",
+          "url": "https://sitrep.app/",
+          "description": "Core dashboard panels, Global news feed, Earthquake & weather alerts, Basic map view, 3 dashboard tabs"
+        },
+        {
+          "@type": "Offer",
+          "name": "Pro Monthly",
+          "price": "39.99",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock",
+          "url": "https://sitrep.app/",
+          "description": "Everything in Free, AI stock analysis & backtesting, Daily market briefs, Military & geopolitical tracking, Custom widget builder, 10 custom dashboards (vs 3), MCP + SDK access for Claude Desktop & other AI clients (50 calls/day), Priority data refresh, Personal license",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": "39.99",
+            "priceCurrency": "USD",
+            "billingDuration": "P1M"
+          }
+        },
+        {
+          "@type": "Offer",
+          "name": "Pro Annual",
+          "price": "359.99",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock",
+          "url": "https://sitrep.app/",
+          "description": "",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": "359.99",
+            "priceCurrency": "USD",
+            "billingDuration": "P1Y"
+          }
+        }
+      ],
       "featureList": [
         "Real-time conflict tracking (ACLED, UCDP)",
         "Military ADS-B flight monitoring",
