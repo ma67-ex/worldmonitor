@@ -1061,6 +1061,9 @@
         },
         {
           "path": "scripts/seed-weather-alerts.mjs"
+        },
+        {
+          "path": "src/services/weather.ts"
         }
       ]
     },
