@@ -141,11 +141,12 @@ export const REGISTRY: Record<string, EdgeHandler> = {
 
 export default async function handler(req: Request, ctx?: GatewayCtx): Promise<Response> {
   const url = new URL(req.url);
-  // Vercel rewrites the client's real /api/<domain>/v1/<rpc> call to
-  // /api/domain-gateway/<domain>/v1/<rpc> (vercel.json). Parse from the
-  // rewritten shape (parts[3] = domain here, not parts[2]).
+  // Vercel rewrites preserve the ORIGINAL client-facing pathname in req.url,
+  // not the vercel.json destination path (confirmed empirically -- see
+  // misc-gateway/[name].ts). For a request that was /api/<domain>/v1/<rpc>
+  // before the rewrite, parts[2] is <domain>, not parts[3].
   const parts = url.pathname.split('/');
-  const domain = parts[3] ?? '';
+  const domain = parts[2] ?? '';
   const gateway = REGISTRY[domain];
   if (!gateway) {
     return new Response(JSON.stringify({ error: `Unknown domain: ${domain}` }), {
@@ -153,13 +154,6 @@ export default async function handler(req: Request, ctx?: GatewayCtx): Promise<R
       headers: { 'Content-Type': 'application/json' },
     });
   }
-  // createDomainGateway's own telemetry parsing expects the ORIGINAL
-  // /api/<domain>/v1/<rpc> shape (server/gateway.ts: "Domain segment for
-  // telemetry"). Reconstruct that pathname so telemetry/logging stays
-  // accurate -- the actual RPC dispatch below matches on route patterns,
-  // not the raw path prefix, so this reconstruction is purely for parity.
-  const originalPathname = '/api/' + parts.slice(3).join('/');
-  const forwardedUrl = new URL(originalPathname + url.search, url.origin);
-  const forwardedReq = new Request(forwardedUrl.toString(), req);
-  return gateway(forwardedReq, ctx);
+  // req.url is already /api/<domain>/v1/<rpc> -- no reconstruction needed.
+  return gateway(req, ctx);
 }
