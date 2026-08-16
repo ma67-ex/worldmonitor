@@ -26,17 +26,17 @@ import {
   type WaitUntilCtx,
 } from '../../server/_shared/usage';
 import type { AuthKind } from '../../server/_shared/usage-identity';
-import type { McpAuthContext } from './types';
+import type { McpAuthContext } from './_types';
 
 // Which stage of the /mcp funnel produced the terminal Response. Set by the
 // handler at each return site; combined with the HTTP status it maps onto the
 // closed RequestReason union without parsing response bodies.
 export type McpPhase =
-  | 'auth'       // credential resolution rejected (invalid key/bearer, backend down)
+  | '_auth'       // credential resolution rejected (invalid key/bearer, backend down)
   | 'precheck'   // identity ok, entitlement/token pre-check rejected
   | 'billing'    // pre-check rejected with a billing-verification denial (#4770)
   | 'limit'      // per-minute rate limit
-  | 'dispatch'   // tools/call quota (429) / reservation unavailable (503)
+  | '_dispatch'   // tools/call quota (429) / reservation unavailable (503)
   | 'malformed'  // unparseable JSON-RPC envelope
   | 'transport'  // method/SSE-transport level (405, replay 4xx)
   | 'ok';        // served (JSON-RPC-level errors still ride HTTP 200 → ok)
@@ -75,7 +75,7 @@ export function setUsageContext(usage: McpUsage, context: McpAuthContext): void 
 
 export function mcpReasonFor(phase: McpPhase, status: number): RequestReason {
   switch (phase) {
-    case 'auth':
+    case '_auth':
       return status === 503 ? 'auth_unavailable' : 'auth_401';
     case 'precheck':
       return status === 503 ? 'auth_unavailable' : 'tier_403';
@@ -87,7 +87,7 @@ export function mcpReasonFor(phase: McpPhase, status: number): RequestReason {
       return status === 503 ? 'billing_verification_503' : 'tier_403';
     case 'limit':
       return 'rate_limit_429';
-    case 'dispatch':
+    case '_dispatch':
       if (status === 429) return 'rate_limit_429';
       if (status === 503) return 'rate_limit_degraded';
       return 'ok';

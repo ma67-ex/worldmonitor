@@ -3,7 +3,7 @@ import {
   PRO_DAILY_QUOTA_LIMIT,
   PRO_DAILY_QUOTA_TTL_SECONDS,
 } from '../../server/_shared/pro-mcp-token';
-import type { PipelineFn, QuotaRejected, QuotaReserved } from './types';
+import type { PipelineFn, QuotaRejected, QuotaReserved } from './_types';
 
 // ---------------------------------------------------------------------------
 // Daily quota helpers (Pro-only). INCR-first reservation runs synchronously

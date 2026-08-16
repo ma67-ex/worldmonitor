@@ -18,18 +18,18 @@
 // (the extension's content profile) — NOT `text/html+skybridge` (that is the
 // OpenAI Apps SDK's marker).
 
-import { rpcError, rpcOk } from '../rpc';
-import { CHOKEPOINT_MONITOR_APP_HTML } from './chokepoint-monitor-app';
-import { COUNTRY_BRIEF_APP_HTML } from './country-brief-app';
-import { COUNTRY_RISK_APP_HTML } from './country-risk-app';
-import { MARKET_RADAR_APP_HTML } from './market-radar-app';
-import { buildUiMeta, UI_RESOURCE_MIME_TYPE as SHELL_UI_MIME_TYPE, type UiResourceMeta } from './shell';
-import { WORLD_BRIEF_APP_HTML } from './world-brief-app';
-import { NEWS_INTELLIGENCE_APP_HTML } from './news-intelligence-app';
-import { CONFLICT_EVENTS_APP_HTML } from './conflict-events-app';
-import { NATURAL_DISASTERS_APP_HTML } from './natural-disasters-app';
-import { PREDICTION_MARKETS_APP_HTML } from './prediction-markets-app';
-import { FORECASTS_APP_HTML } from './forecasts-app';
+import { rpcError, rpcOk } from '../_rpc';
+import { CHOKEPOINT_MONITOR_APP_HTML } from './_chokepoint-monitor-app';
+import { COUNTRY_BRIEF_APP_HTML } from './_country-brief-app';
+import { COUNTRY_RISK_APP_HTML } from './_country-risk-app';
+import { MARKET_RADAR_APP_HTML } from './_market-radar-app';
+import { buildUiMeta, UI_RESOURCE_MIME_TYPE as SHELL_UI_MIME_TYPE, type UiResourceMeta } from './_shell';
+import { WORLD_BRIEF_APP_HTML } from './_world-brief-app';
+import { NEWS_INTELLIGENCE_APP_HTML } from './_news-intelligence-app';
+import { CONFLICT_EVENTS_APP_HTML } from './_conflict-events-app';
+import { NATURAL_DISASTERS_APP_HTML } from './_natural-disasters-app';
+import { PREDICTION_MARKETS_APP_HTML } from './_prediction-markets-app';
+import { FORECASTS_APP_HTML } from './_forecasts-app';
 
 // Re-exported from the shared shell so the mimeType has a single source of
 // truth across the fleet (the first widget defined it here in v1.11.0).

@@ -16,7 +16,7 @@
 //
 // textContent-only rendering; renderBody stays backtick/`${`/regex-free.
 
-import { buildAppHtml } from './shell';
+import { buildAppHtml } from './_shell';
 
 const STYLES = `
   .story { padding: 10px 0; border-bottom: 1px solid var(--border); }

@@ -23,7 +23,7 @@
 // the test suite at test time, not at module load, to keep this module free
 // of an import cycle with the registry.
 
-import type { McpPromptArgument, McpPromptDef } from '../types';
+import type { McpPromptArgument, McpPromptDef } from '../_types';
 
 // ---------------------------------------------------------------------------
 // Registry

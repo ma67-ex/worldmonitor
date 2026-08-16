@@ -52,9 +52,9 @@ import {
 } from '../../../shared/analysis-population-exposure';
 import { INTEL_HOTSPOTS } from '../../../shared/geo-data';
 import { readJsonBatchFromUpstashWithStatus } from '../../_upstash-json.js';
-import { evaluateFreshness } from '../freshness';
-import { McpSourceUnavailableError } from '../source-unavailable';
-import type { FreshnessCheck, ToolDef } from '../types';
+import { evaluateFreshness } from '../_freshness';
+import { McpSourceUnavailableError } from '../_source-unavailable';
+import type { FreshnessCheck, ToolDef } from '../_types';
 
 type PayloadValidator = (value: unknown) => boolean;
 

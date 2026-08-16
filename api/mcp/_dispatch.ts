@@ -2,33 +2,33 @@ import { readExistsFlags, readJsonFromUpstash, redisPipeline } from '../_upstash
 // @ts-expect-error — JS module, no declaration file
 import { captureSilentError } from '../_sentry-edge.js';
 import { secondsUntilUtcMidnight } from '../../server/_shared/pro-mcp-token';
-import { getMcpBillingVerificationDenial } from './auth';
-import { BillingDenialError } from './billing-denial';
+import { getMcpBillingVerificationDenial } from './_auth';
+import { BillingDenialError } from './_billing-denial';
 import {
   BothSourcesFailedError,
   createMcpToolExecutionContext,
   downstreamErrorTags,
-} from './downstream';
-import { mcpErrorFingerprint } from './error-fingerprint';
-import { argBool, summarizeData } from './filters';
-import { evaluateFreshness } from './freshness';
-import { applyJmespath } from './jmespath';
-import { reserveQuota } from './quota';
-import { TOOL_REGISTRY } from './registry/index';
-import { rpcError, rpcOk, withMcpNoStore } from './rpc';
-import { McpSourceUnavailableError } from './source-unavailable';
+} from './_downstream';
+import { mcpErrorFingerprint } from './_error-fingerprint';
+import { argBool, summarizeData } from './_filters';
+import { evaluateFreshness } from './_freshness';
+import { applyJmespath } from './_jmespath';
+import { reserveQuota } from './_quota';
+import { TOOL_REGISTRY } from './registry/_index';
+import { rpcError, rpcOk, withMcpNoStore } from './_rpc';
+import { McpSourceUnavailableError } from './_source-unavailable';
 import {
   emitTelemetry,
   principalIdForLog,
   telemetryEnabled,
-} from './telemetry';
+} from './_telemetry';
 import type {
   CacheToolDef,
   McpAuthContext,
   McpHandlerDeps,
   McpToolExecutionContext,
-} from './types';
-import { utf8ByteLength } from './utils';
+} from './_types';
+import { utf8ByteLength } from './_utils';
 
 // ---------------------------------------------------------------------------
 // Tool execution (cache tools — no _execute)

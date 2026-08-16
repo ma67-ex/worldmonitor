@@ -14,7 +14,7 @@
 //
 // textContent-only rendering; renderBody stays backtick/`${`/regex-free.
 
-import { buildAppHtml } from './shell';
+import { buildAppHtml } from './_shell';
 
 const STYLES = `
   .lens { display: inline-block; margin: 4px 0 0; font-size: 11px; color: var(--muted); }

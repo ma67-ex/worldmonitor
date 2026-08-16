@@ -43,7 +43,7 @@ import { getCorsHeaders } from '../_cors.js';
 import { captureSilentError } from '../_sentry-edge.js';
 import { resolveClerkSession } from '../../server/_shared/auth-session';
 import { getEntitlements } from '../../server/_shared/entitlement-check';
-import { resolveDailyLimit, resolvePlanDrivenMcpAllowance } from '../mcp/quota';
+import { resolveDailyLimit, resolvePlanDrivenMcpAllowance } from '../mcp/_quota';
 import {
   dailyCounterKey,
   secondsUntilUtcMidnight,

@@ -7,29 +7,29 @@ import {
   resolveAuthContext,
   runContextPreChecks,
   wwwAuthHeader,
-} from './auth';
+} from './_auth';
 import {
   MCP_LOG_LEVELS,
   negotiateProtocolVersion,
   SERVER_INSTRUCTIONS,
   SERVER_NAME,
   SERVER_VERSION,
-} from './constants';
-import { dispatchToolsCall } from './dispatch';
-import { buildPromptResponse, PROMPT_LIST_RESPONSE } from './prompts/index';
-import { TOOL_LIST_BYTES, TOOL_LIST_RESPONSE } from './registry/index';
+} from './_constants';
+import { dispatchToolsCall } from './_dispatch';
+import { buildPromptResponse, PROMPT_LIST_RESPONSE } from './prompts/_index';
+import { TOOL_LIST_BYTES, TOOL_LIST_RESPONSE } from './registry/_index';
 import {
   buildPublicResourceResponse,
   buildResourceResponse,
   isPublicResourceUri,
   RESOURCE_LIST_RESPONSE,
   RESOURCE_TEMPLATE_LIST_RESPONSE,
-} from './resources/index';
-import { rpcError, rpcOk, withMcpNoStore } from './rpc';
-import { buildUiResourceRead, isUiResourceUri, UI_RESOURCE_LIST_RESPONSE } from './ui/registry';
-import { emitTelemetry, principalIdForLog } from './telemetry';
-import { createMcpUsage, emitMcpRequestEvent, setUsageContext, type McpUsage } from './usage';
-import type { McpAuthContext, McpHandlerDeps } from './types';
+} from './resources/_index';
+import { rpcError, rpcOk, withMcpNoStore } from './_rpc';
+import { buildUiResourceRead, isUiResourceUri, UI_RESOURCE_LIST_RESPONSE } from './ui/_registry';
+import { emitTelemetry, principalIdForLog } from './_telemetry';
+import { createMcpUsage, emitMcpRequestEvent, setUsageContext, type McpUsage } from './_usage';
+import type { McpAuthContext, McpHandlerDeps } from './_types';
 
 // MCP methods servable WITHOUT authentication. These are the zero-data
 // discovery surface an agent (or an agent-readiness scanner) needs to learn
@@ -307,7 +307,7 @@ async function handleAuthenticatedSseReplay(
 ): Promise<Response> {
   const auth = await resolveAuthContext(req, deps, resourceMetadataUrl, corsHeaders);
   if (!auth.ok) {
-    usage.phase = 'auth';
+    usage.phase = '_auth';
     return auth.response;
   }
   setUsageContext(usage, auth.context);
@@ -647,7 +647,7 @@ async function mcpHandlerInner(
       // downgrade; a valid principal is attributed for telemetry + limits.
       const auth = await resolveAuthContext(req, deps, resourceMetadataUrl, corsHeaders);
       if (!auth.ok) {
-        usage.phase = 'auth';
+        usage.phase = '_auth';
         return auth.response;
       }
       context = auth.context;
@@ -667,7 +667,7 @@ async function mcpHandlerInner(
   } else {
     const auth = await resolveAuthContext(req, deps, resourceMetadataUrl, corsHeaders);
     if (!auth.ok) {
-      usage.phase = 'auth';
+      usage.phase = '_auth';
       return auth.response;
     }
     context = auth.context;
@@ -744,7 +744,7 @@ async function mcpHandlerInner(
       // context is always set here — tools/call is never a PUBLIC_MCP_METHOD.
       // The guard narrows the type and hard-fails closed if that ever changes.
       if (!context) {
-        usage.phase = 'auth';
+        usage.phase = '_auth';
         return authRequiredResponse(id, resourceMetadataUrl, corsHeaders);
       }
       const dispatched = await dispatchToolsCall(req, context, deps, body, corsHeaders, ctx, mcpDailyLimit);
@@ -754,7 +754,7 @@ async function mcpHandlerInner(
       if (dispatched.headers.get('X-Billing-Verification')) {
         usage.phase = 'billing';
       } else if (dispatched.status === 429 || dispatched.status === 503) {
-        usage.phase = 'dispatch';
+        usage.phase = '_dispatch';
       }
       return maybeStreamJsonRpcResponse(req, dispatched);
     }
@@ -815,12 +815,12 @@ async function mcpHandlerInner(
       // telemetry path. `context` is always set here — a non-public
       // resources/read runs the gated path above; the guard fails closed.
       if (!context) {
-        usage.phase = 'auth';
+        usage.phase = '_auth';
         return authRequiredResponse(id, resourceMetadataUrl, corsHeaders);
       }
       {
         const resourceRes = await buildResourceResponse(req, context, deps, body, corsHeaders, ctx, mcpDailyLimit);
-        if (resourceRes.status === 429 || resourceRes.status === 503) usage.phase = 'dispatch';
+        if (resourceRes.status === 429 || resourceRes.status === 503) usage.phase = '_dispatch';
         return maybeStreamJsonRpcResponse(req, resourceRes);
       }
     case 'logging/setLevel': {

@@ -1,6 +1,6 @@
-import { buildAuthHeaders } from '../auth';
-import { assertToolFetchOk } from '../billing-denial';
-import type { ToolDef } from '../types';
+import { buildAuthHeaders } from '../_auth';
+import { assertToolFetchOk } from '../_billing-denial';
+import type { ToolDef } from '../_types';
 
 export const COMPANY_INTEL_VIEWS = [
   'enrichment',

@@ -1,4 +1,4 @@
-import type { FreshnessCheck } from './types';
+import type { FreshnessCheck } from './_types';
 // @ts-expect-error — JS module, no declaration file
 import { buildContentFreshnessAssessment, getActiveContentFreshnessActivationWindow } from '../_content-freshness.js';
 

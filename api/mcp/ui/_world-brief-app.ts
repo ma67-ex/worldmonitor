@@ -15,7 +15,7 @@
 // and stays regex/escape-free by delegating text handling to the shared helpers
 // (paragraphs / collapseWs / httpUrl).
 
-import { buildAppHtml } from './shell';
+import { buildAppHtml } from './_shell';
 
 const STYLES = `
   .brief { margin: 14px 0 4px; }

@@ -24,11 +24,11 @@ import {
 import { clusterNewsCore, protoThreatLevelToLabel, topClusterKeywords } from '../../../shared/news-clustering-core.js';
 import type { NewsItemCore } from '../../../shared/news-clustering-core.js';
 import { getSourceProvenanceState } from '../../../shared/source-provenance.js';
-import { buildAuthHeaders } from '../auth';
-import { assertToolFetchOk } from '../billing-denial';
-import { argStr } from '../filters';
-import { McpSourceUnavailableError } from '../source-unavailable';
-import type { ToolDef } from '../types';
+import { buildAuthHeaders } from '../_auth';
+import { assertToolFetchOk } from '../_billing-denial';
+import { argStr } from '../_filters';
+import { McpSourceUnavailableError } from '../_source-unavailable';
+import type { ToolDef } from '../_types';
 
 // ── #5697 on-demand NLP intelligence utilities ──────────────────────────────
 // Four deterministic (classify_event excepted — enum-validated LLM) utilities

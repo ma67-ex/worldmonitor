@@ -13,7 +13,7 @@
 //
 // textContent-only rendering; renderBody stays backtick/`${`/regex-free.
 
-import { buildAppHtml } from './shell';
+import { buildAppHtml } from './_shell';
 
 const STYLES = `
   .crow { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }

@@ -7,27 +7,27 @@ import {
 // @ts-expect-error — generated JS module, no declaration file
 import MINING_SITES_RAW from '../../../shared/mining-sites.js';
 import { readJsonFromUpstash } from '../../_upstash-json.js';
-import { argStr } from '../filters';
-import { buildAuthHeaders } from '../auth';
-import { assertToolFetchOk, BillingDenialError, throwIfBillingDenial } from '../billing-denial';
-import { SUPPORTED_CONSUMER_PRICES_COUNTRIES } from '../constants';
+import { argStr } from '../_filters';
+import { buildAuthHeaders } from '../_auth';
+import { assertToolFetchOk, BillingDenialError, throwIfBillingDenial } from '../_billing-denial';
+import { SUPPORTED_CONSUMER_PRICES_COUNTRIES } from '../_constants';
 import {
   assertMcpToolFetchOk,
   BothSourcesFailedError,
   buildMcpDownstreamHeaders,
-} from '../downstream';
-import { evaluateFreshness } from '../freshness';
-import { McpSourceUnavailableError } from '../source-unavailable';
+} from '../_downstream';
+import { evaluateFreshness } from '../_freshness';
+import { McpSourceUnavailableError } from '../_source-unavailable';
 import {
   collectInsightSources,
   insightsSnapshotRejection,
   normalizeInsightSource,
 } from '../../../shared/insights-snapshot.js';
-import type { FreshnessCheck, ToolDef } from '../types';
-import { COUNTRY_BRIEF_UI_URI, COUNTRY_RISK_UI_URI, WORLD_BRIEF_UI_URI } from '../ui/registry';
-import { ANALYSIS_TOOLS } from './analysis-tools';
-import { buildPublicTool, TOOL_REGISTRY } from './index';
-import { COMPANY_INTEL_TOOL } from './company-intel-tools';
+import type { FreshnessCheck, ToolDef } from '../_types';
+import { COUNTRY_BRIEF_UI_URI, COUNTRY_RISK_UI_URI, WORLD_BRIEF_UI_URI } from '../ui/_registry';
+import { ANALYSIS_TOOLS } from './_analysis-tools';
+import { buildPublicTool, TOOL_REGISTRY } from './_index';
+import { COMPANY_INTEL_TOOL } from './_company-intel-tools';
 
 type McpBriefSource = {
   title: string;

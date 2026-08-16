@@ -1,9 +1,9 @@
-import { BillingDenialError, throwIfBillingDenial } from './billing-denial';
-import { emitTelemetry } from './telemetry';
+import { BillingDenialError, throwIfBillingDenial } from './_billing-denial';
+import { emitTelemetry } from './_telemetry';
 import type {
   McpAuthContext,
   McpToolExecutionContext,
-} from './types';
+} from './_types';
 
 export const MCP_CANONICAL_API_ORIGIN = 'https://api.worldmonitor.app';
 

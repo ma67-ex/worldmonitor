@@ -9,14 +9,14 @@ import { getClientIp } from '../_client-ip.js';
 // @ts-expect-error — JS module, no declaration file
 import { captureSilentError } from '../_sentry-edge.js';
 import { redisPipeline as rawRedisPipeline } from '../_upstash-json.js';
-import { resolvePlanDrivenMcpAllowance } from './quota';
+import { resolvePlanDrivenMcpAllowance } from './_quota';
 import {
   getBillingVerificationDenial,
   getEntitlements,
   isEntitlementBackendConfigured,
 } from '../../server/_shared/entitlement-check';
 import { checkProMcpAccess } from '../../server/_shared/pro-mcp-gate';
-import type { BillingVerificationCode } from './billing-denial';
+import type { BillingVerificationCode } from './_billing-denial';
 import {
   buildInternalMcpHeaders,
   signInternalMcpRequest,
@@ -24,15 +24,15 @@ import {
 import { validateProMcpTokenOrNull } from '../../server/_shared/pro-mcp-token';
 import { validateUserApiKey } from '../../server/_shared/user-api-key';
 import { checkFailClosedScopedIpRateLimit } from '../../server/_shared/rate-limit';
-import { rpcError, withMcpNoStore } from './rpc';
+import { rpcError, withMcpNoStore } from './_rpc';
 import type {
   AuthResolution,
   AuthResolutionRejected,
   McpAuthContext,
   McpHandlerDeps,
   McpPreCheckResult,
-} from './types';
-import { emitMcpRateLimitHit } from './telemetry';
+} from './_types';
+import { emitMcpRateLimitHit } from './_telemetry';
 
 // ---------------------------------------------------------------------------
 // Rate limiters
