@@ -136,6 +136,7 @@ export const REGISTRY: Record<string, EdgeHandler> = {
   wildfire: createDomainGateway(wildfireRoutes(wildfireHandler, serverOptions)),
   aviation: createDomainGateway(aviationRoutes(aviationHandler, serverOptions)),
   scenario: createDomainGateway(scenarioRoutes(scenarioHandler, serverOptions)),
+  'v2-shipping': createDomainGateway(shippingV2Routes(shippingV2Handler, serverOptions)),
 };
 
 export default async function handler(req: Request, ctx?: GatewayCtx): Promise<Response> {
