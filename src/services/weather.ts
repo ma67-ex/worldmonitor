@@ -30,6 +30,69 @@ interface BootstrapAlert {
 
 const breaker = createCircuitBreaker<WeatherAlert[]>({ name: 'NWS Weather', cacheTtlMs: 30 * 60 * 1000, persistCache: true });
 
+// NWS's public alerts API sends Access-Control-Allow-Origin: * (verified
+// empirically), so the browser can fetch it directly -- no proxy function
+// needed. The SITREP fork has no Railway seed loop populating the bootstrap
+// 'weatherAlerts' key, so this is the primary source here, not a fallback of
+// last resort. Same source NWS already uses upstream (breaker name "NWS
+// Weather" predates this change) -- this isn't a scope reduction.
+const NWS_ALERTS_URL = 'https://api.weather.gov/alerts/active?status=actual&message_type=alert';
+
+interface NwsFeature {
+  properties: {
+    id: string; event: string; severity: string; headline: string;
+    description: string; areaDesc: string; onset: string | null; expires: string;
+  };
+  geometry: { type: string; coordinates: unknown } | null;
+}
+
+function flattenCoordinates(geometry: NwsFeature['geometry']): [number, number][] {
+  if (!geometry) return [];
+  const rings = geometry.type === 'Polygon' ? geometry.coordinates as number[][][]
+    : geometry.type === 'MultiPolygon' ? (geometry.coordinates as number[][][][])[0]
+    : null;
+  if (!rings?.[0]) return [];
+  return rings[0].map(([lon, lat]) => [lon, lat] as [number, number]);
+}
+
+function centroidOf(coords: [number, number][]): [number, number] | undefined {
+  if (coords.length === 0) return undefined;
+  const [sumLon, sumLat] = coords.reduce(([lo, la], [lon, lat]) => [lo + lon, la + lat], [0, 0]);
+  return [sumLon / coords.length, sumLat / coords.length];
+}
+
+function fromNws(features: NwsFeature[]): WeatherAlert[] {
+  return features
+    .filter((f) => f.properties.severity !== 'Unknown')
+    .map((f) => {
+      const coordinates = flattenCoordinates(f.geometry);
+      return {
+        id: f.properties.id,
+        event: f.properties.event,
+        severity: (['Extreme', 'Severe', 'Moderate', 'Minor'].includes(f.properties.severity)
+          ? f.properties.severity : 'Unknown') as WeatherAlert['severity'],
+        headline: f.properties.headline,
+        description: f.properties.description,
+        areaDesc: f.properties.areaDesc,
+        onset: new Date(f.properties.onset ?? f.properties.expires),
+        expires: new Date(f.properties.expires),
+        coordinates,
+        centroid: centroidOf(coordinates),
+      };
+    });
+}
+
+async function fetchFromNws(): Promise<WeatherAlert[] | null> {
+  try {
+    const resp = await fetch(NWS_ALERTS_URL, { signal: AbortSignal.timeout(10_000) });
+    if (!resp.ok) return null;
+    const data = (await resp.json()) as { features: NwsFeature[] };
+    return fromNws(data.features ?? []);
+  } catch {
+    return null;
+  }
+}
+
 function mapAlert(a: BootstrapAlert): WeatherAlert {
   return {
     id: a.id,
