@@ -124,8 +124,14 @@ const REGISTRY: Record<string, EdgeHandler> = {
 
 export default async function handler(req: Request, ctx: EdgeCtx): Promise<Response> {
   const url = new URL(req.url);
+  // Vercel rewrites preserve the ORIGINAL client-facing pathname in req.url
+  // (confirmed empirically -- the destination path in vercel.json's rewrite
+  // is where Vercel routes internally, not what the function sees). So for
+  // a request that was /api/<name> before the rewrite, parts[2] is <name>,
+  // not parts[3] as this file assumed on first deploy (#5839d9b regression:
+  // every route hit "Unknown endpoint: " with an empty name).
   const parts = url.pathname.split('/');
-  const name = parts[3] ?? '';
+  const name = parts[2] ?? '';
   const target = REGISTRY[name];
   if (!target) {
     return new Response(JSON.stringify({ error: `Unknown endpoint: ${name}` }), {
@@ -133,11 +139,6 @@ export default async function handler(req: Request, ctx: EdgeCtx): Promise<Respo
       headers: { 'Content-Type': 'application/json' },
     });
   }
-  // Reconstruct the original /api/<name> pathname (strip the
-  // /misc-gateway/<name> wrapper) so each handler's own logic sees the
-  // same request shape it always has.
-  const originalPathname = '/api/' + name;
-  const forwardedUrl = new URL(originalPathname + url.search, url.origin);
-  const forwardedReq = new Request(forwardedUrl.toString(), req);
-  return target(forwardedReq, ctx);
+  // req.url is already /api/<name> -- no reconstruction needed, forward as-is.
+  return target(req, ctx);
 }
