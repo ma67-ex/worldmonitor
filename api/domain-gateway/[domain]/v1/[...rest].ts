@@ -91,6 +91,8 @@ import { createAviationServiceRoutes as aviationRoutes } from '../../../../src/g
 import { aviationHandler } from '../../../../server/worldmonitor/aviation/v1/handler';
 import { createScenarioServiceRoutes as scenarioRoutes } from '../../../../src/generated/server/worldmonitor/scenario/v1/service_server';
 import { scenarioHandler } from '../../../../server/worldmonitor/scenario/v1/handler';
+import { createShippingV2ServiceRoutes as shippingV2Routes } from '../../../../src/generated/server/worldmonitor/shipping/v2/service_server';
+import { shippingV2Handler } from '../../../../server/worldmonitor/shipping/v2/handler';
 
 type EdgeHandler = (req: Request, ctx?: GatewayCtx) => Promise<Response>;
 
