@@ -110,6 +110,9 @@ function mapAlert(a: BootstrapAlert): WeatherAlert {
 
 export async function fetchWeatherAlerts(): Promise<WeatherAlert[]> {
   return breaker.execute(async () => {
+    const direct = await fetchFromNws();
+    if (direct && direct.length > 0) return direct;
+
     const hydrated = getHydratedData('weatherAlerts') as { alerts?: BootstrapAlert[] } | undefined;
     if (hydrated?.alerts?.length) {
       return hydrated.alerts.map(mapAlert);
