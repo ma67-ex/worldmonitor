@@ -178,11 +178,15 @@ async function fetchFromPizzintWatch(): Promise<PizzIntStatus | null> {
 // ---- Public API ----
 
 export async function fetchPizzIntStatus(): Promise<PizzIntStatus> {
-  const hydrated = getHydratedData('pizzint') as GetPizzintStatusResponse | undefined;
-  if (hydrated?.pizzint) return toStatus(hydrated.pizzint);
-
+  // Direct source first, not hydrated: the SITREP fork has no live backend
+  // feeding the bootstrap hydration cache, so a hydrated 'pizzint' entry is
+  // always a stale snapshot (browser-persisted from an earlier session) and
+  // must never win over a fresh pizzint.watch fetch.
   const direct = await fetchFromPizzintWatch();
   if (direct && direct.locationsMonitored > 0) return direct;
+
+  const hydrated = getHydratedData('pizzint') as GetPizzintStatusResponse | undefined;
+  if (hydrated?.pizzint) return toStatus(hydrated.pizzint);
 
   return pizzintBreaker.execute(async () => {
     const resp: GetPizzintStatusResponse = await getClient().getPizzintStatus({ includeGdelt: false });
