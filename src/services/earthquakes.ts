@@ -50,11 +50,15 @@ async function fetchFromUsgs(): Promise<Earthquake[] | null> {
 }
 
 export async function fetchEarthquakes(): Promise<Earthquake[]> {
-  const hydrated = getHydratedData('earthquakes') as ListEarthquakesResponse | undefined;
-  if (hydrated?.earthquakes?.length) return hydrated.earthquakes;
-
+  // Direct source first, not hydrated: the SITREP fork has no live backend
+  // feeding the bootstrap hydration cache, so a hydrated 'earthquakes' entry
+  // is always a stale snapshot (browser-persisted from an earlier session)
+  // and must never win over a fresh USGS fetch.
   const direct = await fetchFromUsgs();
   if (direct && direct.length > 0) return direct;
+
+  const hydrated = getHydratedData('earthquakes') as ListEarthquakesResponse | undefined;
+  if (hydrated?.earthquakes?.length) return hydrated.earthquakes;
 
   const response = await breaker.execute(async () => {
     return client.listEarthquakes({ minMagnitude: 0, start: 0, end: 0, pageSize: 0, cursor: '' });
