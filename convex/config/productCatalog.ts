@@ -20,11 +20,11 @@
  * in PRODUCT_CATALOG; only deliberately public facts belong here.
  */
 export const PUBLIC_PRODUCT_METADATA = {
-  name: "World Monitor",
+  name: "SITREP",
   lifecycle: "launched",
-  canonicalUrl: "https://www.worldmonitor.app/",
-  pricingUrl: "https://www.worldmonitor.app/pro#pricing",
-  primaryCtaLabel: "View Pro plans",
+  canonicalUrl: "https://sitrep.app/",
+  pricingUrl: "https://sitrep.app/",
+  primaryCtaLabel: "Open Dashboard",
   currency: "USD",
   availability: "https://schema.org/InStock",
 } as const;
