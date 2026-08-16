@@ -2469,6 +2469,9 @@
       "references": [
         {
           "path": "scripts/seed-earthquakes.mjs"
+        },
+        {
+          "path": "src/services/earthquakes.ts"
         }
       ]
     },
