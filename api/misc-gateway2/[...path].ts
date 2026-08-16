@@ -66,6 +66,12 @@ const REGISTRY: Record<string, EdgeHandler> = {
   'user/mcp-revoke': userMcpRevokeHandler,
   'youtube/embed': youtubeEmbedHandler,
   'youtube/live': youtubeLiveHandler,
+  'scenario/v1/status': scenarioStatusHandler,
+  'scenario/v1/templates': scenarioTemplatesHandler,
+  'scenario/v1/run': scenarioRunHandler,
+  'supply-chain/v1/country-products': supplyChainCountryProductsHandler,
+  'supply-chain/v1/multi-sector-cost-shock': supplyChainMultiSectorCostShockHandler,
+  'supply-chain/hormuz-tracker': supplyChainHormuzTrackerHandler,
 };
 
 export default async function handler(req: Request, ctx: EdgeCtx): Promise<Response> {
