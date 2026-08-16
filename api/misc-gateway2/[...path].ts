@@ -76,9 +76,12 @@ const REGISTRY: Record<string, EdgeHandler> = {
 
 export default async function handler(req: Request, ctx: EdgeCtx): Promise<Response> {
   const url = new URL(req.url);
+  // Vercel rewrites preserve the ORIGINAL client-facing pathname in req.url,
+  // not the vercel.json destination path (confirmed empirically -- see
+  // misc-gateway/[name].ts). For a request that was /api/<key> before the
+  // rewrite, parts.slice(2) is <key>, not parts.slice(3).
   const parts = url.pathname.split('/');
-  // parts: ['', 'api', 'misc-gateway2', ...restSegments]
-  const key = parts.slice(3).join('/');
+  const key = parts.slice(2).join('/');
   const target = REGISTRY[key];
   if (!target) {
     return new Response(JSON.stringify({ error: `Unknown endpoint: ${key}` }), {
@@ -86,8 +89,6 @@ export default async function handler(req: Request, ctx: EdgeCtx): Promise<Respo
       headers: { 'Content-Type': 'application/json' },
     });
   }
-  const originalPathname = '/api/' + key;
-  const forwardedUrl = new URL(originalPathname + url.search, url.origin);
-  const forwardedReq = new Request(forwardedUrl.toString(), req);
-  return target(forwardedReq, ctx);
+  // req.url is already /api/<key> -- no reconstruction needed, forward as-is.
+  return target(req, ctx);
 }
