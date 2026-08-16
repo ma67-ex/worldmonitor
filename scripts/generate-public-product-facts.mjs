@@ -19,7 +19,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PRODUCT_CATALOG, PUBLIC_PRODUCT_METADATA } from '../convex/config/productCatalog.ts';
-import { TOOL_REGISTRY } from '../api/mcp/registry/index.ts';
+import { TOOL_REGISTRY } from '../api/mcp/registry/_index.ts';
 import { computeStats } from './docs-stats.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
