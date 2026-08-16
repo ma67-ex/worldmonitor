@@ -34,6 +34,13 @@ import userMcpRevokeHandler from '../user/_mcp-revoke';
 import youtubeEmbedHandler from '../youtube/_embed';
 // @ts-expect-error — JS module, no declaration file
 import youtubeLiveHandler from '../youtube/_live';
+import scenarioStatusHandler from '../scenario/v1/_status';
+import scenarioTemplatesHandler from '../scenario/v1/_templates';
+import scenarioRunHandler from '../scenario/v1/_run';
+import supplyChainCountryProductsHandler from '../supply-chain/v1/_country-products';
+import supplyChainMultiSectorCostShockHandler from '../supply-chain/v1/_multi-sector-cost-shock';
+// @ts-expect-error — JS module, no declaration file
+import supplyChainHormuzTrackerHandler from '../supply-chain/_hormuz-tracker';
 
 type EdgeCtx = { waitUntil: (p: Promise<unknown>) => void };
 type EdgeHandler = (req: Request, ctx: EdgeCtx) => Response | Promise<Response>;
