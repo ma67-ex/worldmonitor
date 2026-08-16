@@ -14025,11 +14025,11 @@ a.prediction-link:hover {
 .pizzint-toggle {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background: transparent;
   border: 1px solid var(--overlay-heavy);
   border-radius: 4px;
-  padding: 4px 8px;
+  padding: 3px 6px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -14040,21 +14040,26 @@ a.prediction-link:hover {
 }
 
 .pizzint-icon {
-  font-size: calc(14px * var(--wm-panel-effective-scale, 1));
+  font-size: calc(12px * var(--wm-panel-effective-scale, 1));
+  line-height: 1;
 }
 
 .pizzint-defcon {
-  font-size: calc(10px * var(--wm-panel-effective-scale, 1));
+  font-size: calc(9px * var(--wm-panel-effective-scale, 1));
   font-weight: bold;
-  padding: 2px 5px;
+  padding: 1px 4px;
   border-radius: 3px;
   background: var(--text-ghost);
   color: var(--accent);
+  white-space: nowrap;
+  line-height: 1.4;
 }
 
 .pizzint-score {
-  font-size: calc(10px * var(--wm-panel-effective-scale, 1));
+  font-size: calc(9px * var(--wm-panel-effective-scale, 1));
   color: var(--text-dim);
+  white-space: nowrap;
+  line-height: 1.4;
 }
 
 .pizzint-panel {
