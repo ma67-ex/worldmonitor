@@ -12,6 +12,11 @@ const PRODUCTION_PATTERNS: RegExp[] = [
   //   worldmonitor-<hash>-eliewm.vercel.app        (deployment URL)
   // Tight on purpose: never a bare *.vercel.app (this is a security allowlist).
   /^https:\/\/worldmonitor-[a-z0-9-]+-eliewm\.vercel\.app$/,
+  // SITREP fork (github.com/AkulxSharma/worldmonitor) -- Vercel project
+  // "akul-sharmas-projects-8d7c98ac". Keep in sync with api/_cors.js.
+  /^https:\/\/worldmonitor-one-theta\.vercel\.app$/,
+  /^https:\/\/worldmonitor(-[a-z0-9-]+)?-akul-sharmas-projects-8d7c98ac\.vercel\.app$/,
+  /^https:\/\/(.*\.)?sitrep\.app$/,
   /^https?:\/\/tauri\.localhost(:\d+)?$/,
   /^https?:\/\/[a-z0-9-]+\.tauri\.localhost(:\d+)?$/i,
   /^tauri:\/\/localhost$/,
