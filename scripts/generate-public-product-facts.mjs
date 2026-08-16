@@ -4,7 +4,7 @@
  *
  * Source chain:
  *   convex/config/productCatalog.ts (lifecycle, plans, prices, public copy)
- *   api/mcp/registry/index.ts        (live MCP tool registry)
+ *   api/mcp/registry/_index.ts        (live MCP tool registry)
  *   scripts/docs-stats.mjs           (repository-derived stable counts)
  *
  * Outputs are committed so Edge, Railway, static Markdown/JSON, structured
