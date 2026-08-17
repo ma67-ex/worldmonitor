@@ -64,6 +64,23 @@ const ON_DEMAND_CACHE_PROFILES = {
     browser: 'max-age=60, stale-while-revalidate=120, stale-if-error=900',
     cdn: 'public, s-maxage=900, stale-while-revalidate=120, stale-if-error=900',
   },
+  // Both published by seed-provincial-511 on one 15min member interval against
+  // a 45min health budget. They only need a profile because moving them off
+  // the fast tier meant they'd otherwise inherit the 2h slow-tier shield,
+  // trading page-weight for a stale window on live road closures.
+  canadaRoads: {
+    browser: 'max-age=60, stale-while-revalidate=120, stale-if-error=900',
+    cdn: 'public, s-maxage=900, stale-while-revalidate=120, stale-if-error=900',
+  },
+  albertaRoads: {
+    browser: 'max-age=60, stale-while-revalidate=120, stale-if-error=900',
+    cdn: 'public, s-maxage=900, stale-while-revalidate=120, stale-if-error=900',
+  },
+  // seed-bundle-canada member interval 30min, 90min health budget.
+  bcOpen511: {
+    browser: 'max-age=60, stale-while-revalidate=120, stale-if-error=1800',
+    cdn: 'public, s-maxage=1800, stale-while-revalidate=300, stale-if-error=1800',
+  },
 };
 
 // The URL SHAPE shared by every marked single-key public read:

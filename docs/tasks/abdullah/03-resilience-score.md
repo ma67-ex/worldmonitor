@@ -1,3 +1,13 @@
+**STATUS: RESEARCHED, NOT IMPLEMENTED — 2026-08-16 — recommendation below, real decision still needed**
+
+Checked `server/worldmonitor/resilience/v1/` and `src/services/resilience.ts`: this is real modeling (`get-resilience-score`/`get-resilience-ranking`, both in `PREMIUM_RPC_PATHS`), not a data-feed wrapper — confirms the task's own framing.
+
+**Recommendation: option 2 (homegrown composite), not option 1 (external index).** Fund for Peace's Fragile States Index and the World Bank Governance Indicators are both real and free, but both are **annual**, not live — wiring either in would make "Resilience" the one stale-by-design panel next to everything else in this fork that refreshes in minutes/hours, and FSI's terms require attribution + prohibit implying FFP endorsement, worth being careful about given this fork already had one licensing-driven rebrand pass. A homegrown composite from data already live in this deploy (country-instability CII scores + economic stress + infrastructure outage signals, all already real per-country data flowing through this fork) doesn't have that staleness or licensing mismatch, and can be built as a genuine complement (roughly: lower CII + healthier economic signal + fewer outages = higher resilience) rather than an approximation of a third party's undocumented private methodology.
+
+**Not implemented this session** — this needs real design work (choosing weights, validating the composite against a few known real cases the way `03-51` in the tombstone-style task discipline would, deciding how it degrades when a country has partial signal coverage) that deserves its own session rather than a rushed pass tacked onto the end of this one. Flagging as the next thing to pick up, not closing it out with an unverified implementation.
+
+---
+
 # Task: Resilience score — free alt-source or simplified replica
 
 ## Why

@@ -9,6 +9,7 @@ import type { NewsItem, DeductContextDetail } from '@/types';
 import { buildNewsContext } from '@/utils/news-context';
 import { getActiveFrameworkForPanel } from '@/services/analysis-framework-store';
 import { hasPremiumAccess } from '@/services/panel-gating';
+import { hasUserAiKey, generateStructuredCompletion } from '@/services/user-ai-keys';
 import { FrameworkSelector } from './FrameworkSelector';
 import { extractDeductionProbability } from './deduction-probability';
 import { IntelligenceServiceClient } from '@/services/generated-rpc-clients';
@@ -17,6 +18,33 @@ import { IntelligenceServiceClient } from '@/services/generated-rpc-clients';
 const getIntelligenceClient = createLazyClient(() => new IntelligenceServiceClient(getRpcBaseUrl(), { fetch: premiumFetch }));
 
 const COOLDOWN_MS = 5_000;
+
+const DEDUCTION_SYSTEM_PROMPT = `You are a geopolitical/situational analyst. Given a query about a hypothetical or current event, deduct its likely timeline and impact.
+Respond ONLY with a JSON object: { "analysis": string }. The analysis value is markdown text structured with these headers, in order: "**Bottom Line**" (one-sentence verdict), "**What We Know**" (confirmed facts), "**Most Likely Path**" (primary scenario), "**Alternative Paths**" (other plausible scenarios), "**Confidence**" (how certain, and why).
+Be specific and grounded in the given context. Never invent facts not implied by the query/context — flag genuine uncertainty instead.`;
+
+/**
+ * Client-side fallback for non-premium users: generates the same
+ * DeductSituationResponse shape as the server RPC, but from the user's own
+ * Groq/OpenRouter key (see services/user-ai-keys.ts) instead of
+ * WorldMonitor's paid backend. Throws if no user key is configured or
+ * generation fails — same contract as getIntelligenceClient().deductSituation,
+ * caller already wraps this in try/catch.
+ */
+async function generateDeductionFromUserKey(
+  query: string,
+  geoContext: string,
+  framework: string,
+): Promise<{ analysis: string; model: string; provider: string }> {
+  const userPrompt = [
+    `Query: ${query}`,
+    geoContext ? `Context: ${geoContext}` : '',
+    framework ? `Framework: ${framework}` : '',
+  ].filter(Boolean).join('\n');
+
+  const parsed = await generateStructuredCompletion(DEDUCTION_SYSTEM_PROMPT, userPrompt) as { analysis?: string };
+  return { analysis: String(parsed.analysis ?? ''), model: '', provider: 'user-key' };
+}
 
 export class DeductionPanel extends Panel {
     private formEl: HTMLFormElement;
@@ -227,6 +255,12 @@ export class DeductionPanel extends Panel {
         const query = this.inputEl.value.trim();
         if (!query) return;
 
+        if (!hasPremiumAccess() && !hasUserAiKey()) {
+            this.resultContainer.className = 'deduction-result error';
+            this.resultContainer.textContent = 'Add your own Groq or OpenRouter key in Settings → Intelligence to use this panel.';
+            return;
+        }
+
         let geoContext = this.geoInputEl.value.trim();
 
         if (this.getLatestNews && !geoContext.includes('Recent News:')) {
@@ -251,11 +285,13 @@ export class DeductionPanel extends Panel {
         );
 
         try {
-            const resp = await getIntelligenceClient().deductSituation({
-                query,
-                geoContext,
-                framework: fw?.systemPromptAppend ?? '',
-            });
+            const resp = hasPremiumAccess()
+                ? await getIntelligenceClient().deductSituation({
+                    query,
+                    geoContext,
+                    framework: fw?.systemPromptAppend ?? '',
+                })
+                : await generateDeductionFromUserKey(query, geoContext, fw?.systemPromptAppend ?? '');
             if (!this.element?.isConnected) return;
 
             this.resultContainer.className = 'deduction-result';

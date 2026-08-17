@@ -49,6 +49,7 @@ import {
   sweepLegacyDisabledCustomWidgets,
 } from '@/app/free-tier-gate';
 import { initEntitlementSubscription, destroyEntitlementSubscription, isEntitlementActive, hasTier, getEntitlementState, onEntitlementChange } from '@/services/entitlements';
+import { hasUserAiKey, onUserAiKeyChange } from '@/services/user-ai-keys';
 import { createEntitlementReloadController } from '@/services/entitlement-reload-controller';
 import { initSubscriptionWatch, destroySubscriptionWatch, onSubscriptionChange } from '@/services/billing';
 import { initPaymentFailureBanner } from '@/components/payment-failure-banner';
@@ -136,6 +137,24 @@ const WEB_PREMIUM_PANELS = new Set([
   'regional-intelligence',
   'trade-policy',
   'global-procurement',
+]);
+
+/**
+ * Subset of WEB_PREMIUM_PANELS with a working BYOK (bring-your-own-key)
+ * fallback in their data loader — see docs/tasks/abdullah/01-byok-panels.md.
+ * A panel in this set unlocks for a free/anonymous user who has configured
+ * their own Groq/OpenRouter key (Settings → Intelligence), same as it
+ * unlocks for hasPremiumAccess(). Panels NOT in this set stay gated on
+ * hasPremiumAccess() alone even with a BYOK key present — their loader has
+ * no client-side generation path, so unlocking the CTA would just swap a
+ * clear lock screen for a silent empty/unavailable panel.
+ */
+const BYOK_GATED_PANELS = new Set([
+  'market-implications',
+  'deduction',
+  'regional-intelligence',
+  'chat-analyst',
+  'stock-analysis',
 ]);
 
 /**
@@ -420,6 +439,7 @@ export class PanelLayoutManager implements AppModule {
   private boundWidgetCreatorHandler: ((e: Event) => void) | null = null;
   private unsubscribeEntitlementChange: (() => void) | null = null;
   private unsubscribeSubscriptionChange: (() => void) | null = null;
+  private unsubscribeUserAiKeyChange: (() => void) | null = null;
   private unsubscribePaymentFailureBanner: (() => void) | null = null;
   private scheduledLoadAllRaf: number | null = null;
   private scheduledLoadAllIdle: number | null = null;
@@ -628,6 +648,12 @@ export class PanelLayoutManager implements AppModule {
     this.unsubscribeSubscriptionChange = onSubscriptionChange(() => {
       this.updatePanelGating(getAuthState());
     });
+
+    // BYOK key saved/cleared in Settings → Intelligence: re-run gating so a
+    // BYOK_GATED_PANELS panel unlocks/relocks immediately, no reload needed.
+    this.unsubscribeUserAiKeyChange = onUserAiKeyChange(() => {
+      this.updatePanelGating(getAuthState());
+    });
   }
 
   async init(): Promise<void> {
@@ -789,6 +815,10 @@ export class PanelLayoutManager implements AppModule {
     this.unsubscribeSubscriptionChange?.();
     this.unsubscribeSubscriptionChange = null;
 
+    // Clean up BYOK key-change gating listener
+    this.unsubscribeUserAiKeyChange?.();
+    this.unsubscribeUserAiKeyChange = null;
+
     // Clean up payment failure banner subscription
     this.unsubscribePaymentFailureBanner?.();
     this.unsubscribePaymentFailureBanner = null;
@@ -810,7 +840,7 @@ export class PanelLayoutManager implements AppModule {
     // the same verdict at a period-end boundary.
     const billingAwareFreeTier = resolveBillingAwareGateReason(PanelGateReason.FREE_TIER);
     for (const [key, panel] of Object.entries(this.ctx.panels)) {
-      const isPremium = WEB_PREMIUM_PANELS.has(key);
+      const isPremium = WEB_PREMIUM_PANELS.has(key) && !(BYOK_GATED_PANELS.has(key) && hasUserAiKey());
       let reason = getPanelGateReason(state, isPremium);
 
       // Clerk-pro-only panels: even when hasPremiumAccess() returns

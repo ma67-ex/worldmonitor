@@ -1,3 +1,14 @@
+**STATUS: PARTIALLY ALREADY DONE (pre-existing), REST OUT OF SCOPE — 2026-08-16**
+
+Checked both panels backing this feature area:
+
+1. **`ChokepointStripPanel.ts`** (basic chokepoint status/traffic strip) — `fetchChokepointStatus()` in `src/services/supply-chain/index.ts` has NO `hasPremiumAccess()` gate at all, and its RPC (`get-chokepoint-status`) isn't in `PREMIUM_RPC_PATHS`. This is **already free**, confirming the task's own hunch ("may not need a live feed at all"). Real data still depends on Akul's Railway seed populating the `chokepoints` bootstrap key — same caveat as everything else in this whole backlog — but the code path itself needs nothing from me.
+2. **`SupplyChainPanel.ts`** (the actually-locked one) — 8 separate premium RPCs: bypass options, cost-shock modeling, route explorer, route impact, sector dependency, multi-sector shock, country chokepoint index, country products. This is real economic modeling (scenario simulation over trade-flow data), not a data-source swap — closer in kind to `03-resilience-score.md`'s difficulty than this task's own framing suggested. Building 8 free equivalents is out of proportion for the time available this session.
+
+**No code changed for this task** — item 1 needed none, item 2 needs its own dedicated session with the same "real decision, not just a fetch swap" framing `03` already flags.
+
+---
+
 # Task: Supply-chain/chokepoint analytics — free alt-source
 
 ## Why

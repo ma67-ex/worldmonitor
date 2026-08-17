@@ -1,7 +1,7 @@
 import { Panel } from './Panel';
 import { t } from '@/services/i18n';
 import type { StockAnalysisResult } from '@/services/stock-analysis';
-import { isAnalyzableSymbol } from '@/services/stock-analysis';
+import { isAnalyzableSymbol, BYOK_STOCK_PROVIDER } from '@/services/stock-analysis';
 import {
   getStockAnalysisRatingAction,
   getStockAnalysisRatingBullishFactors,
@@ -276,6 +276,11 @@ export class StockAnalysisPanel extends Panel {
             return sparkline(scores, last >= prev ? 'var(--semantic-normal)' : 'var(--semantic-critical)', 60, 20, 'display:block;margin-top:4px;align-self:flex-end');
           })() : ''}
         </div>
+        ${item.provider === BYOK_STOCK_PROVIDER ? `
+        <div style="border:1px solid var(--border);padding:8px;font-size:calc(11px * var(--wm-panel-effective-scale, 1));color:var(--text-dim)">
+          Technicals (trend/MA/RSI/volume) require WorldMonitor Pro's price-history pipeline — not available via your own AI key. Showing an AI read on the live price only.
+        </div>
+        ` : `
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;font-size:calc(11px * var(--wm-panel-effective-scale, 1))">
           <div style="border:1px solid var(--border);padding:8px"><div style="color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em">Trend</div><div style="margin-top:4px">${escapeHtml(item.trendStatus)}</div></div>
           <div style="border:1px solid var(--border);padding:8px"><div style="color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em">MA5 Bias</div><div style="margin-top:4px">${escapeHtml(formatChange(item.biasMa5))}</div></div>
@@ -283,6 +288,7 @@ export class StockAnalysisPanel extends Panel {
           <div style="border:1px solid var(--border);padding:8px"><div style="color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em">Volume</div><div style="margin-top:4px">${escapeHtml(item.volumeStatus)}</div></div>
           ${item.newsSentiment != null ? `<div style="border:1px solid var(--border);padding:8px" data-news-overlay="model"><div style="color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em">News overlay</div><div style="margin-top:4px">${escapeHtml(formatNewsSentiment(item.newsSentiment))}</div></div>` : ''}
         </div>
+        `}
         ${this.renderDividendProfile(item)}
         <div style="font-size:calc(12px * var(--wm-panel-effective-scale, 1));line-height:1.55;color:var(--text)"><strong style="font-size:calc(11px * var(--wm-panel-effective-scale, 1));text-transform:uppercase;letter-spacing:0.08em;color:var(--text-dim)">Action</strong><div style="margin-top:4px">${escapeHtml(getStockAnalysisRatingAction(item))}</div></div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">

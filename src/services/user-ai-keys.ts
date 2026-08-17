@@ -33,6 +33,22 @@ export function getUserAiKey(provider: UserAiProvider): string {
   }
 }
 
+const listeners = new Set<() => void>();
+
+/**
+ * Register a callback for BYOK key changes, mirroring entitlements.ts's
+ * onEntitlementChange. panel-layout.ts subscribes so a key saved into
+ * Settings re-runs updatePanelGating() immediately instead of leaving a
+ * BYOK-eligible panel stuck on its "Sign In to Unlock" CTA until the next
+ * unrelated auth/entitlement pass.
+ */
+export function onUserAiKeyChange(cb: () => void): () => void {
+  listeners.add(cb);
+  return () => {
+    listeners.delete(cb);
+  };
+}
+
 export function setUserAiKey(provider: UserAiProvider, key: string): void {
   try {
     if (key) localStorage.setItem(PROVIDER_CONFIG[provider].storageKey, key);
@@ -40,6 +56,7 @@ export function setUserAiKey(provider: UserAiProvider, key: string): void {
   } catch {
     // Quota or private-browsing; silently ignore, same convention as ai-flow-settings.ts
   }
+  for (const cb of listeners) cb();
 }
 
 /** First provider with a stored key, preferring Groq (faster free tier). */

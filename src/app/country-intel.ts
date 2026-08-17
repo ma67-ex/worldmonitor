@@ -38,6 +38,7 @@ import { collectStoryData } from '@/services/story-data';
 // (post-paint), so the import() latency is hidden.
 
 import { hasPremiumAccess } from '@/services/panel-gating';
+import { hasUserAiKey, generateStructuredCompletion } from '@/services/user-ai-keys';
 import { getAuthState, subscribeAuthState } from '@/services/auth-state';
 import { showMapContextMenu } from '@/components/MapContextMenu';
 import { BETA_MODE } from '@/config/beta';
@@ -734,7 +735,10 @@ export class CountryIntelManager implements AppModule {
           }
 
           const countryFw = getActiveFrameworkForPanel('country-brief');
-          briefResult = await this.fetchCountryIntelBrief(code, contextSnapshot, countryFw?.systemPromptAppend ?? '');
+          const fwText = countryFw?.systemPromptAppend ?? '';
+          briefResult = hasPremiumAccess(getAuthState())
+            ? await this.fetchCountryIntelBrief(code, contextSnapshot, fwText)
+            : await this.generateCountryIntelBriefFromUserKey(contextSnapshot, fwText, briefSources);
           if (token !== this.briefRequestToken || this.ctx.countryBriefPage?.getCode() !== code) return;
           briefText = briefResult.brief;
           if (briefResult.sources.length > 0) {
@@ -968,6 +972,37 @@ export class CountryIntelManager implements AppModule {
       .catch((err) => {
         console.warn('[CountryBrief] refreshOpenBrief signal fetch failed:', err);
       });
+  }
+
+  /**
+   * Client-side fallback for non-premium users: generates the same
+   * CountryIntelBriefResult shape as the server RPC, but from the user's own
+   * Groq/OpenRouter key (see services/user-ai-keys.ts) instead of
+   * WorldMonitor's paid backend. contextSnapshot is the same real,
+   * already-client-visible data (CII score, signals, headlines) the server
+   * RPC would have been sent — no server-side aggregation is needed here.
+   * Sources are the already-collected client-side briefSources rather than
+   * LLM-derived citations, since a bare completion call can't attribute
+   * paragraph-level sources the way the server RPC does.
+   */
+  private async generateCountryIntelBriefFromUserKey(
+    contextSnapshot: string,
+    framework: string,
+    briefSources: BriefSource[],
+  ): Promise<CountryIntelBriefResult> {
+    if (!hasUserAiKey()) return { brief: '', sources: [] };
+    const systemPrompt = `You are a geopolitical intelligence analyst writing a concise country brief for an intelligence dashboard.
+Given real signal data for a country (CII score, event counts, recent headlines, infrastructure context), write a short brief (3-5 sentences) summarizing the current situation and its trajectory.
+${framework ? `Apply this analytical framework: ${framework}\n` : ''}Respond ONLY with a JSON object: { "brief": string }. Be specific and grounded strictly in the given data — never invent facts, events, or figures not implied by it.`;
+    try {
+      const parsed = await generateStructuredCompletion(systemPrompt, contextSnapshot) as { brief?: string };
+      const brief = typeof parsed.brief === 'string' ? parsed.brief.trim() : '';
+      if (!brief) return { brief: '', sources: [] };
+      return { brief, sources: briefSources, generatedAt: new Date().toISOString() };
+    } catch (err) {
+      console.warn('[CountryIntel] User-key brief generation failed:', err);
+      return { brief: '', sources: [] };
+    }
   }
 
   private async fetchCountryIntelBrief(code: string, contextSnapshot: string, framework = ''): Promise<CountryIntelBriefResult> {

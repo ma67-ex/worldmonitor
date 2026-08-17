@@ -6,6 +6,7 @@ import { safeHtmlToString, type SafeHtml } from '@/utils/sanitize';
 import { trackPanelResized } from '@/services/analytics';
 import { getAiFlowSettings } from '@/services/ai-flow-settings';
 import { getSecretState } from '@/services/runtime-config';
+import { hasUserAiKey } from '@/services/user-ai-keys';
 import { PanelGateReason } from '@/services/panel-gating';
 import { openExternalUrl } from '@/services/external-navigation';
 import { lockSvg, upgradeSvg } from '@/components/gate-icons';
@@ -246,7 +247,11 @@ export class Panel {
       headerLeft.appendChild(this.newBadgeEl);
     }
 
-    if (options.premium && !getSecretState('WORLDMONITOR_API_KEY').present) {
+    // BYOK panels (deduction, market-implications, regional-intelligence)
+    // unlock fully with a user-supplied key — the "PRO" badge would be a
+    // stale/misleading leftover once the panel is actually usable, same
+    // gap fixed for the lock CTA in panel-layout.ts's BYOK_GATED_PANELS.
+    if (options.premium && !getSecretState('WORLDMONITOR_API_KEY').present && !hasUserAiKey()) {
       const proBadge = h('span', { className: 'panel-pro-badge' }, t('premium.pro'));
       headerLeft.appendChild(proBadge);
     }

@@ -1,3 +1,17 @@
+**STATUS: PARTIALLY DONE — 2026-08-16 (debt sub-metric only)**
+
+Confirmed World Bank's API (`api.worldbank.org/v2`) is genuinely CORS-open (`access-control-allow-origin: *`, verified via curl) and returns small per-country JSON, unlike OFAC's bulk-only shape (see `04`). Implemented for **national debt**:
+
+- `fetchNationalDebtFromWorldBank()` in `src/services/economic/index.ts` — batches `NY.GDP.MKTP.CD` (GDP) and `GC.DOD.TOTL.GD.ZS` (central government debt, % of GDP) for the 31 `TIER1_COUNTRIES`, derives `debtUsd` from the two real indicators for the same year (never cross-year), and derives `annualGrowth`/`perSecondRate`/`perDayRate` from two real reported years — never estimated or invented.
+- Wired as the FIRST attempt for non-premium users in `getNationalDebtData()`, ahead of the existing bootstrap-hydration path (matches the fork's own established pattern in `earthquakes.ts`: direct free source before a hydration cache that's likely stale without live seed infra).
+- **Real, stated limitation**: "central government debt" is narrower than the general-government figure WorldMonitor's premium backend likely tracks, and it's on the response's `source` field so this isn't hidden. Some countries (China notably) don't report this consistently to World Bank and are simply absent — never backfilled with a guess.
+- `npm run typecheck` clean.
+- **Verified live, twice** — first pass returned 0 entries: GDP publishes a preliminary current-year estimate before the debt-ratio indicator catches up, so "latest year per indicator independently" almost never landed on a matching year, and the code correctly refused to pair mismatched years rather than fabricate (also found and fixed a too-tight 12s timeout on the real ~15s batched-country response). Fixed by intersecting the years each country actually has for BOTH indicators before pairing. Re-verified: 10 of 31 TIER1_COUNTRIES have usable data (real World Bank reporting-coverage limit, not a bug), real sanity-checked figures — UK 131% debt-to-GDP, Brazil 82%, India 47%, all correct order of magnitude.
+
+**Not done — trade flows and tariffs** (the `trade-policy` panel, separate from `national-debt`). Ran out of session time after the debt sub-metric; UN Comtrade and USTR are still just the candidates listed below, unresearched for CORS/shape. `trade-policy`'s `premium: 'locked'` flags are still in place in `panels.ts`.
+
+---
+
 # Task: Trade flows / tariffs / national debt — free alt-source
 
 ## Why

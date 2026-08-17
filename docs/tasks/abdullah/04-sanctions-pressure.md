@@ -1,3 +1,15 @@
+**STATUS: RESEARCHED, BLOCKED — 2026-08-16 — real finding, not a fetch swap**
+
+Checked `src/services/sanctions-pressure.ts` first: the client already has an honest free-tier path (`getHydratedData('sanctionsPressure')` → public `/api/bootstrap?keys=sanctionsPressure` → empty for non-premium, never calls the Pro RPC anonymously). That part predates this session — it's real, it's not new work, and it just needs Akul's Railway seed actually populated to serve data.
+
+**OFAC SDN checked directly** (`curl -sD - "https://sanctionslistservice.ofac.treas.gov/entities" -H "Origin: ..."`): genuinely CORS-open (`access-control-allow-origin: *`), confirmed live. But it's the full entities dump — **111 MB of XML**, not a paginated/filtered JSON API. That's not fetchable from a browser panel (bandwidth, memory, and the fact that most users don't need all ~17,000 SDN entries just to see country-level sanctions pressure). This is exactly why WorldMonitor's own real backend does this server-side (download once, parse, aggregate, seed to Redis) — the same shape of work Akul's Railway seed script already does, which this task is explicitly not supposed to duplicate.
+
+Did not find a smaller paginated/search OFAC endpoint in the time available (their newer API does have a documented search function, but it needs a real query per entity/name rather than a bulk country-aggregate listing, which doesn't match what this panel displays).
+
+**No code changed for this task.** The existing hydration-based free path is the real answer until either (a) a genuine free bulk/paginated sanctions API surfaces, or (b) Akul decides this is worth a small server-side proxy (would need to fit inside the 12-Vercel-function cap — see note in `05`/`06`).
+
+---
+
 # Task: Sanctions pressure — free alt-source
 
 ## Why

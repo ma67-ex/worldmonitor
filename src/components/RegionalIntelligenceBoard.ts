@@ -3,8 +3,10 @@ import { createLazyClient, getRpcBaseUrl } from '@/services/rpc-client';
 import { premiumFetch } from '@/services/premium-fetch';
 import { IS_EMBEDDED_PREVIEW } from '@/utils/embedded-preview';
 import { hasPremiumAccess } from '@/services/panel-gating';
+import { hasUserAiKey, generateStructuredCompletion } from '@/services/user-ai-keys';
 import { subscribeAuthState } from '@/services/auth-state';
 import { onEntitlementChange } from '@/services/entitlements';
+import { getSignalAggregator } from '@/app/lazy-services';
 
 import type { RegionalSnapshot, RegimeTransition, RegionalBrief } from '@/generated/client/worldmonitor/intelligence/v1/service_client';
 import { h, replaceChildren, setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
@@ -16,6 +18,20 @@ import { IntelligenceServiceClient } from '@/services/generated-rpc-clients';
 // premium-gated. Plain globalThis.fetch skips Clerk/tester/api-key injection
 // and returns 401 for pro users — premiumFetch is the correct fetcher here.
 const getIntelligenceClient = createLazyClient(() => new IntelligenceServiceClient(getRpcBaseUrl(), { fetch: premiumFetch }));
+
+// ISO country codes per BOARD_REGIONS id, for the BYOK narrative path only.
+// Deliberately separate from signal-aggregator.ts's own REGION_DEFINITIONS —
+// that map uses finer-grained sub-region ids for its convergence-detection
+// logic, not the 7 board regions this panel exposes.
+const BOARD_REGION_COUNTRIES: Record<string, string[]> = {
+  mena: ['IR', 'IL', 'SA', 'AE', 'IQ', 'SY', 'YE', 'JO', 'LB', 'KW', 'QA', 'OM', 'BH', 'EG', 'DZ', 'MA', 'TN', 'LY'],
+  'east-asia': ['CN', 'TW', 'JP', 'KR', 'KP', 'HK', 'MN', 'PH', 'VN', 'ID', 'MY', 'TH', 'SG'],
+  europe: ['UA', 'RU', 'BY', 'PL', 'RO', 'MD', 'HU', 'CZ', 'SK', 'BG', 'DE', 'FR', 'GB', 'IT', 'ES', 'TR'],
+  'north-america': ['US', 'CA', 'MX'],
+  'south-asia': ['IN', 'PK', 'BD', 'AF', 'NP', 'LK', 'MM'],
+  latam: ['BR', 'AR', 'CO', 'VE', 'CL', 'PE', 'EC', 'BO'],
+  'sub-saharan-africa': ['NG', 'ZA', 'ET', 'KE', 'SD', 'SO', 'CD', 'SN', 'ML', 'NE'],
+};
 
 /**
  * RegionalIntelligenceBoard — premium panel rendering a canonical
@@ -152,6 +168,78 @@ export class RegionalIntelligenceBoard extends Panel {
     }
   }
 
+  /**
+   * Client-side fallback for non-premium users: generates ONLY the
+   * narrative sections of a RegionalSnapshot from the user's own
+   * Groq/OpenRouter key (see services/user-ai-keys.ts), grounded in real
+   * client-visible signal-aggregator data for the region's countries.
+   * regime/balance/actors/scenarioSets/transmissionPaths/triggers/mobility
+   * stay empty — those require the same quantitative scoring pipeline
+   * WorldMonitor runs server-side, which a bare completion call cannot
+   * reproduce without inventing numbers. The board's block builders already
+   * render an honest empty state for each when absent.
+   */
+  private async generateRegionalSnapshotFromUserKey(regionId: string): Promise<RegionalSnapshot | undefined> {
+    if (!hasUserAiKey()) return undefined;
+    const countries = BOARD_REGION_COUNTRIES[regionId] ?? [];
+    if (countries.length === 0) return undefined;
+
+    const aggregator = await getSignalAggregator();
+    const clusters = aggregator.getCountryClusters()
+      .filter(c => countries.includes(c.country))
+      .sort((a, b) => b.totalCount - a.totalCount)
+      .slice(0, 8);
+    const convergences = aggregator.getRegionalConvergence()
+      .filter(c => c.countries.some(cc => countries.includes(cc)));
+
+    if (clusters.length === 0 && convergences.length === 0) return undefined;
+
+    const lines: string[] = [`Region: ${regionId}`];
+    if (convergences.length > 0) {
+      lines.push('Regional convergence signals:');
+      for (const c of convergences) lines.push(`- ${c.description}`);
+    }
+    if (clusters.length > 0) {
+      lines.push('Country signal activity:');
+      for (const c of clusters) {
+        lines.push(`- ${c.countryName}: ${c.totalCount} signals (${[...c.signalTypes].join(', ')}), convergence score ${c.convergenceScore}`);
+      }
+    }
+    const contextSnapshot = lines.join('\n');
+
+    const systemPrompt = `You are a geopolitical intelligence analyst writing a regional situation brief for an intelligence dashboard.
+Given real signal data for a region (country-level event counts and convergence patterns), write brief text for each section below.
+Respond ONLY with a JSON object: { "situation": string, "balanceAssessment": string, "outlook24h": string, "outlook7d": string, "outlook30d": string, "watchItems": string[] }.
+Each text field is 1-2 sentences. watchItems is 0-4 short bullet strings naming specific things to watch. Be specific and grounded strictly in the given data — never invent events, actors, or figures not implied by it. If the data is too sparse for a section, say so plainly instead of padding.`;
+
+    try {
+      const parsed = await generateStructuredCompletion(systemPrompt, contextSnapshot) as {
+        situation?: string; balanceAssessment?: string; outlook24h?: string; outlook7d?: string; outlook30d?: string; watchItems?: string[];
+      };
+      const toSection = (text: string | undefined) => text?.trim() ? { text: text.trim(), evidenceIds: [] } : undefined;
+      return {
+        regionId,
+        generatedAt: Date.now(),
+        actors: [],
+        leverageEdges: [],
+        scenarioSets: [],
+        transmissionPaths: [],
+        evidence: [],
+        narrative: {
+          situation: toSection(parsed.situation),
+          balanceAssessment: toSection(parsed.balanceAssessment),
+          outlook24h: toSection(parsed.outlook24h),
+          outlook7d: toSection(parsed.outlook7d),
+          outlook30d: toSection(parsed.outlook30d),
+          watchItems: (parsed.watchItems ?? []).filter(w => w?.trim()).slice(0, 4).map(w => ({ text: w.trim(), evidenceIds: [] })),
+        },
+      };
+    } catch (err) {
+      console.warn('[RegionalIntelligenceBoard] User-key generation failed:', err);
+      return undefined;
+    }
+  }
+
   private async loadCurrent(): Promise<void> {
     if (!this.element.isConnected) {
       this.runWhenConnected(() => { void this.loadCurrent(); });
@@ -168,13 +256,14 @@ export class RegionalIntelligenceBoard extends Panel {
       return;
     }
 
-    // Skip premium RPCs for anonymous/free users. Without this the panel
-    // fires get-regional-snapshot on every page load for every visitor and
-    // gets a 401 in the browser console. The panel's `premium: 'locked'`
-    // config + apiKeyPanels entry already keeps it visually hidden until
-    // the user is PRO — this just stops the RPC from firing during the
-    // constructor's `void this.loadCurrent()` before Clerk auth resolves.
-    if (!hasPremiumAccess()) {
+    // Skip premium RPCs for anonymous/free users with no BYOK key. Without
+    // this the panel fires get-regional-snapshot on every page load for
+    // every visitor and gets a 401 in the browser console. The panel's
+    // `premium: 'locked'` config + apiKeyPanels entry already keeps it
+    // visually hidden until the user is PRO or has a BYOK key — this just
+    // stops the RPC from firing during the constructor's
+    // `void this.loadCurrent()` before Clerk auth resolves.
+    if (!hasPremiumAccess() && !hasUserAiKey()) {
       this.renderEmpty();
       return;
     }
@@ -194,66 +283,80 @@ export class RegionalIntelligenceBoard extends Panel {
     let snapshot: RegionalSnapshot | undefined;
     let actualRegion = myRegion;
     let fallbackFrom: string | null = null;
-    try {
-      const resp = await getIntelligenceClient().getRegionalSnapshot({ regionId: myRegion });
-      if (!isLatestSequence(mySequence, this.latestSequence)) return;
-      snapshot = resp.snapshot;
-    } catch (err) {
-      if (!isLatestSequence(mySequence, this.latestSequence)) return;
-      this.renderError(err instanceof Error ? err.message : String(err));
-      return;
-    }
 
-    // If the requested region has no snapshot yet, race the other regions
-    // and render the FIRST one that returns data. Better UX than telling
-    // the user to wait — and we never block on a slow/hung region because
-    // (a) we resolve on the first non-empty success rather than waiting for
-    // all to settle, and (b) a hard timeout caps the total wait. The
-    // generated client has no default per-request timeout, so without both
-    // guards a single hung region could leave the panel on the loader.
-    if (!snapshot?.regionId) {
-      const fallbackIds = BOARD_REGIONS.map(r => r.id).filter(id => id !== myRegion);
-      const FALLBACK_TIMEOUT_MS = 4000;
-      const winner = await new Promise<{ snapshot: RegionalSnapshot; id: string } | null>(resolve => {
-        if (fallbackIds.length === 0) {
-          resolve(null);
-          return;
-        }
-        let resolved = false;
-        let pending = fallbackIds.length;
-        const settle = (value: { snapshot: RegionalSnapshot; id: string } | null) => {
-          if (resolved) return;
-          resolved = true;
-          resolve(value);
-        };
-        const timer = setTimeout(() => settle(null), FALLBACK_TIMEOUT_MS);
-        for (const id of fallbackIds) {
-          getIntelligenceClient().getRegionalSnapshot({ regionId: id })
-            .then(resp => {
-              if (resp.snapshot?.regionId) {
-                clearTimeout(timer);
-                settle({ snapshot: resp.snapshot, id });
-                return;
-              }
-              if (--pending === 0) {
-                clearTimeout(timer);
-                settle(null);
-              }
-            })
-            .catch(() => {
-              if (--pending === 0) {
-                clearTimeout(timer);
-                settle(null);
-              }
-            });
-        }
-      });
-      if (!isLatestSequence(mySequence, this.latestSequence)) return;
-      if (winner) {
-        snapshot = winner.snapshot;
-        actualRegion = winner.id;
-        fallbackFrom = myRegion;
+    if (hasPremiumAccess()) {
+      try {
+        const resp = await getIntelligenceClient().getRegionalSnapshot({ regionId: myRegion });
+        if (!isLatestSequence(mySequence, this.latestSequence)) return;
+        snapshot = resp.snapshot;
+      } catch (err) {
+        if (!isLatestSequence(mySequence, this.latestSequence)) return;
+        this.renderError(err instanceof Error ? err.message : String(err));
+        return;
       }
+
+      // If the requested region has no snapshot yet, race the other regions
+      // and render the FIRST one that returns data. Better UX than telling
+      // the user to wait — and we never block on a slow/hung region because
+      // (a) we resolve on the first non-empty success rather than waiting for
+      // all to settle, and (b) a hard timeout caps the total wait. The
+      // generated client has no default per-request timeout, so without both
+      // guards a single hung region could leave the panel on the loader.
+      if (!snapshot?.regionId) {
+        const fallbackIds = BOARD_REGIONS.map(r => r.id).filter(id => id !== myRegion);
+        const FALLBACK_TIMEOUT_MS = 4000;
+        const winner = await new Promise<{ snapshot: RegionalSnapshot; id: string } | null>(resolve => {
+          if (fallbackIds.length === 0) {
+            resolve(null);
+            return;
+          }
+          let resolved = false;
+          let pending = fallbackIds.length;
+          const settle = (value: { snapshot: RegionalSnapshot; id: string } | null) => {
+            if (resolved) return;
+            resolved = true;
+            resolve(value);
+          };
+          const timer = setTimeout(() => settle(null), FALLBACK_TIMEOUT_MS);
+          for (const id of fallbackIds) {
+            getIntelligenceClient().getRegionalSnapshot({ regionId: id })
+              .then(resp => {
+                if (resp.snapshot?.regionId) {
+                  clearTimeout(timer);
+                  settle({ snapshot: resp.snapshot, id });
+                  return;
+                }
+                if (--pending === 0) {
+                  clearTimeout(timer);
+                  settle(null);
+                }
+              })
+              .catch(() => {
+                if (--pending === 0) {
+                  clearTimeout(timer);
+                  settle(null);
+                }
+              });
+          }
+        });
+        if (!isLatestSequence(mySequence, this.latestSequence)) return;
+        if (winner) {
+          snapshot = winner.snapshot;
+          actualRegion = winner.id;
+          fallbackFrom = myRegion;
+        }
+      }
+    } else {
+      // BYOK path: no server-side quantitative modeling (regime/balance/
+      // actors/scenarios/transmission need the same signal-scoring pipeline
+      // WorldMonitor runs server-side — a bare LLM call can't fabricate
+      // those without inventing numbers). Only the narrative sections are
+      // generated, from real client-visible signal data. Every other field
+      // stays empty; the board's block builders already render an honest
+      // "Unavailable"/"No data" state for each, same as the real feature
+      // gap Akul's plan doc flagged for regional snapshots.
+      snapshot = await this.generateRegionalSnapshotFromUserKey(myRegion);
+      if (!isLatestSequence(mySequence, this.latestSequence)) return;
     }
 
     if (!snapshot?.regionId) {
@@ -269,8 +372,12 @@ export class RegionalIntelligenceBoard extends Panel {
     // the fetch is still in flight. PR #2995 review.
     this.renderBoard(snapshot, null, null, fallbackFrom);
 
-    // Phase 2: fire history + brief RPCs in background. Use actualRegion so
-    // the enrichments match the rendered snapshot when we fell back.
+    // Phase 2 (regime history + weekly brief) is premium-only — both RPCs
+    // are separately entitlement-gated with no BYOK equivalent data source.
+    if (!hasPremiumAccess()) return;
+
+    // Fire history + brief RPCs in background. Use actualRegion so the
+    // enrichments match the rendered snapshot when we fell back.
     const historyPromise = getIntelligenceClient().getRegimeHistory({ regionId: actualRegion, limit: 20 }).catch(() => null);
     const briefPromise = getIntelligenceClient().getRegionalBrief({ regionId: actualRegion }).catch(() => null);
 

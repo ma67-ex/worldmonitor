@@ -1,3 +1,21 @@
+**STATUS: DONE — 2026-08-16**
+
+## Report
+
+**Fully working (verified live with a test key, real Groq round-trips):**
+- `market-implications`, `deduction`, `regional-intelligence`, `chat-analyst`, `stock-analysis` — all 5 from `01-byok-panels.md`. Each unlocks correctly (no lock CTA), no stale "PRO" badge, generates real output from a user's own key. Full per-panel detail already logged in `01-byok-panels.md`.
+
+**`ProBanner` regression check:** confirmed not mounted anywhere in `src/App.ts` or `src/app/*.ts` — clean, no regression.
+
+**Remaining `premium: 'locked'` entries in `panels.ts`, checked against expectations:**
+- `stock-backtest`, `daily-market-brief`, `wsb-ticker-scanner`, `latest-brief` — genuinely still Pro-only, never in scope (not one of the 5 BYOK panels, not a B4 alt-data panel)
+- `global-procurement`, `trade-policy` — B4 alt-data panels, **not done**. `trade-policy` overlaps with `06-trade-tariffs-debt.md`'s scope but wasn't itself unlocked — only the `national-debt` sub-metric (a separate panel, never had a client-side lock) got a real alt-source
+- `forecast`, `oref-sirens`, `telegram-intel` — desktop-only locks (`_desktop &&` conditional), tied to Railway/desktop infra, correctly out of scope
+
+Nothing unexpectedly still locked, nothing regressed.
+
+---
+
 # Task: Verify de-paywall end-to-end (do this last)
 
 ## Why

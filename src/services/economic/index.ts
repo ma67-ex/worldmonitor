@@ -20,6 +20,7 @@ import { degradedSources, toEurSpotRows, toFxStressRows, toRubQuoteRows, toUsdSp
 import { toApiUrl } from '@/services/runtime';
 import { hasPremiumAccess } from '@/services/panel-gating';
 import { EconomicServiceClient } from '@/services/generated-rpc-clients';
+import { TIER1_COUNTRIES } from '@/config/countries';
 
 // ---- Client + Circuit Breakers ----
 
@@ -703,7 +704,115 @@ export type { NationalDebtEntry };
 const nationalDebtBreaker = createCircuitBreaker<GetNationalDebtResponse>({ name: 'National Debt', cacheTtlMs: 6 * 60 * 60 * 1000 });
 const emptyNationalDebtFallback: GetNationalDebtResponse = { entries: [], seededAt: '', unavailable: true };
 
+// World Bank's own SDN-scale free public API (api.worldbank.org, confirmed
+// CORS-open: access-control-allow-origin: *) -- this fork's alt-source for
+// national debt (docs/tasks/abdullah/06-trade-tariffs-debt.md). Real
+// limitation, stated plainly: "central government debt" (GC.DOD.TOTL.GD.ZS)
+// is narrower than the general-government figure WorldMonitor's own premium
+// backend likely uses, and several countries (notably China) don't report it
+// consistently to World Bank -- those are simply absent below, never
+// papered over with an invented number. annualGrowth/perSecondRate/
+// perDayRate are derived from the two most recent real reported years, not
+// estimated.
+const WORLD_BANK_DEBT_COUNTRIES = Object.keys(TIER1_COUNTRIES);
+const WORLD_BANK_BASE = 'https://api.worldbank.org/v2/country';
+
+interface WorldBankObservation {
+  countryiso3code: string;
+  country: { id: string; value: string };
+  date: string;
+  value: number | null;
+}
+
+async function fetchWorldBankIndicator(indicator: string): Promise<WorldBankObservation[] | null> {
+  try {
+    const url = `${WORLD_BANK_BASE}/${WORLD_BANK_DEBT_COUNTRIES.join(';')}/indicator/${indicator}?format=json&per_page=1000&date=2018:2025`;
+    // A 31-country batched query measured 13-17s in testing -- 12s aborted
+    // it before it ever had a chance to succeed. 25s leaves real headroom.
+    const resp = await fetch(url, { signal: AbortSignal.timeout(25_000) });
+    if (!resp.ok) return null;
+    const body = await resp.json() as [unknown, WorldBankObservation[] | null];
+    return Array.isArray(body) ? body[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Real (non-null) observations per ISO3 code, keyed by year. */
+function byCountryAndYear(obs: WorldBankObservation[]): Map<string, Map<string, number>> {
+  const result = new Map<string, Map<string, number>>();
+  for (const o of obs) {
+    if (o.value == null) continue;
+    const years = result.get(o.countryiso3code) ?? new Map<string, number>();
+    years.set(o.date, o.value);
+    result.set(o.countryiso3code, years);
+  }
+  return result;
+}
+
+async function fetchNationalDebtFromWorldBank(): Promise<GetNationalDebtResponse | null> {
+  const [gdpObs, debtRatioObs] = await Promise.all([
+    fetchWorldBankIndicator('NY.GDP.MKTP.CD'),
+    fetchWorldBankIndicator('GC.DOD.TOTL.GD.ZS'),
+  ]);
+  if (!gdpObs || !debtRatioObs) return null;
+
+  const gdpByCountry = byCountryAndYear(gdpObs);
+  const debtRatioByCountry = byCountryAndYear(debtRatioObs);
+
+  const entries: NationalDebtEntry[] = [];
+  for (const [iso3, ratioByYear] of debtRatioByCountry) {
+    const gdpByYear = gdpByCountry.get(iso3);
+    if (!gdpByYear) continue;
+    // GDP publishes a preliminary current-year estimate before the debt
+    // ratio catches up, so "latest year per indicator" independently rarely
+    // lands on the same year. Intersect first: only years where BOTH
+    // indicators have a real reported value are eligible -- never pair a
+    // debt ratio against a GDP figure from a different year.
+    const commonYears = [...ratioByYear.keys()]
+      .filter(year => gdpByYear.has(year))
+      .sort((a, b) => Number(b) - Number(a));
+    if (commonYears.length === 0) continue;
+
+    const latestYear = commonYears[0]!;
+    const debtToGdp = ratioByYear.get(latestYear)!;
+    const gdpUsd = gdpByYear.get(latestYear)!;
+    const debtUsd = gdpUsd * (debtToGdp / 100);
+
+    let annualGrowth = 0;
+    if (commonYears.length > 1) {
+      const priorYear = commonYears[1]!;
+      const priorDebtUsd = gdpByYear.get(priorYear)! * (ratioByYear.get(priorYear)! / 100);
+      const yearsBetween = Number(latestYear) - Number(priorYear);
+      if (priorDebtUsd > 0 && yearsBetween > 0) {
+        annualGrowth = (debtUsd - priorDebtUsd) / priorDebtUsd / yearsBetween;
+      }
+    }
+
+    const perSecondRate = (debtUsd * annualGrowth) / (365 * 24 * 3600);
+    entries.push({
+      iso3,
+      debtUsd,
+      gdpUsd,
+      debtToGdp,
+      annualGrowth,
+      perSecondRate,
+      perDayRate: perSecondRate * 86400,
+      baselineTs: new Date(`${latestYear}-01-01T00:00:00Z`).toISOString(),
+      source: 'World Bank (GC.DOD.TOTL.GD.ZS, central government debt -- narrower than general-government figures some sources use)',
+    });
+  }
+
+  if (entries.length === 0) return null;
+  return { entries, seededAt: new Date().toISOString(), unavailable: false };
+}
+
 export async function getNationalDebtData(): Promise<GetNationalDebtResponse> {
+  if (!hasPremiumAccess()) {
+    const direct = await fetchNationalDebtFromWorldBank();
+    if (direct) return direct;
+  }
+
   const hydrated = getHydratedData('nationalDebt') as GetNationalDebtResponse | undefined;
   if (hydrated?.entries?.length) return hydrated;
 

@@ -6,7 +6,9 @@ import { postProcessAnalystHtml } from '@/utils/analyst-markdown';
 import { yieldToMain } from '@/utils/after-paint';
 import { premiumFetch } from '@/services/premium-fetch';
 import { getAuthState } from '@/services/auth-state';
-import { readClientEntitlementBelief } from '@/services/panel-gating';
+import { hasPremiumAccess, readClientEntitlementBelief } from '@/services/panel-gating';
+import { hasUserAiKey, generateStructuredCompletion } from '@/services/user-ai-keys';
+import { getSignalAggregator } from '@/app/lazy-services';
 import {
   analystDenialMessage,
   isBillingVerificationDenial,
@@ -507,6 +509,43 @@ export class ChatAnalystPanel extends Panel {
     if (this.inputEl) this.inputEl.disabled = disabled;
   }
 
+  /**
+   * Client-side fallback for non-premium users: one blocking completion from
+   * the user's own Groq/OpenRouter key (see services/user-ai-keys.ts)
+   * instead of WorldMonitor's streaming /api/chat-analyst backend. Grounds
+   * the answer in whatever real signal-aggregator context currently exists
+   * (same generateAIContext() text country-intel/regional-snapshot's BYOK
+   * paths use); the system prompt tells the model to say so plainly rather
+   * than invent numbers when a question needs live data this context
+   * doesn't have. No dashboard-control action parsing — that's a real,
+   * intentionally out-of-scope gap, not a bug.
+   */
+  private async generateChatAnswerFromUserKey(query: string, history: ChatMessage[]): Promise<string | null> {
+    if (!hasUserAiKey()) return null;
+
+    let context = '';
+    try {
+      const aggregator = await getSignalAggregator();
+      context = aggregator.generateAIContext();
+    } catch { /* aggregator unavailable — answer without grounding */ }
+
+    const systemPrompt = `You are WM Analyst, a geopolitical and market intelligence assistant for an OSINT dashboard.
+${context ? `Real-time signal context (ground relevant claims in this):\n${context}\n\n` : ''}Answer the user's question directly and concisely in markdown. If the question needs live data not present above (exact prices, today's specific headlines, etc.), say so plainly instead of inventing numbers or events.
+Respond ONLY with a JSON object: { "answer": string }.`;
+
+    const historyText = history.map(m => `${m.role === 'user' ? 'User' : 'Analyst'}: ${m.content}`).join('\n');
+    const userPrompt = historyText ? `${historyText}\nUser: ${query}` : query;
+
+    try {
+      const parsed = await generateStructuredCompletion(systemPrompt, userPrompt) as { answer?: string };
+      const answer = typeof parsed.answer === 'string' ? parsed.answer.trim() : '';
+      return answer || null;
+    } catch (err) {
+      console.warn('[ChatAnalystPanel] User-key generation failed:', err);
+      return null;
+    }
+  }
+
   async send(query: string): Promise<void> {
     if (this.isStreaming) return;
     this.isStreaming = true;
@@ -536,6 +575,30 @@ export class ChatAnalystPanel extends Panel {
     const requestBelief = readClientEntitlementBelief(requestAuthState);
 
     try {
+      if (!hasPremiumAccess()) {
+        // BYOK path: no dashboard-control actions, no streaming — one
+        // blocking completion from the user's own Groq/OpenRouter key,
+        // rendered through the same finalizeStreamingBubble() the premium
+        // path uses. See generateChatAnswerFromUserKey for what it can and
+        // can't ground answers in.
+        if (!hasUserAiKey()) {
+          this.finalizeStreamingBubble(
+            streamingBody,
+            'Add your own Groq or OpenRouter key in Settings → Intelligence to use this panel.',
+            false,
+          );
+          return;
+        }
+        const answer = await this.generateChatAnswerFromUserKey(trimmedQuery, trimmedHistory);
+        if (answer === null) {
+          this.finalizeStreamingBubble(streamingBody, '⚠ Analyst unavailable. Try again shortly.', false);
+          return;
+        }
+        this.finalizeStreamingBubble(streamingBody, answer, true);
+        this.pushHistory(trimmedQuery, answer);
+        return;
+      }
+
       const res = await premiumFetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
