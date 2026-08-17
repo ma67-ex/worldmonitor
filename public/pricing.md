@@ -102,7 +102,7 @@ These subscription licenses cover the hosted Service and its outputs. They are s
       "price_usd_monthly": 0,
       "signup_required": false,
       "features": [
-        "56 map layers (Resilience is Pro)",
+        "58 map layers (Resilience is Pro)",
         "500+ feeds",
         "country briefs",
         "chokepoints",

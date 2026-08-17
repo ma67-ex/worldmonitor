@@ -1131,6 +1131,9 @@
         },
         {
           "path": "server/worldmonitor/economic/v1/list-world-bank-indicators.ts"
+        },
+        {
+          "path": "src/services/economic/index.ts"
         }
       ]
     },
