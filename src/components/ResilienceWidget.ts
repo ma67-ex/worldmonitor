@@ -349,6 +349,16 @@ export class ResilienceWidget {
               )]
             : [];
         })(),
+        ...(data.compositeSources?.length
+          ? [h(
+              'span',
+              {
+                className: 'resilience-widget__composite-source',
+                title: 'SITREP composite score -- not WorldMonitor\'s proprietary methodology. Built from the sources listed here only; every other domain in the real 6-domain model is intentionally omitted, not estimated.',
+              },
+              `Composite: ${data.compositeSources.join(' + ')}`,
+            )]
+          : []),
       ),
     );
   }
