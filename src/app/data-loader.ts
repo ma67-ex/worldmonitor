@@ -3825,10 +3825,14 @@ export class DataLoaderManager implements AppModule {
   }
 
   async loadTradePolicy(): Promise<void> {
-    // Trade-policy is PRO-gated. Short-circuit for anonymous/free users so
-    // we don't fire 6 RPCs that all 401 on every page load — fixes the
-    // console-noise + Sentry-noise bug from the 2026-04-22 trace.
-    if (!hasPremiumAccess()) return;
+    // The anonymous/free early-return that used to live here (avoiding 6 RPCs
+    // that all 401'd, 2026-04-22 trace) is gone: task 08
+    // (docs/tasks/abdullah/08-server-entitlement-stripping.md) stripped
+    // server-side entitlement enforcement fork-wide, so none of these 401
+    // anymore. 4 of the 6 (restrictions/flows/barriers/revenue) never needed
+    // premium in the first place — src/services/trade/index.ts already calls
+    // them via an unauthenticated publicClient. Only tariffs/comtrade used
+    // premiumClient, which now gets real data too.
     const tradePanel = this.ctx.panels['trade-policy'] as TradePolicyPanel | undefined;
     if (!tradePanel) return;
 

@@ -135,7 +135,6 @@ const WEB_PREMIUM_PANELS = new Set([
   'wsb-ticker-scanner',
   'latest-brief',
   'regional-intelligence',
-  'trade-policy',
   'global-procurement',
 ]);
 
