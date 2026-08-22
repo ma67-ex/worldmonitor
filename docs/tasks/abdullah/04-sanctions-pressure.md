@@ -1,4 +1,8 @@
-**STATUS: RESEARCHED, BLOCKED — 2026-08-16 — real finding, not a fetch swap**
+**STATUS: DECIDED, CLEARED TO BUILD — 2026-08-22 — Akul's call made, no longer needs his attention**
+
+Akul decided 2026-08-22: **server-side proxy + parse** (option (b) from the 2026-08-16 blocker note below). Build a small proxy endpoint that fetches OFAC's 111MB SDN entities XML dump server-side (once, on a cache TTL — do not re-fetch per request), parses it down to a per-country aggregate count/summary, and serves that small JSON to the browser. This is genuinely new server-side work, not a client fetch swap — treat it like `api/_pizzint-proxy.js`.
+
+**Fold it into the existing dispatcher registries, don't add a new top-level Vercel function** — this fork is capped at exactly 12 deployed functions (see `sessions/worldmonitor/summary.md` for the full consolidation story). `api/misc-gateway/[name].ts`'s registry is the right home for a new proxy like this one, same as the note below already suggested. Cache the parsed result (Redis/Upstash TTL, e.g. 24h — OFAC's list doesn't change that often) so the 111MB download only happens on cache miss, not per request.
 
 Checked `src/services/sanctions-pressure.ts` first: the client already has an honest free-tier path (`getHydratedData('sanctionsPressure')` → public `/api/bootstrap?keys=sanctionsPressure` → empty for non-premium, never calls the Pro RPC anonymously). That part predates this session — it's real, it's not new work, and it just needs Akul's Railway seed actually populated to serve data.
 
