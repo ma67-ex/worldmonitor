@@ -2,8 +2,18 @@ import type { GetFoodStocksResponse, GetResilienceRankingResponse, GetResilience
 import { getRpcBaseUrl } from '@/services/rpc-client';
 import { premiumFetch } from '@/services/premium-fetch';
 import { ResilienceServiceClient } from '@/services/generated-rpc-clients';
+import { hasPremiumAccess } from '@/services/panel-gating';
+import { fetchCachedRiskScores, getCachedCountryScore } from '@/services/cached-risk-scores';
+import { getNationalDebtData } from '@/services/economic';
+import { iso3ToIso2Code } from '@/services/country-geometry';
 
-export type ResilienceScoreResponse = GetResilienceScoreResponse;
+export type ResilienceScoreResponse = GetResilienceScoreResponse & {
+  // Set only by generateCompositeResilienceScore below, never present on a
+  // real WorldMonitor response. Lets the widget disclose that a given score
+  // is SITREP's own composite, not WorldMonitor's proprietary methodology --
+  // see docs/tasks/abdullah/03-resilience-score.md's verify requirement.
+  compositeSources?: string[];
+};
 export type ResilienceRankingResponse = GetResilienceRankingResponse;
 export type FoodStocksResponse = GetFoodStocksResponse;
 export type { ResilienceDomain, ResilienceDimension, ResilienceRankingItem, ScoreInterval };
