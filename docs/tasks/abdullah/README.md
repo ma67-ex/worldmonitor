@@ -1,6 +1,6 @@
-**SESSION STATUS (2026-08-16): 01, 02, 07 done. 06 partial (debt only). 03/04/05 researched, not implemented — see each file's STATUS line for the real reason.**
+**SESSION STATUS (2026-08-16): 01, 02, 07 done. 06 partial (debt only, trade flows + tariffs still open). 03/04/05 researched, not implemented — see each file's STATUS line for the real reason. 08/09 added 2026-08-22 — cleared to start, no approval needed.**
 
-# Abdullah's task queue (2026-08-16)
+# Abdullah's task queue (2026-08-16, updated 2026-08-22)
 
 All of these are cleared to work on independently — none need Akul's approval or a question back to him. Full background/context lives in `docs/plans/2026-08-15-001-feat-sitrep-rebrand-depaywall-plan.md` if you want more; each file here is self-contained enough to start from directly.
 
