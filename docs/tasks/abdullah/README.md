@@ -1,4 +1,4 @@
-**SESSION STATUS (2026-08-22): 01, 02, 03, 07 done (03 built directly by Akul, not by Abdullah — see its file). 04 decided and cleared (server-side OFAC proxy). 06 partial (debt only, trade flows + tariffs still open). 05 stays out of scope — needs Akul's Railway call. 08/09 cleared, no approval needed.**
+**SESSION STATUS (2026-08-22, overnight run): the full queue below is now DONE — 01, 02, 03 (built directly by Akul), 04, 06, 07, 08, 09 all complete and pushed to `main`. Only `05` and the Railway go/no-go remain, both explicitly on Akul's plate, not Abdullah's.**
 
 # Abdullah's task queue (2026-08-16, updated 2026-08-22)
 
@@ -13,11 +13,11 @@ Suggested order (not mandatory — pick whatever's most useful):
 1. [`01-byok-panels.md`](./01-byok-panels.md) — done
 2. [`02-canada-roads-layer.md`](./02-canada-roads-layer.md) — done
 3. [`03-resilience-score.md`](./03-resilience-score.md) — done, built directly, nothing left here
-4. [`04-sanctions-pressure.md`](./04-sanctions-pressure.md) — decided 2026-08-22 (server-side proxy + parse), cleared to build now
-5. [`06-trade-tariffs-debt.md`](./06-trade-tariffs-debt.md) — debt sub-metric done, trade flows + tariffs still unstarted (see bottom of the file for the remaining task, no decision needed — same free-API-swap pattern as debt)
-6. [`07-verify-depaywall-end-to-end.md`](./07-verify-depaywall-end-to-end.md) — done, but re-run once 04 lands
-7. [`08-server-entitlement-stripping.md`](./08-server-entitlement-stripping.md) — no decision needed, finishes the de-paywall on the server side
-8. [`09-theme-css-tuning.md`](./09-theme-css-tuning.md) — optional polish pass, do whenever
+4. [`08-server-entitlement-stripping.md`](./08-server-entitlement-stripping.md) — done 2026-08-22, server-side entitlement enforcement stripped fork-wide
+5. [`04-sanctions-pressure.md`](./04-sanctions-pressure.md) — done 2026-08-22, OFAC proxy + parse, folded into `api/misc-gateway`
+6. [`06-trade-tariffs-debt.md`](./06-trade-tariffs-debt.md) — done 2026-08-22 (debt sub-metric was already done; trade flows + tariffs turned out to need no new data source, just removing 3 redundant client-side gates left over from before 08 — see the file for the full trace)
+7. [`07-verify-depaywall-end-to-end.md`](./07-verify-depaywall-end-to-end.md) — re-verified 2026-08-22 after 04/06/08 landed. Flags `stock-backtest`, `global-procurement`, `wsb-ticker-scanner` as likely candidates for the exact same fix `06` just did for `trade-policy` — not fixed (out of this session's scope), a real finding for a future task if Akul wants them unlocked too.
+8. [`09-theme-css-tuning.md`](./09-theme-css-tuning.md) — done 2026-08-22, fixed 4 real contrast bugs the SITREP accent-color rebrand introduced (DEFCON badge + pills, BYOK key inputs, desktop settings placeholder)
 
 Mark a file done by adding `**STATUS: DONE — <date>**` at the top when you finish it. Don't delete the files — they're the record of what shipped and why.
 
@@ -27,4 +27,4 @@ These still need a decision only Akul can make. Don't pick them up until they mo
 
 - **[`05-supply-chain-chokepoints.md`](./05-supply-chain-chokepoints.md)** — the free/basic status strip already works; the real locked analytics (8 RPCs of scenario modeling) need Akul's Railway call, same as below.
 - **Railway seed-infra go/no-go** — currently deferred (cost/billing risk). Blocks `news/v1/list-feed-digest`, `telegram-feed`, `gpsjam`, `oref-alerts`, and the rest of `05`.
-- **5 leftover locked panels, never scoped**: `global-procurement`, `trade-policy`, `stock-backtest`, `wsb-ticker-scanner`, `latest-brief`. Akul hasn't said whether these matter for his use case at all — no decision made yet on whether to even prioritize them.
+- **4 leftover locked panels, never scoped**: `global-procurement`, `stock-backtest`, `wsb-ticker-scanner`, `latest-brief`. `trade-policy` came OFF this list 2026-08-22 (see `06`) — it turned out to be the same class of bug (stale client-side gate, not a real data-source gap), and `07`'s re-verification flags `global-procurement`/`stock-backtest`/`wsb-ticker-scanner` as likely the same pattern. `latest-brief` is confirmed genuinely different — Clerk-account-bound data, not fixable by unlocking a gate. Akul hasn't said whether the remaining 3 matter enough to prioritize.
