@@ -13,7 +13,9 @@ Suggested order (not mandatory — pick whatever's most useful):
 3. [`03-resilience-score.md`](./03-resilience-score.md)
 4. [`04-sanctions-pressure.md`](./04-sanctions-pressure.md)
 5. [`05-supply-chain-chokepoints.md`](./05-supply-chain-chokepoints.md)
-6. [`06-trade-tariffs-debt.md`](./06-trade-tariffs-debt.md)
+6. [`06-trade-tariffs-debt.md`](./06-trade-tariffs-debt.md) — debt sub-metric done, trade flows + tariffs still unstarted (see bottom of the file for the remaining task)
 7. [`07-verify-depaywall-end-to-end.md`](./07-verify-depaywall-end-to-end.md) — do this last, after 1 is fully done
+8. [`08-server-entitlement-stripping.md`](./08-server-entitlement-stripping.md) — no decision needed, finishes the de-paywall on the server side
+9. [`09-theme-css-tuning.md`](./09-theme-css-tuning.md) — optional polish pass, do whenever
 
 Mark a file done by adding `**STATUS: DONE — <date>**` at the top when you finish it. Don't delete the files — they're the record of what shipped and why.
