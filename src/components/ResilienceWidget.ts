@@ -1,5 +1,5 @@
 import { type AuthSession, getAuthState, subscribeAuthState } from '@/services/auth-state';
-import { PanelGateReason, getPanelGateReason } from '@/services/panel-gating';
+import { PanelGateReason } from '@/services/panel-gating';
 import { getResilienceScore, type ResilienceDomain, type ResilienceScoreResponse } from '@/services/resilience';
 import { h, replaceChildren } from '@/utils/dom-utils';
 import {
