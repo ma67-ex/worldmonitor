@@ -1,4 +1,6 @@
-**STATUS: RESEARCHED, NOT IMPLEMENTED — 2026-08-16 — recommendation below, real decision still needed**
+**STATUS: DONE — 2026-08-22 — built directly by Akul + Claude, not assigned to Abdullah. Nothing left to do here.**
+
+Akul picked the methodology (homegrown composite, option 2 below) 2026-08-22. Implemented same session in `src/services/resilience.ts` (`generateCompositeResilienceScore()`) + `src/components/ResilienceWidget.ts` (client-side Pro gate removed — `getGateReason()` now always returns `NONE` since the composite serves non-entitled users a real score). Combines two live free signals: CII instability score (`intelligence/v1/get-risk-scores`, inverted) + World Bank debt-to-GDP (`economic/index.ts`, inverted). Only domains with real data are included — no invented dimensions. Verified live in browser against the production alias (UK: real 98 composite score, footer discloses `Composite: CII instability index (inverted)`). Left in this file for the historical record of the original research; do not pick this back up.
 
 Checked `server/worldmonitor/resilience/v1/` and `src/services/resilience.ts`: this is real modeling (`get-resilience-score`/`get-resilience-ranking`, both in `PREMIUM_RPC_PATHS`), not a data-feed wrapper — confirms the task's own framing.
 
