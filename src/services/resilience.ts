@@ -39,9 +39,125 @@ function normalizeCountryCode(countryCode: string): string {
   return /^[A-Z]{2}$/.test(normalized) ? normalized : '';
 }
 
+function resilienceLevelFromScore(score: number): string {
+  if (score >= 80) return 'very_high';
+  if (score >= 60) return 'high';
+  if (score >= 40) return 'moderate';
+  if (score >= 20) return 'low';
+  return 'very_low';
+}
+
+function freshDimension(id: string, score: number, observedAtMs: number): ResilienceDimension {
+  return {
+    id,
+    score,
+    coverage: 1,
+    observedWeight: 1,
+    imputedWeight: 0,
+    imputationClass: '',
+    freshness: { lastObservedAtMs: String(observedAtMs), staleness: 'fresh' },
+  };
+}
+
+/**
+ * SITREP's homegrown resilience composite. WorldMonitor's real resilience
+ * score (server/worldmonitor/resilience/v1/) is proprietary 6-domain,
+ * 23-dimension modeling -- not a data feed with a free drop-in replacement
+ * (see docs/tasks/abdullah/03-resilience-score.md). This combines two
+ * signals already live and free on this fork instead of approximating that
+ * private methodology:
+ *   - CII instability score (intelligence/v1/get-risk-scores, TIER1
+ *     countries only), inverted into a resilience reading.
+ *   - National debt-to-GDP (World Bank alt-source, services/economic),
+ *     inverted -- lower leverage reads as more resilient.
+ * Only domains with a real signal are included; every other WorldMonitor
+ * domain is simply omitted rather than filled with an invented score.
+ * Returns null when neither signal covers this country, so the caller
+ * can fall back to whatever real access it has.
+ */
+async function generateCompositeResilienceScore(countryCode: string): Promise<ResilienceScoreResponse | null> {
+  if (!countryCode) return null;
+
+  const domains: ResilienceDomain[] = [];
+  const sources: string[] = [];
+  const subScores: number[] = [];
+
+  try {
+    await fetchCachedRiskScores();
+    const cii = getCachedCountryScore(countryCode);
+    if (cii) {
+      const resilienceFromCii = Math.max(0, Math.min(100, 100 - cii.score));
+      const observedAtMs = cii.lastUpdated ? cii.lastUpdated.getTime() : Date.now();
+      domains.push({
+        id: 'social-governance',
+        score: resilienceFromCii,
+        weight: 1,
+        dimensions: [freshDimension('borderSecurity', resilienceFromCii, observedAtMs)],
+      });
+      subScores.push(resilienceFromCii);
+      sources.push('CII instability index (inverted)');
+    }
+  } catch {
+    // No CII coverage for this country/session -- leave the domain out entirely.
+  }
+
+  try {
+    const debt = await getNationalDebtData();
+    const iso2 = countryCode.toUpperCase();
+    const entry = debt.entries.find((e) => iso3ToIso2Code(e.iso3) === iso2);
+    if (entry) {
+      const resilienceFromDebt = Math.max(0, Math.min(100, 100 - entry.debtToGdp));
+      const observedAtMs = entry.baselineTs ? new Date(entry.baselineTs).getTime() : Date.now();
+      domains.push({
+        id: 'economic',
+        score: resilienceFromDebt,
+        weight: 1,
+        dimensions: [freshDimension('macroFiscal', resilienceFromDebt, observedAtMs)],
+      });
+      subScores.push(resilienceFromDebt);
+      sources.push('World Bank government debt-to-GDP (inverted)');
+    }
+  } catch {
+    // World Bank fetch failed or country not covered -- leave the domain out.
+  }
+
+  if (subScores.length === 0) return null;
+
+  const overallScore = subScores.reduce((sum, s) => sum + s, 0) / subScores.length;
+
+  return {
+    countryCode: countryCode.toUpperCase(),
+    overallScore,
+    level: resilienceLevelFromScore(overallScore),
+    domains,
+    trend: 'stable',
+    change30d: 0,
+    lowConfidence: subScores.length < 2,
+    imputationShare: subScores.length < 2 ? 0.5 : 0,
+    baselineScore: 0,
+    stressScore: 0,
+    stressFactor: 0,
+    dataVersion: '',
+    pillars: [],
+    schemaVersion: '1.0',
+    headlineEligible: true,
+    compositeSources: sources,
+  };
+}
+
 export async function getResilienceScore(countryCode: string): Promise<ResilienceScoreResponse> {
+  const normalized = normalizeCountryCode(countryCode);
+
+  // Real Pro entitlement (if this deploy ever has one) still gets
+  // WorldMonitor's actual model -- the composite is a substitute for
+  // de-paywalled users, not a downgrade for a genuinely paying one.
+  if (!hasPremiumAccess()) {
+    const composite = await generateCompositeResilienceScore(normalized);
+    if (composite) return composite;
+  }
+
   return getClient().getResilienceScore({
-    countryCode: normalizeCountryCode(countryCode),
+    countryCode: normalized,
   });
 }
 
