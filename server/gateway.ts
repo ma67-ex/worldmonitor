@@ -1164,7 +1164,12 @@ export function createDomainGateway(
     const relayWarmPingVerified = await isRelayWarmPingRequest(request, pathname);
     const requiresDirectLlmQuota = !internalMcpVerified && await shouldReserveGatewayDirectLlmQuota(request, pathname);
     const isTierGated = !internalMcpVerified && !isPublicNoAuthRpc && !seedRefreshVerified && !relayWarmPingVerified && getRequiredTier(pathname) !== null;
-    const needsLegacyProBearerGate = !internalMcpVerified && !isPublicNoAuthRpc && PREMIUM_RPC_PATHS.has(pathname) && !isTierGated;
+    // ponytail (task 08): legacy Pro bearer gate disabled fork-wide — no
+    // billing stack behind this deploy, so PREMIUM_RPC_PATHS should never
+    // force a key or 401/403 a request. PREMIUM_RPC_PATHS itself stays (the
+    // client's src/services/premium-fetch.ts still reads it to decide when to
+    // attach a bearer, which is harmless now that the server never checks it).
+    const needsLegacyProBearerGate = false;
     const isProFreshCacheRpc = PRO_FRESH_CACHE_RPC_PATHS.has(pathname);
     const needsProFreshnessResolution =
       !internalMcpVerified &&

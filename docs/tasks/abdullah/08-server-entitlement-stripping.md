@@ -1,3 +1,23 @@
+**STATUS: DONE — 2026-08-22**
+
+Neutralized every server-side gate at its single point of enforcement rather than touching each of the ~30 RPC handlers that call into them:
+
+1. `server/gateway.ts` — `needsLegacyProBearerGate` hardcoded to `false` (was `PREMIUM_RPC_PATHS.has(pathname) && !isTierGated`). `PREMIUM_RPC_PATHS` itself left untouched — the client's `src/services/premium-fetch.ts` still reads it to decide when to attach a bearer, which is harmless now that the server never checks it.
+2. `server/_shared/entitlement-check.ts` — `checkEntitlementDetailed()` rewritten to always return `{ response: null, entitlements: ... }`. `getRequiredTier()`'s map is untouched on purpose — a test (`entitlement-check.test.ts`) pins its return value as a "regression-lock against tier-2 revert," and the map still drives cache-tier classification elsewhere in `gateway.ts` (line ~2014), so removing it would be unrelated scope.
+3. `server/_shared/premium-check.ts` — `resolvePremiumCallerIdentity()` wrapped: the real identity resolution (userId/kind, used for telemetry and the internal-MCP HMAC path) runs unchanged, but a deny outcome is now converted to `{ isPremium: true, kind: 'enterprise', quotaExempt: true }` instead of being returned as-is. This covers every one of the ~15 handlers that gate via `isCallerPremium`/`requirePremiumRpcAccess` in one place (`server/worldmonitor/**`, `api/_mcp-proxy.ts`, `api/me/_entitlement.ts`, `api/v2/shipping/webhooks/**`).
+4. `server/_shared/pro-entitlement.ts` — `checkProEntitlement`/`checkTierProEntitlement` (used by `api/_notify.ts`, `api/_latest-brief.ts`, `api/discord/oauth/_start.ts`, `api/brief/_share-url.ts`, `api/slack/oauth/_start.ts`) now always return `{ allowed: true }`. This is a genuinely separate gate from `premium-check.ts` — same signal (Clerk role / Convex tier), different implementation, had to be found and killed independently.
+5. `api/_widget-agent.ts` — had its own third, inline copy of the Clerk-role/Convex-tier check (not routed through either shared module). Any valid signed-in session now sets `isPro = true` directly; the legacy `X-Widget-Key`/`X-Pro-Key` tester-key branch was left alone since that's a separate secret-key mechanism for Akul's own relay infra, not a billing gate.
+
+Left alone per the task's own scope: Clerk/Convex/Dodo SDKs, schema, and env plumbing — nothing was ripped out, just nothing on the request path blocks on it anymore.
+
+**Verify:**
+- `npm run typecheck` clean, `npm run typecheck:api` clean (the separate `tsconfig.api.json` pass — confirmed both, not just the root one), `npm run build` clean.
+- **Not verified live against the production deploy** — no Convex/Redis credentials in this environment to run `vercel dev` against real infra. This push triggers Akul's existing GitHub→Vercel auto-deploy (per the rebrand plan doc), so the real live check is: after this lands, hit a previously-gated RPC (e.g. `/api/market/v1/analyze-stock`) with no auth header and confirm 200, not 402.
+- **Ran the existing test suite as a sanity check (not requested by this task's verify section, did it anyway).** 12 tests now fail, all expected and all in the 3 files that pinned the *old* paywall-enforcing behavior as their explicit test subject: `entitlement-check.test.ts` (tier-403 assertions), `widget-agent-billing-denial.test.ts`, `summarize-article-handler-security.test.ts` ("Pro subscription required" assertions). These tests are testing the exact behavior this task removes — didn't rewrite them, since turning "strip the paywall" into "also rewrite the paywall's test suite" is real extra scope for an unattended pass. Flagging honestly rather than silently leaving a red test suite: if Akul wants these updated to assert the new always-allow behavior, that's a fast follow-up, not urgent since the code itself is correct.
+- `config/panels.ts` still has `premium: 'locked'` on panels whose backend RPC is now unblocked server-side: `stock-backtest`, `daily-market-brief`, `global-procurement`, `trade-policy`, `latest-brief`, `wsb-ticker-scanner` (all also on README's "never scoped" list), plus `oref-sirens`/`telegram-intel` (desktop-only lock, and blocked separately on the deferred Railway seed infra anyway) and `forecast` (desktop-only trial lock). Per this task's own instruction, **not removing these** — verifying each panel actually renders real data end-to-end is separate panel-by-panel work.
+
+---
+
 # Task: Strip server-side premium entitlement checks
 
 ## Why

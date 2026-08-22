@@ -24,7 +24,6 @@ import { timingSafeEqualSecret, timingSafeIncludes } from './_crypto.js';
 // @ts-expect-error — JS module, no declaration file
 import { isSessionTokenShape } from './_session.js';
 import { validateBearerToken } from '../server/auth-session';
-import { getBillingVerificationDenial, getEntitlements } from '../server/_shared/entitlement-check';
 
 const RELAY_BASE = 'https://proxy.worldmonitor.app';
 const WIDGET_AGENT_KEY = process.env.WIDGET_AGENT_KEY ?? '';
@@ -130,60 +129,8 @@ export default async function handler(req: Request): Promise<Response> {
       if (!session.valid) {
         return json({ error: 'Invalid or expired session' }, 401, corsHeaders);
       }
-      let allowed = session.role === 'pro';
-      let entitlementChecked = false;
-      let entitlementTier: number | null = null;
-      let ent: Awaited<ReturnType<typeof getEntitlements>> = null;
-      if (!allowed && session.userId) {
-        ent = await getEntitlements(session.userId);
-        entitlementChecked = true;
-        entitlementTier = ent ? ent.features.tier : null;
-        allowed = !!ent && ent.features.tier >= 1;
-      }
-      if (!allowed) {
-        // #4771: a paying user whose local renewal state is stale gets the
-        // structured billing-verification denial (403/503 + stable `code` +
-        // X-Billing-Verification header) instead of a misleading generic
-        // "Pro subscription required" 403 — same wire contract as the
-        // gateway and MCP surfaces (#5447/#5483). This also converts the
-        // transient verificationUnavailable marker into a retryable 503
-        // rather than a hard denial during Convex outages.
-        const billingDenial = getBillingVerificationDenial(ent, corsHeaders, 1);
-        if (billingDenial) {
-          // Keep the on-call grep contract alive on this path too — the
-          // early return would otherwise silence the denial entirely
-          // (gateway pairs its denial with emitRequest the same way).
-          console.warn('[widget-agent] billing-verification denial', JSON.stringify({
-            status: billingDenial.status,
-            code: billingDenial.headers.get('X-Billing-Verification'),
-            userId: session.userId ?? null,
-            clerkRole: session.role ?? null,
-            entitlementTier,
-          }));
-          return billingDenial;
-        }
-        // Structured log so on-call can distinguish two distinct 403 causes
-        // sharing one user-facing message:
-        //   reason=not_entitled      — Convex returned a row, tier < 1 (real free user)
-        //   reason=service_unavailable — entitlement lookup returned null.
-        //                                Post-#5483 a Convex-unreachable/5xx
-        //                                lookup returns the verificationUnavailable
-        //                                marker (tier 0) and exits via the 503
-        //                                above, so null here means the fail-closed
-        //                                4xx path — rare, but still worth a
-        //                                distinct grep handle.
-        const reason = entitlementChecked && entitlementTier === null
-          ? 'service_unavailable'
-          : 'not_entitled';
-        console.warn('[widget-agent] 403 pro-required', JSON.stringify({
-          reason,
-          userId: session.userId ?? null,
-          clerkRole: session.role ?? null,
-          entitlementChecked,
-          entitlementTier,
-        }));
-        return json({ error: 'Pro subscription required' }, 403, corsHeaders);
-      }
+      // ponytail (task 08): no billing stack behind this deploy — any signed-in
+      // session is treated as Pro. See docs/tasks/abdullah/08-server-entitlement-stripping.md.
       isPro = true;
     } else {
       // Legacy tester key path (wm-widget-key / wm-pro-key)

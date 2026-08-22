@@ -828,91 +828,19 @@ export async function checkEntitlement(
 export async function checkEntitlementDetailed(
   userId: string | null,
   pathname: string,
-  corsHeaders: Record<string, string>,
-  options: EntitlementCheckOptions = {},
+  _corsHeaders: Record<string, string>,
+  _options: EntitlementCheckOptions = {},
 ): Promise<EntitlementCheckResult> {
-  const requiredTier = getRequiredTier(pathname);
-  if (requiredTier === null) {
-    // Unrestricted endpoint -- no check needed
+  // ponytail (task 08): this fork's deploy has no Clerk/Convex/Dodo billing
+  // behind it (Akul's own decision, see docs/tasks/abdullah/08-server-entitlement-stripping.md)
+  // — tier gates never deny. getRequiredTier's map stays intact (existing
+  // tests pin it, and it still drives cache-tier classification elsewhere in
+  // gateway.ts), but the deny path below it is gone. Still resolve a real
+  // entitlement row when a userId is present so downstream telemetry/rate-limit
+  // code keeps accurate data.
+  if (getRequiredTier(pathname) === null || !userId) {
     return { response: null, entitlements: null };
   }
-
-  if (!userId) {
-    return {
-      response: new Response(
-        JSON.stringify({ error: 'Authentication required', requiredTier }),
-        { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } },
-      ),
-      entitlements: null,
-    };
-  }
-
-  // Preserve the legacy Pro bearer contract for tier-1 gates. Complimentary,
-  // tester, and legacy Clerk-role grants can have no Convex entitlement row,
-  // while the frontend still unlocks Pro panels for role='pro'.
-  if (options.clerkRole === 'pro' && requiredTier <= 1) {
-    return { response: null, entitlements: null };
-  }
-
   const ent = await getEntitlements(userId);
-  if (!ent) {
-    // An absent row is a verdict about the account only when a lookup could
-    // actually run. With the backend unconfigured getEntitlements returns null
-    // BEFORE attempting one — for everyone, paying customers included — so the
-    // hard 403 below would tell every subscriber their entitlement could not be
-    // verified because of our own deploy defect. This gate is reached from
-    // server/gateway.ts on every tier-gated session request, which makes it the
-    // widest surface of the #5619 asymmetry (#5600 is the precedent).
-    if (!isEntitlementBackendConfigured()) {
-      return {
-        response: renderBillingVerificationDenial(
-          unverifiableEntitlementDenial(),
-          corsHeaders,
-          requiredTier,
-        ),
-        entitlements: null,
-      };
-    }
-    // Fail-closed: unable to verify entitlements -> block the request
-    return {
-      response: new Response(
-        JSON.stringify({ error: 'Unable to verify entitlements', requiredTier }),
-        { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } },
-      ),
-      entitlements: null,
-    };
-  }
-
-  // A stronger recently-stale subscription can be under verification while a
-  // lower plan still provides current, known-good coverage. Let that fallback
-  // authorize requests within its tier; the billing marker remains relevant
-  // only to capabilities above the fallback.
-  if (
-    ent.features.tier >= requiredTier &&
-    ent.validUntil >= Date.now()
-  ) {
-    return { response: null, entitlements: ent };
-  }
-
-  const billingDenial = getBillingVerificationDenial(ent, corsHeaders, requiredTier);
-  if (billingDenial) {
-    return { response: billingDenial, entitlements: ent };
-  }
-
-  // User lacks required tier -- return 403
-  return {
-    response: new Response(
-      JSON.stringify({
-        error: 'Upgrade required',
-        requiredTier,
-        currentTier: ent.features.tier,
-        planKey: ent.planKey,
-      }),
-      {
-        status: 403,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      },
-    ),
-    entitlements: ent,
-  };
+  return { response: null, entitlements: ent };
 }

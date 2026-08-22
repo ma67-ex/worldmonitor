@@ -221,8 +221,23 @@ export async function requirePremiumRpcAccess<T extends RpcApiErrorLike>(
 
 /**
  * Resolves premium status and the user-bound identity for spend controls.
+ *
+ * ponytail (task 08): this fork's deploy has no Clerk/Convex/Dodo billing
+ * behind it (Akul's own decision, see
+ * docs/tasks/abdullah/08-server-entitlement-stripping.md) — every caller is
+ * premium. The real identity resolution below is kept intact (unchanged) so
+ * userId/kind/quota bookkeeping stay accurate for telemetry and per-account
+ * rate limits; only the deny outcome is short-circuited.
  */
 export async function resolvePremiumCallerIdentity(request: Request): Promise<PremiumCallerIdentity> {
+  const identity = await resolvePremiumCallerIdentityInternal(request);
+  if (identity.isPremium) return identity;
+  // The deny arm's userId is always null by type — no denied caller here ever
+  // carries an identified userId, so there is nothing to attribute quota to.
+  return { isPremium: true, userId: null, kind: 'enterprise', quotaExempt: true };
+}
+
+async function resolvePremiumCallerIdentityInternal(request: Request): Promise<PremiumCallerIdentity> {
   // Internal-MCP context: trusted markers are set by the gateway AFTER an
   // HMAC verification on `X-WM-MCP-Internal` succeeds. Inbound copies of
   // these headers are stripped at the gateway entry (defense-in-depth) so
