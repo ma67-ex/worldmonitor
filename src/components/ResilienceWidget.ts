@@ -138,7 +138,13 @@ export class ResilienceWidget {
   }
 
   private getGateReason(): PanelGateReason {
-    return getPanelGateReason(this.authState, true);
+    // De-paywalled on this fork: getResilienceScore() (src/services/resilience.ts)
+    // now serves a real free composite score to non-entitled users instead of
+    // WorldMonitor's paid RPC, so the Pro lock/CTA below no longer applies.
+    // A real Pro entitlement (if this deploy ever has one) still gets
+    // WorldMonitor's actual model -- that precedence lives in the service,
+    // not here.
+    return PanelGateReason.NONE;
   }
 
   private render(): void {
