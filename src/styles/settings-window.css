@@ -995,7 +995,14 @@ tr.diag-err td { color: var(--settings-red); }
 }
 
 .wm-input::placeholder {
-  color: rgba(255, 255, 255, 0.2);
+  /* var(--settings-text-secondary), not the hardcoded rgba(255,255,255,0.2):
+     that resolved to ~1.9:1 against this field's composited background,
+     well under WCAG's 4.5:1 floor for placeholder text (impeccable's
+     explicit rule -- placeholders get the same floor as body text, not the
+     usual muted-gray default). The secondary-text token already clears
+     6.85:1 here and is what every other description/label in this panel
+     already uses. */
+  color: var(--settings-text-secondary);
 }
 
 .wm-toggle-vis {

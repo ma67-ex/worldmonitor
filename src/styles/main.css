@@ -14050,7 +14050,11 @@ a.prediction-link:hover {
   padding: 1px 4px;
   border-radius: 3px;
   background: var(--text-ghost);
-  color: var(--accent);
+  /* var(--text), not var(--accent): the SITREP amber accent's light-theme
+     value (#b5720a) reads at 2.03:1 on --text-ghost's light-theme gray
+     (#bbb) -- well under WCAG's 4.5:1 floor for this 9px bold text. --text
+     already clears both themes by a wide margin against this background. */
+  color: var(--text);
   white-space: nowrap;
   line-height: 1.4;
 }
@@ -14158,12 +14162,18 @@ a.prediction-link:hover {
 
 .pizzint-location-status.spike {
   background: var(--defcon-1);
-  color: var(--accent);
+  /* Black, not var(--accent): the SITREP rebrand's amber accent (#f0a828)
+     reads at 1.94:1 on defcon-1 red, well under WCAG's 4.5:1 body-text floor
+     — this text is 10px bold, below the 14px-bold "large text" threshold
+     that would relax it to 3:1. Black clears every defcon background in
+     both themes (5.33:1 here); var(--bg) was considered but flips to
+     near-white in light theme, which fails the same way on this same red. */
+  color: #000;
 }
 
 .pizzint-location-status.high {
   background: var(--defcon-2);
-  color: var(--accent);
+  color: #000;
 }
 
 .pizzint-location-status.elevated {
@@ -14173,7 +14183,7 @@ a.prediction-link:hover {
 
 .pizzint-location-status.nominal {
   background: var(--defcon-4);
-  color: var(--accent);
+  color: #000;
 }
 
 .pizzint-location-status.quiet {
@@ -20247,6 +20257,32 @@ a.prediction-link:hover {
 
 .us-hidden-input {
   display: none;
+}
+
+/* "Your Own AI Key" (BYOK) inputs — preferences-content.ts renders these
+   with only an inline layout style, no class here to theme them, so they
+   fell back to the browser's default white input box in an otherwise all-
+   dark settings modal. Mirrors .us-notif-slack-input's token usage (same
+   modal, same --settings-* custom properties, same input-in-a-dark-panel
+   shape) rather than inventing a new pattern. */
+.us-userkey-input {
+  font: inherit;
+  font-size: calc(12px * var(--wm-panel-effective-scale, 1));
+  padding: 6px 10px;
+  background: var(--settings-surface-inset);
+  border: 1px solid var(--settings-border);
+  border-radius: 5px;
+  color: var(--settings-text);
+}
+
+.us-userkey-input::placeholder {
+  color: var(--settings-text-secondary);
+  opacity: 0.7;
+}
+
+.us-userkey-input:focus {
+  outline: none;
+  border-color: var(--settings-accent);
 }
 
 .us-data-mgmt-toast {
