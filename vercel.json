@@ -94,6 +94,7 @@
     { "source": "/api/product-catalog", "destination": "/api/misc-gateway/product-catalog" },
     { "source": "/api/reverse-geocode", "destination": "/api/misc-gateway/reverse-geocode" },
     { "source": "/api/rss-proxy", "destination": "/api/misc-gateway/rss-proxy" },
+    { "source": "/api/sanctions-ofac-proxy", "destination": "/api/misc-gateway/sanctions-ofac-proxy" },
     { "source": "/api/seed-contract-probe", "destination": "/api/misc-gateway/seed-contract-probe" },
     { "source": "/api/seed-health", "destination": "/api/misc-gateway/seed-health" },
     { "source": "/api/symbol-search", "destination": "/api/misc-gateway/symbol-search" },

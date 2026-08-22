@@ -3335,6 +3335,9 @@
           "path": "api/_pizzint-proxy.js"
         },
         {
+          "path": "api/_sanctions-ofac-proxy.ts"
+        },
+        {
           "path": "scripts/generate-airline-codes.mjs"
         },
         {
@@ -5671,6 +5674,9 @@
       "attribution": "Credit sanctionslistservice.ofac.treas.gov and link to the original upstream API/dataset.",
       "status": "terms-review",
       "references": [
+        {
+          "path": "api/_sanctions-ofac-proxy.ts"
+        },
         {
           "path": "scripts/seed-sanctions-pressure.mjs"
         }

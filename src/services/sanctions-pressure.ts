@@ -4,6 +4,7 @@ import { premiumFetch } from '@/services/premium-fetch';
 import { getHydratedData } from '@/services/bootstrap';
 import { hasPremiumAccess } from '@/services/panel-gating';
 import { toApiUrl } from '@/services/runtime';
+import { nameToCountryCode } from '@/services/country-geometry';
 import type { SanctionsEntry as ProtoSanctionsEntry, SanctionsEntityType as ProtoSanctionsEntityType, CountrySanctionsPressure as ProtoCountryPressure, ProgramSanctionsPressure as ProtoProgramPressure, ListSanctionsPressureResponse } from '@/generated/client/worldmonitor/sanctions/v1/service_client';
 import { SanctionsServiceClient } from '@/services/generated-rpc-clients';
 
@@ -147,22 +148,105 @@ function toResult(response: ListSanctionsPressureResponse): SanctionsPressureRes
   };
 }
 
-export async function fetchSanctionsPressure(): Promise<SanctionsPressureResult> {
-  const hydrated = getHydratedData('sanctionsPressure') as ListSanctionsPressureResponse | undefined;
-  if (hydrated?.entries?.length || hydrated?.countries?.length || hydrated?.programs?.length) {
-    const result = toResult(hydrated);
-    latestSanctionsPressureResult = result;
-    return result;
-  }
+// Free alt-source (task 04, docs/tasks/abdullah/04-sanctions-pressure.md):
+// api/_sanctions-ofac-proxy.ts fetches OFAC's SDN feed server-side once per
+// 24h and reduces it to a small per-country/per-program aggregate. This is
+// deliberately NOT the full ListSanctionsPressureResponse shape — no
+// individual `entries`, no countryCode from OFAC itself (mapped below via
+// the country-geometry name table, best-effort) — see the proxy's own
+// header comment for why a full entity-level replica isn't fetchable here.
+interface OfacCountryAggregate {
+  countryName: string;
+  entryCount: number;
+  newEntryCount: number;
+  vesselCount: number;
+  aircraftCount: number;
+}
+interface OfacProgramAggregate {
+  program: string;
+  entryCount: number;
+  newEntryCount: number;
+}
+interface OfacAggregateResponse {
+  fetchedAt: number;
+  datasetDate: string | null;
+  totalCount: number;
+  newEntryCount: number;
+  vesselCount: number;
+  aircraftCount: number;
+  countries: OfacCountryAggregate[];
+  programs: OfacProgramAggregate[];
+}
 
-  // Anonymous (non-premium) users: do NOT call the Pro-gated RPC. The
-  // RPC at /api/sanctions/v1/list-sanctions-pressure is in
-  // PREMIUM_RPC_PATHS, so an anonymous client gets a deterministic 401
-  // and the breaker fallback returns emptyResult anyway — same outcome
-  // as us, minus the Sentry/console noise. Try the public bootstrap
-  // endpoint as a second-best read path and surface whatever it serves
-  // (or emptyResult on any failure).
+function toOfacResult(raw: OfacAggregateResponse): SanctionsPressureResult {
+  return {
+    fetchedAt: new Date(raw.fetchedAt),
+    datasetDate: raw.datasetDate ? new Date(raw.datasetDate) : null,
+    totalCount: raw.totalCount,
+    sdnCount: raw.totalCount,
+    consolidatedCount: 0,
+    newEntryCount: raw.newEntryCount,
+    vesselCount: raw.vesselCount,
+    aircraftCount: raw.aircraftCount,
+    countries: raw.countries.map((c) => ({
+      countryCode: nameToCountryCode(c.countryName) ?? '',
+      countryName: c.countryName,
+      entryCount: c.entryCount,
+      newEntryCount: c.newEntryCount,
+      vesselCount: c.vesselCount,
+      aircraftCount: c.aircraftCount,
+    })),
+    programs: raw.programs.map((p) => ({
+      program: p.program,
+      entryCount: p.entryCount,
+      newEntryCount: p.newEntryCount,
+    })),
+    // No individual entity list in the free aggregate — see header comment.
+    entries: [],
+  };
+}
+
+async function fetchSanctionsPressureFromOfacProxy(): Promise<SanctionsPressureResult | null> {
+  try {
+    const resp = await fetch(toApiUrl('/api/sanctions-ofac-proxy'), {
+      // Generous: a cache-miss request re-triggers the proxy's own ~45s
+      // upstream parse. The overwhelming majority of calls hit its Redis
+      // cache and return in well under a second.
+      signal: AbortSignal.timeout(60_000),
+    });
+    if (!resp.ok) return null;
+    const raw = (await resp.json()) as OfacAggregateResponse;
+    if (!raw?.totalCount) return null;
+    return toOfacResult(raw);
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchSanctionsPressure(): Promise<SanctionsPressureResult> {
+  // Anonymous (non-premium) users: do NOT call the Pro-gated RPC. Try the
+  // free OFAC-derived aggregate first (direct-source pattern, same as
+  // earthquakes.ts/weather.ts — ahead of the hydrated/bootstrap fallback),
+  // then the hydrated bootstrap seed, then emptyResult.
   if (!hasPremiumAccess()) {
+    const ofacResult = await fetchSanctionsPressureFromOfacProxy();
+    if (ofacResult) {
+      latestSanctionsPressureResult = ofacResult;
+      return ofacResult;
+    }
+
+    const hydratedFree = getHydratedData('sanctionsPressure') as ListSanctionsPressureResponse | undefined;
+    if (hydratedFree?.entries?.length || hydratedFree?.countries?.length || hydratedFree?.programs?.length) {
+      const result = toResult(hydratedFree);
+      latestSanctionsPressureResult = result;
+      return result;
+    }
+
+    // RPC at /api/sanctions/v1/list-sanctions-pressure is in
+    // PREMIUM_RPC_PATHS, so an anonymous client gets a deterministic 401 and
+    // the breaker fallback returns emptyResult anyway — same outcome as us,
+    // minus the Sentry/console noise. Try the public bootstrap endpoint as a
+    // last read path and surface whatever it serves (or emptyResult).
     try {
       const resp = await fetch(toApiUrl('/api/bootstrap?keys=sanctionsPressure'), {
         signal: AbortSignal.timeout(5_000),
@@ -178,6 +262,13 @@ export async function fetchSanctionsPressure(): Promise<SanctionsPressureResult>
       }
     } catch { /* fall through to emptyResult */ }
     return emptyResult;
+  }
+
+  const hydrated = getHydratedData('sanctionsPressure') as ListSanctionsPressureResponse | undefined;
+  if (hydrated?.entries?.length || hydrated?.countries?.length || hydrated?.programs?.length) {
+    const result = toResult(hydrated);
+    latestSanctionsPressureResult = result;
+    return result;
   }
 
   return breaker.execute(async () => {

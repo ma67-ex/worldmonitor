@@ -1,3 +1,23 @@
+**STATUS: DONE — 2026-08-22**
+
+Built exactly what the decision below asks for:
+
+- **`api/_sanctions-ofac-proxy.ts`** — fetches `sanctionslistservice.ofac.treas.gov/entities` (the 111MB Enhanced-XML dump), streams it with a hand-rolled buffer-scanning parser (fetch + `ReadableStream` + `TextDecoder`, no XML library — see below for why), reduces it to a per-country + per-program aggregate (entry/new/vessel/aircraft counts), and caches the result in Redis for 24h via `cachedFetchJson`. Registered into `api/misc-gateway/[name].ts`'s `REGISTRY` (not a new top-level function) with a matching `vercel.json` rewrite (`/api/sanctions-ofac-proxy` → `/api/misc-gateway/sanctions-ofac-proxy`).
+- **`src/services/sanctions-pressure.ts`** — new `fetchSanctionsPressureFromOfacProxy()` tried first for non-premium users (same "direct free source ahead of hydrated/RPC fallback" convention as `earthquakes.ts`/`weather.ts`), mapped into the existing `SanctionsPressureResult` shape. `countryCode` per country is filled in client-side via the existing `nameToCountryCode()` in `src/services/country-geometry.ts` (reused, not reimplemented) since the OFAC aggregate only carries country names.
+
+**Real gaps, stated plainly, not hidden:**
+1. **No individual `entries` list** — the aggregate is deliberately countries+programs only (Akul's decision explicitly scoped this to "a per-country aggregate count/summary," not a full entity replica). `SanctionsPressurePanel.ts` already renders an empty-state message when `entries` is empty, so this degrades visibly but doesn't break.
+2. **Didn't reuse `scripts/seed-sanctions-pressure.mjs`**, WorldMonitor's own existing (and much more capable) seeder for this exact data — it already has a real `sax`-based streaming parser and a richer output shape. Checked it, deliberately didn't import `sax` here: that script is a Node process meant for the deferred Railway seed-infra, and `sax` reaches for Node's `Buffer`/`require('stream')` internally, which this file's Edge Runtime does not reliably provide (and this task's own decision rules out adding a non-edge function). Full reasoning is in the new file's header comment.
+3. **"New entry" is a heuristic, not a guarantee** — OFAC's feed has no clean "date added" field at the aggregate level; the proxy uses the most recent per-designation `datePublished` and treats anything within 30 days as new. A republish without a genuinely new designation could in principle bump this.
+4. **`countryCode` mapping depends on `country-geometry.ts`'s name table already being loaded** client-side by the time the panel renders — soft-degrades to an empty code (not a crash) if it isn't.
+
+**Verify:**
+- `npm run typecheck`, `npm run typecheck:api`, `npm run build` all clean (build required regenerating `docs/source-attribution.mdx` + both `source-attribution-manifest.json` files via `node scripts/source-attribution.mjs --write` — the new proxy references `sanctionslistservice.ofac.treas.gov`, the manifest tracks that; committed alongside).
+- `npm run lint:rate-limit-policies` clean (new file needs no policy — it enforces no per-caller rate limit itself, relying entirely on the Redis cache to bound upstream calls).
+- **Not verified live.** No Redis/Upstash credentials in this environment, and the real cost/latency of streaming a genuine 111MB response only shows up against Vercel's actual Edge Runtime, not anything reproducible here. First real check after this deploys: hit `/api/sanctions-ofac-proxy` directly and confirm it returns real country/program data within the ~60s budget (`PARSE_TIME_BUDGET_MS` = 45s + 15s slack), then confirm the Sanctions Pressure panel renders it for a signed-out session. If the 111MB transfer routinely blows the 45s budget in production (this environment measured a much smaller sample at ~2.2MB/s, which would put the full file around 50s — right at the edge), the `partial: true` path still returns whatever was aggregated before the cutoff rather than failing outright, but the budget constant may need raising — that number is a real ponytail-flagged guess, not a measured production value.
+
+---
+
 **STATUS: DECIDED, CLEARED TO BUILD — 2026-08-22 — Akul's call made, no longer needs his attention**
 
 Akul decided 2026-08-22: **server-side proxy + parse** (option (b) from the 2026-08-16 blocker note below). Build a small proxy endpoint that fetches OFAC's 111MB SDN entities XML dump server-side (once, on a cache TTL — do not re-fetch per request), parses it down to a per-country aggregate count/summary, and serves that small JSON to the browser. This is genuinely new server-side work, not a client fetch swap — treat it like `api/_pizzint-proxy.js`.

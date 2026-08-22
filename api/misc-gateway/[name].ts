@@ -64,6 +64,7 @@ import productCatalogHandler from '../_product-catalog';
 import reverseGeocodeHandler from '../_reverse-geocode';
 // @ts-expect-error — JS module, no declaration file
 import rssProxyHandler from '../_rss-proxy';
+import sanctionsOfacProxyHandler from '../_sanctions-ofac-proxy';
 import seedContractProbeHandler from '../_seed-contract-probe';
 // @ts-expect-error — JS module, no declaration file
 import seedHealthHandler from '../_seed-health';
@@ -112,6 +113,7 @@ const REGISTRY: Record<string, EdgeHandler> = {
   'product-catalog': productCatalogHandler,
   'reverse-geocode': reverseGeocodeHandler,
   'rss-proxy': rssProxyHandler,
+  'sanctions-ofac-proxy': sanctionsOfacProxyHandler,
   'seed-contract-probe': seedContractProbeHandler,
   'seed-health': seedHealthHandler,
   'symbol-search': symbolSearchHandler,
