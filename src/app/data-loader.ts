@@ -863,10 +863,10 @@ export class DataLoaderManager implements AppModule {
       if ((hasPremiumAccess() || hasUserAiKey()) && shouldLoad('stock-analysis')) {
         tasks.push({ name: 'stockAnalysis', task: () => runGuarded('stockAnalysis', () => this.loadStockAnalysis()) });
       }
-      if (hasPremiumAccess() && shouldLoad('stock-backtest')) {
+      if (shouldLoad('stock-backtest')) {
         tasks.push({ name: 'stockBacktest', task: () => runGuarded('stockBacktest', () => this.loadStockBacktest()) });
       }
-      if (hasPremiumAccess() && shouldLoad('daily-market-brief')) {
+      if (shouldLoad('daily-market-brief')) {
         tasks.push({ name: 'dailyMarketBrief', task: () => runGuarded('dailyMarketBrief', () => this.loadDailyMarketBrief()) });
       }
       if (shouldLoad('polymarket')) {
@@ -883,7 +883,7 @@ export class DataLoaderManager implements AppModule {
         tasks.push({ name: 'bis', task: () => runGuarded('bis', () => this.loadBisData()) });
         tasks.push({ name: 'bls', task: () => runGuarded('bls', () => this.loadBlsData()) });
       }
-      if (hasPremiumAccess() && shouldLoad('global-procurement')) {
+      if (shouldLoad('global-procurement')) {
         tasks.push({ name: 'global-tenders', task: () => runGuarded('global-tenders', () => this.loadGlobalTenders()) });
       }
       if (shouldLoad('energy-complex')) {
@@ -985,7 +985,7 @@ export class DataLoaderManager implements AppModule {
     if (this.ctx.mapLayers.natural) tasks.push({ name: 'natural', task: () => runGuarded('natural', () => this.loadNatural()) });
     if (this.ctx.mapLayers.diseaseOutbreaks || shouldLoad('disease-outbreaks')) tasks.push({ name: 'diseaseOutbreaks', task: () => runGuarded('diseaseOutbreaks', () => this.loadDiseaseOutbreaks()) });
     if (shouldLoad('social-velocity')) tasks.push({ name: 'socialVelocity', task: () => runGuarded('socialVelocity', () => this.loadSocialVelocity()) });
-    if (hasPremiumAccess() && shouldLoad('wsb-ticker-scanner')) tasks.push({ name: 'wsbTickers', task: () => runGuarded('wsbTickers', () => this.loadWsbTickers()) });
+    if (shouldLoad('wsb-ticker-scanner')) tasks.push({ name: 'wsbTickers', task: () => runGuarded('wsbTickers', () => this.loadWsbTickers()) });
     if (shouldLoad('economic')) tasks.push({ name: 'economicStress', task: () => runGuarded('economicStress', () => this.loadEconomicStress()) });
     if (SITE_VARIANT !== 'happy' && this.ctx.mapLayers.weather) tasks.push({ name: 'weather', task: () => runGuarded('weather', () => this.loadWeatherAlerts()) });
     if (SITE_VARIANT !== 'happy' && this.ctx.mapLayers.canadaRoads) tasks.push({ name: 'canadaRoads', task: () => runGuarded('canadaRoads', () => this.loadCanadaRoads()) });
@@ -2427,7 +2427,6 @@ export class DataLoaderManager implements AppModule {
   }
 
   async loadDailyMarketBrief(force = false): Promise<void> {
-    if (!hasPremiumAccess()) return;
     if (this.ctx.isDestroyed || this.ctx.inFlight.has('dailyMarketBrief')) return;
 
     this.dailyBriefGeneration++;
@@ -3771,7 +3770,7 @@ export class DataLoaderManager implements AppModule {
         status: !data.dataAvailable ? 'error' : ['partial', 'stale'].includes(data.availability) ? 'warning' : 'ok',
       });
     } catch (error) {
-      if (requestGeneration !== this.globalTenderGeneration || !hasPremiumAccess()) return;
+      if (requestGeneration !== this.globalTenderGeneration) return;
       console.warn('[App] Global tenders failed:', error);
       procurementPanel.showUnavailable();
       this.ctx.statusPanel?.updateApi('Global Procurement', { status: 'error' });

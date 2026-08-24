@@ -20,6 +20,7 @@ Suggested order (not mandatory — pick whatever's most useful):
 6. [`06-trade-tariffs-debt.md`](./06-trade-tariffs-debt.md) — done 2026-08-22 (debt sub-metric was already done; trade flows + tariffs turned out to need no new data source, just removing 3 redundant client-side gates left over from before 08 — see the file for the full trace)
 7. [`07-verify-depaywall-end-to-end.md`](./07-verify-depaywall-end-to-end.md) — re-verified 2026-08-22 after 04/06/08 landed. Flags `stock-backtest`, `global-procurement`, `wsb-ticker-scanner` as likely candidates for the exact same fix `06` just did for `trade-policy` — not fixed (out of this session's scope), a real finding for a future task if Akul wants them unlocked too.
 8. [`09-theme-css-tuning.md`](./09-theme-css-tuning.md) — done 2026-08-22, fixed 4 real contrast bugs the SITREP accent-color rebrand introduced (DEFCON badge + pills, BYOK key inputs, desktop settings placeholder)
+9. [`10-remaining-panel-unlocks.md`](./10-remaining-panel-unlocks.md) — done 2026-08-23, unlocked `stock-backtest`, `daily-market-brief`, `wsb-ticker-scanner`, `global-procurement` (client-side gates for all 4 + a real server-side tier gate for 2 of them); `latest-brief` confirmed still genuinely Clerk-bound, left locked
 
 Mark a file done by adding `**STATUS: DONE — <date>**` at the top when you finish it. Don't delete the files — they're the record of what shipped and why.
 

@@ -834,7 +834,7 @@ export class App {
       primeTask('spending', () => this.dataLoader.loadGovernmentSpending());
       primeTask('bis', () => this.dataLoader.loadBisData());
     }
-    if (shouldPrime('global-procurement') && hasPremiumAccess()) {
+    if (shouldPrime('global-procurement')) {
       primeTask('global-tenders', () => this.dataLoader.loadGlobalTenders());
     }
     if (shouldPrime('energy-complex')) {
@@ -3081,7 +3081,7 @@ export class App {
         { name: 'canadaAlerts', fn: () => this.dataLoader.loadCanadaAlerts(), intervalMs: REFRESH_INTERVALS.canadaAlerts, condition: () => !!this.state.mapLayers.canadaAlerts },
         { name: 'fred', fn: () => this.dataLoader.loadFredData(), intervalMs: REFRESH_INTERVALS.fred, condition: () => this.isPanelNearViewport('economic') },
         { name: 'spending', fn: () => this.dataLoader.loadGovernmentSpending(), intervalMs: REFRESH_INTERVALS.spending, condition: () => this.isPanelNearViewport('economic') },
-        { name: 'global-tenders', fn: () => this.dataLoader.loadGlobalTenders(), intervalMs: REFRESH_INTERVALS.spending, condition: () => hasPremiumAccess() && this.isPanelNearViewport('global-procurement') },
+        { name: 'global-tenders', fn: () => this.dataLoader.loadGlobalTenders(), intervalMs: REFRESH_INTERVALS.spending, condition: () => this.isPanelNearViewport('global-procurement') },
         { name: 'bis', fn: () => this.dataLoader.loadBisData(), intervalMs: REFRESH_INTERVALS.bis, condition: () => this.isPanelNearViewport('economic') },
         { name: 'oil', fn: () => this.dataLoader.loadOilAnalytics(), intervalMs: REFRESH_INTERVALS.oil, condition: () => this.isPanelNearViewport('energy-complex') },
         { name: 'firms', fn: () => this.dataLoader.loadFirmsData(), intervalMs: REFRESH_INTERVALS.firms, condition: () => this.shouldRefreshFirms() },
@@ -3109,13 +3109,13 @@ export class App {
         'daily-market-brief',
         () => this.dataLoader.loadDailyMarketBrief(),
         REFRESH_INTERVALS.dailyMarketBrief,
-        () => hasPremiumAccess() && this.isPanelNearViewport('daily-market-brief'),
+        () => this.isPanelNearViewport('daily-market-brief'),
       );
       this.refreshScheduler.scheduleRefresh(
         'stock-backtest',
         () => this.dataLoader.loadStockBacktest(),
         REFRESH_INTERVALS.stockBacktest,
-        () => hasPremiumAccess() && this.isPanelNearViewport('stock-backtest'),
+        () => this.isPanelNearViewport('stock-backtest'),
       );
       this.refreshScheduler.scheduleRefresh(
         'market-implications',
@@ -3197,7 +3197,7 @@ export class App {
       'wsb-tickers',
       () => this.dataLoader.loadWsbTickers(),
       REFRESH_INTERVALS.wsbTickers,
-      () => hasPremiumAccess() && this.isPanelNearViewport('wsb-ticker-scanner'),
+      () => this.isPanelNearViewport('wsb-ticker-scanner'),
     );
 
     // Server-side temporal anomalies (news + satellite_fires)

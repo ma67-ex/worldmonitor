@@ -136,14 +136,20 @@ describe("gateway entitlement check", () => {
     "/api/intelligence/v1/classify-event",
     "/api/market/v1/analyze-stock",
     "/api/market/v1/get-stock-analysis-history",
-    "/api/market/v1/backtest-stock",
-    "/api/market/v1/list-stored-stock-backtests",
   ])("getRequiredTier returns 1 for %s (regression-lock against tier-2 revert)", (path) => {
     expect(getRequiredTier(path)).toBe(1);
   });
 
   test("getRequiredTier returns null for ungated endpoint", () => {
     expect(getRequiredTier("/api/seismology/v1/list-earthquakes")).toBeNull();
+  });
+
+  test.each([
+    "/api/market/v1/backtest-stock",
+    "/api/market/v1/list-stored-stock-backtests",
+    "/api/economic/v1/list-global-tenders",
+  ])("getRequiredTier returns null for %s (unlocked fork-wide, docs/tasks/abdullah/10)", (path) => {
+    expect(getRequiredTier(path)).toBeNull();
   });
 
   test("checkEntitlement returns null for ungated endpoint", async () => {

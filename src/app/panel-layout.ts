@@ -127,15 +127,11 @@ function writeSessionStorageValue(key: string, value: string): void {
  */
 const WEB_PREMIUM_PANELS = new Set([
   'stock-analysis',
-  'stock-backtest',
-  'daily-market-brief',
   'market-implications',
   'deduction',
   'chat-analyst',
-  'wsb-ticker-scanner',
   'latest-brief',
   'regional-intelligence',
-  'global-procurement',
 ]);
 
 /**

@@ -55,11 +55,11 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   'oil-inventories': { name: 'Oil Inventories', enabled: true, priority: 60 },
   markets: { name: 'Markets', enabled: true, priority: 1 },
   'stock-analysis': { name: 'Stock Analysis', enabled: true, priority: 1 },
-  'stock-backtest': { name: 'Backtesting', enabled: true, priority: 1, premium: 'locked' as const },
-  'daily-market-brief': { name: 'Daily Market Brief', enabled: true, priority: 1, premium: 'locked' as const },
+  'stock-backtest': { name: 'Backtesting', enabled: true, priority: 1 },
+  'daily-market-brief': { name: 'Daily Market Brief', enabled: true, priority: 1 },
   'chat-analyst': { name: 'WM Analyst', enabled: true, priority: 1 },
   economic: { name: 'Macro Stress', enabled: true, priority: 1 },
-  'global-procurement': { name: 'Global Procurement', enabled: true, priority: 1, premium: 'locked' as const },
+  'global-procurement': { name: 'Global Procurement', enabled: true, priority: 1 },
   'trade-policy': { name: 'Trade Policy', enabled: true, priority: 1 },
   'supply-chain': { name: 'Supply Chain', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
   'china-corridors': { name: 'China Logistics Corridors', enabled: true, priority: 1 },
@@ -109,7 +109,7 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   'ucdp-events': { name: 'UCDP Conflict Events', enabled: true, priority: 2 },
   'disease-outbreaks': { name: 'Disease Outbreaks', enabled: true, priority: 2 },
   'social-velocity': { name: 'Social Velocity', enabled: true, priority: 2 },
-  'wsb-ticker-scanner': { name: 'WSB Ticker Scanner', enabled: true, priority: 75, premium: 'locked' as const },
+  'wsb-ticker-scanner': { name: 'WSB Ticker Scanner', enabled: true, priority: 75 },
   giving: { name: 'Global Giving', enabled: false, priority: 2 },
   displacement: { name: 'UNHCR Displacement', enabled: true, priority: 2 },
   climate: { name: 'Climate Anomalies', enabled: true, priority: 2 },
@@ -305,7 +305,7 @@ const TECH_PANELS: Record<string, PanelConfig> = {
   'internet-disruptions': { name: 'Internet Disruptions', enabled: true, priority: 2 },
   'service-status': { name: 'Service Status', enabled: true, priority: 2 },
   economic: { name: 'Macro Stress', enabled: true, priority: 2 },
-  'global-procurement': { name: 'Global Procurement', enabled: true, priority: 1, premium: 'locked' as const },
+  'global-procurement': { name: 'Global Procurement', enabled: true, priority: 1 },
   'tech-readiness': { name: 'Tech Readiness Index', enabled: true, priority: 1 },
   'macro-signals': { name: 'Market Regime', enabled: true, priority: 2 },
   'etf-flows': { name: 'BTC ETF Tracker', enabled: true, priority: 2 },
@@ -457,8 +457,8 @@ const FINANCE_PANELS: Record<string, PanelConfig> = {
   insights: { name: 'AI Market Insights', enabled: true, priority: 1 },
   markets: { name: 'Live Markets', enabled: true, priority: 1 },
   'stock-analysis': { name: 'Premium Stock Analysis', enabled: true, priority: 1 },
-  'stock-backtest': { name: 'Premium Backtesting', enabled: true, priority: 1, premium: 'locked' },
-  'daily-market-brief': { name: 'Daily Market Brief', enabled: true, priority: 1, premium: 'locked' },
+  'stock-backtest': { name: 'Premium Backtesting', enabled: true, priority: 1 },
+  'daily-market-brief': { name: 'Daily Market Brief', enabled: true, priority: 1 },
   'markets-news': { name: 'Markets News', enabled: true, priority: 2 },
   forex: { name: 'Forex & Currencies', enabled: true, priority: 1 },
   fx: { name: 'FX Rates', enabled: false, priority: 2 },
@@ -483,7 +483,7 @@ const FINANCE_PANELS: Record<string, PanelConfig> = {
   'other-tokens': { name: 'Alt Tokens', enabled: true, priority: 2 },
   centralbanks: { name: 'Central Bank Watch', enabled: true, priority: 1 },
   economic: { name: 'Macro Stress', enabled: true, priority: 1 },
-  'global-procurement': { name: 'Global Procurement', enabled: true, priority: 1, premium: 'locked' as const },
+  'global-procurement': { name: 'Global Procurement', enabled: true, priority: 1 },
   'trade-policy': { name: 'Trade Policy', enabled: true, priority: 1 },
   'sanctions-pressure': { name: 'Sanctions Pressure', enabled: true, priority: 1 },
   'supply-chain': { name: 'Supply Chain', enabled: true, priority: 1 },
@@ -518,7 +518,7 @@ const FINANCE_PANELS: Record<string, PanelConfig> = {
   'gulf-economies': { name: 'Gulf Economies', enabled: true, priority: 1 },
   'consumer-prices': { name: 'Consumer Prices', enabled: true, priority: 1 },
   polymarket: { name: 'Predictions', enabled: true, priority: 2 },
-  'wsb-ticker-scanner': { name: 'WSB Ticker Scanner', enabled: true, priority: 75, premium: 'locked' },
+  'wsb-ticker-scanner': { name: 'WSB Ticker Scanner', enabled: true, priority: 75 },
   'airline-intel': { name: 'Airline Intelligence', enabled: true, priority: 2 },
   'world-clock': { name: 'World Clock', enabled: true, priority: 2 },
   monitors: { name: 'My Monitors', enabled: true, priority: 2 },
@@ -1289,7 +1289,7 @@ export function isPanelEntitled(key: string, config: PanelConfig, isPro = false)
   if (!config.premium) return true;
   // Dodo entitlements unlock all premium panels
   if (isEntitled()) return true;
-  const apiKeyPanels = ['stock-analysis', 'stock-backtest', 'daily-market-brief', 'market-implications', 'regional-intelligence', 'deduction', 'chat-analyst', 'wsb-ticker-scanner', 'global-procurement'];
+  const apiKeyPanels = ['stock-analysis', 'market-implications', 'regional-intelligence', 'deduction', 'chat-analyst'];
   if (apiKeyPanels.includes(key)) {
     return getSecretState('WORLDMONITOR_API_KEY').present || isPro;
   }
