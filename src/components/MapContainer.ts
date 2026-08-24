@@ -166,6 +166,7 @@ export class MapContainer {
   private initialState: MapContainerState;
   private useDeckGL: boolean;
   private useGlobe: boolean;
+  private readonly preferGlobe: boolean;
   private readonly chrome: boolean;
   private readonly svgLayerToggleGuard: NonNullable<MapComponentOptions['canToggleLayer']>;
   private readonly isFreeTierFallbackActive: (() => boolean) | null;
@@ -262,18 +263,26 @@ export class MapContainer {
       hasPremiumAccess(getAuthState()),
     );
     this.isFreeTierFallbackActive = options.isFreeTierFallbackActive ?? null;
+    this.preferGlobe = preferGlobe;
+    // Best-effort synchronous guess: getPendingRendererKind()/showRendererShell()
+    // and the public isMobile() getter may read these before init()'s
+    // afterFirstPaint() resolves. The authoritative read happens in init() —
+    // see the comment there for why the constructor's window.innerWidth read
+    // is not trustworthy on its own.
     this.isMobile = isMobileDevice();
     this.useGlobe = preferGlobe && this.hasGlobeSupport();
-
     this.useDeckGL = !this.useGlobe && this.shouldUseDeckGL();
-
-    if (!this.useDeckGL && this.initialState.layers?.resilienceScore) {
-      this.initialState = { ...this.initialState, layers: { ...this.initialState.layers, resilienceScore: false } };
-    }
+    this.applyResilienceScoreGate();
 
     // init() attaches the resize observer synchronously (before its first await),
     // so the constructor does not need to start it separately.
     void this.init();
+  }
+
+  private applyResilienceScoreGate(): void {
+    if (!this.useDeckGL && this.initialState.layers?.resilienceScore) {
+      this.initialState = { ...this.initialState, layers: { ...this.initialState.layers, resilienceScore: false } };
+    }
   }
 
   private hasWebGLSupport(): boolean {
@@ -652,6 +661,19 @@ export class MapContainer {
     await afterFirstPaint();
     if (!this.isCurrentRendererInit(token)) return;
     markLcpDebug('wm:map:after-first-paint');
+
+    // Re-read window.innerWidth here rather than trusting the constructor's
+    // guess: the constructor runs synchronously on script execution, before
+    // the browser window has necessarily settled to its real size (e.g. a
+    // not-yet-maximized local dev window). That stale read used to be the
+    // ONLY read — a narrow width at that exact instant permanently locked
+    // the session onto the SVG fallback renderer, even once the window was
+    // later resized to full desktop width. afterFirstPaint() is the earliest
+    // point layout is reliably settled, so re-derive here before deciding.
+    this.isMobile = isMobileDevice();
+    this.useGlobe = this.preferGlobe && this.hasGlobeSupport();
+    this.useDeckGL = !this.useGlobe && this.shouldUseDeckGL();
+    this.applyResilienceScoreGate();
 
     if (this.useGlobe) {
       console.log('[MapContainer] Initializing 3D globe (globe.gl mode)');
