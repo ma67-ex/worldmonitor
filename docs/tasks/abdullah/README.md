@@ -1,6 +1,6 @@
-**SESSION STATUS (2026-08-22, overnight run): the full queue below is now DONE — 01, 02, 03 (built directly by Akul), 04, 06, 07, 08, 09 all complete and pushed to `main`. Only `05` and the Railway go/no-go remain, both explicitly on Akul's plate, not Abdullah's.**
+**2026-08-24: read `CLAUDE.md` in this folder first.** Mission changed — full scope now, full autonomy, no more waiting on Akul's approval except for one thing (new paid infra). This README's task list below is now historical record, not a gate.
 
-**2026-08-24: none of the above had actually deployed** — live site was still serving the pre-08-22 bundle (confirmed via unchanged CSS/JS hashes) despite all 6 commits sitting on `main`. This trivial edit is a deploy trigger pushed from Akul's own account so Vercel's auto-deploy fires on a fresh HEAD.
+**SESSION STATUS (2026-08-22, overnight run): the full queue below is now DONE — 01, 02, 03 (built directly by Akul), 04, 06, 07, 08, 09 all complete, pushed to `main`, and confirmed live 2026-08-24 (see `summary.md`'s deploy-gotcha entry).**
 
 # Abdullah's task queue (2026-08-16, updated 2026-08-22)
 
