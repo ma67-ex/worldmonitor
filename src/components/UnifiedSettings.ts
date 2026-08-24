@@ -1361,16 +1361,6 @@ export class UnifiedSettings {
         </div>`;
     }
 
-    if (!hasFeature('apiAccess')) {
-      const upgradeIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="16 12 12 8 8 12"/><line x1="12" y1="16" x2="12" y2="8"/></svg>`;
-      return `
-        <div class="panel-locked-state">
-          <div class="panel-locked-icon">${upgradeIcon}</div>
-          <div class="panel-locked-desc">Create and manage API keys to access WorldMonitor data programmatically.</div>
-          <button class="panel-locked-cta api-keys-gate-btn">Upgrade to API Starter</button>
-        </div>`;
-    }
-
     return `
       <div class="api-keys-section">
         <div data-plan-limit-notices>${this.renderPlanLimitNotices()}</div>

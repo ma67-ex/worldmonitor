@@ -2713,12 +2713,8 @@ export class PanelLayoutManager implements AppModule {
     const proLabel = document.createElement('span');
     proLabel.className = 'add-panel-block-label';
     proLabel.textContent = t('widgets.createInteractive');
-    const proBadge = document.createElement('span');
-    proBadge.className = 'widget-pro-badge';
-    proBadge.textContent = t('widgets.proBadge');
     proBlock.appendChild(proIcon);
     proBlock.appendChild(proLabel);
-    proBlock.appendChild(proBadge);
     proBlock.addEventListener('click', () => {
       void import('@/components/WidgetChatModal').then((m) => m.openWidgetChatModal({
         mode: 'create',
