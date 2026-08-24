@@ -58,11 +58,18 @@ function makeTrackingExa() {
 
 const fakeFx = async () => Object.fromEntries(COUNTRIES.map((c) => [c.currency, 1]));
 
+// The Economist CSV is now tried first (see fetchEconomistBigMacIndex) and skips
+// EXA entirely for any currency it covers. Tests below target the EXA fallback
+// ladder specifically, so they disable that primary source with an empty map —
+// otherwise real per-country coverage would make the EXA-outage/concurrency
+// assertions below flaky depending on which currencies the CSV happens to cover.
+const noEconomistData = async () => new Map();
+
 describe('seed-bigmac fetchBigMacPrices', () => {
   it('caps in-flight EXA calls at the production default when NO override is passed (pins #4994 fix)', async () => {
     const exa = makeTrackingExa();
     // Deliberately omit `concurrency` so this exercises the real EXA_CONCURRENCY default.
-    await fetchBigMacPrices(null, { searchExaFn: exa.fn, getFxRatesFn: fakeFx });
+    await fetchBigMacPrices(null, { searchExaFn: exa.fn, getFxRatesFn: fakeFx, getEconomistDataFn: noEconomistData });
     assert.equal(
       exa.maxInFlight,
       EXPECTED_DEFAULT_CONCURRENCY,
@@ -74,7 +81,7 @@ describe('seed-bigmac fetchBigMacPrices', () => {
   // by a wall-clock ratio — timing assertions flake under `--test-concurrency=16`.
 
   it('preserves country order and returns one row per country', async () => {
-    const data = await fetchBigMacPrices(null, { searchExaFn: makeFakeExa(), getFxRatesFn: fakeFx });
+    const data = await fetchBigMacPrices(null, { searchExaFn: makeFakeExa(), getFxRatesFn: fakeFx, getEconomistDataFn: noEconomistData });
     assert.equal(data.countries.length, COUNTRIES.length);
     for (let i = 0; i < COUNTRIES.length; i += 1) {
       assert.equal(data.countries[i].code, COUNTRIES[i].code, `row ${i} must stay aligned with COUNTRIES order`);
@@ -85,7 +92,7 @@ describe('seed-bigmac fetchBigMacPrices', () => {
 
   it('a single failing country degrades to available:false, never crashing the run', async () => {
     const failCurrencies = new Set([COUNTRIES[3].currency]); // one country's EXA throws
-    const data = await fetchBigMacPrices(null, { searchExaFn: makeFakeExa({ failCurrencies }), getFxRatesFn: fakeFx });
+    const data = await fetchBigMacPrices(null, { searchExaFn: makeFakeExa({ failCurrencies }), getFxRatesFn: fakeFx, getEconomistDataFn: noEconomistData });
     assert.equal(data.countries.length, COUNTRIES.length);
     const failed = data.countries.find((c) => c.currency === COUNTRIES[3].currency);
     assert.equal(failed.available, false, 'failed country is marked unavailable');
@@ -94,7 +101,7 @@ describe('seed-bigmac fetchBigMacPrices', () => {
 
   it('total EXA outage → all rows unavailable, empty extremes, declareRecords 0 (no bogus publish)', async () => {
     const allFail = async () => { throw new Error('EXA down'); };
-    const data = await fetchBigMacPrices(null, { searchExaFn: allFail, getFxRatesFn: fakeFx });
+    const data = await fetchBigMacPrices(null, { searchExaFn: allFail, getFxRatesFn: fakeFx, getEconomistDataFn: noEconomistData });
     // Row per country is still returned, but none is available.
     assert.equal(data.countries.length, COUNTRIES.length);
     assert.ok(data.countries.every((c) => c.available === false), 'no country resolves a price on total outage');
@@ -103,6 +110,38 @@ describe('seed-bigmac fetchBigMacPrices', () => {
     // recordCount 0 is the contract that drives runSeed to retry / not publish a
     // zero-record snapshot (validateFn only checks countries.length > 0).
     assert.equal(declareRecords(data), 0, 'declareRecords must be 0 on a total outage');
+  });
+
+  it('uses Economist CSV data when available and never calls EXA for a covered currency', async () => {
+    const covered = COUNTRIES[0];
+    const uncalledExa = async () => { throw new Error('EXA should not be called for a covered currency'); };
+    const economistData = new Map([[covered.currency, { localPrice: 42, usdPrice: 4.2 }]]);
+    const data = await fetchBigMacPrices(null, {
+      searchExaFn: uncalledExa,
+      getFxRatesFn: fakeFx,
+      getEconomistDataFn: async () => economistData,
+    });
+    const row = data.countries.find((c) => c.code === covered.code);
+    assert.equal(row.available, true);
+    assert.equal(row.localPrice, 42);
+    assert.equal(row.usdPrice, 4.2);
+  });
+
+  it('falls back to EXA for a currency the Economist CSV does not cover', async () => {
+    const uncovered = COUNTRIES[0];
+    const exa = makeFakeExa();
+    // Map covers every OTHER country, forcing this one through the EXA ladder.
+    const economistData = new Map(
+      COUNTRIES.filter((c) => c.code !== uncovered.code).map((c) => [c.currency, { localPrice: 1, usdPrice: 1 }]),
+    );
+    const data = await fetchBigMacPrices(null, {
+      searchExaFn: exa,
+      getFxRatesFn: fakeFx,
+      getEconomistDataFn: async () => economistData,
+    });
+    const row = data.countries.find((c) => c.code === uncovered.code);
+    assert.equal(row.available, true, 'uncovered country still resolves via the EXA fallback');
+    assert.equal(row.usdPrice, 5, 'EXA fallback price used, not an Economist stand-in');
   });
 });
 

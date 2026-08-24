@@ -100,7 +100,89 @@ function matchPrice(text, url) {
   return null;
 }
 
+// Free/self-hosted first (site:-restricted SearXNG search), Exa as fallback.
+// Shaped to match Exa's { results: [{ summary, url }] } so processCountry's
+// matchPrice() call needs no changes regardless of which path answered.
+async function searchSearxng(query, includeDomains) {
+  const baseUrl = process.env.SEARXNG_URL;
+  if (!baseUrl) return null;
+
+  const siteFilter = includeDomains?.length
+    ? ` (${includeDomains.map(d => `site:${d}`).join(' OR ')})`
+    : '';
+  const url = new URL('/search', baseUrl);
+  url.searchParams.set('q', query + siteFilter);
+  url.searchParams.set('format', 'json');
+
+  const resp = await fetch(url, {
+    headers: { Accept: 'application/json', 'User-Agent': CHROME_UA },
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!resp.ok) {
+    console.warn(`  SearXNG ${resp.status}`);
+    return null;
+  }
+  const payload = await resp.json();
+  const results = (payload.results || [])
+    .filter(r => r.content)
+    .map(r => ({ summary: r.content, url: r.url || '' }));
+  return results.length ? { results } : null;
+}
+
+// The Economist publishes the actual Big Mac Index as open CSV data — free,
+// no key, no scraping/guessing. Covers ~54 countries (missing e.g. Nigeria,
+// Kenya, which fall back to the search ladder below). Refreshed by The
+// Economist ~twice a year, which comfortably outpaces this seed's 10-day TTL.
+const ECONOMIST_BIG_MAC_CSV_URL = 'https://raw.githubusercontent.com/TheEconomist/big-mac-data/master/output-data/big-mac-full-index.csv';
+
+async function fetchEconomistBigMacIndex() {
+  try {
+    const resp = await fetch(ECONOMIST_BIG_MAC_CSV_URL, { signal: AbortSignal.timeout(15_000) });
+    if (!resp.ok) {
+      console.warn(`  Economist Big Mac CSV ${resp.status}`);
+      return new Map();
+    }
+    const text = await resp.text();
+    const lines = text.trim().split('\n');
+    const header = lines[0].split(',');
+    const dateIdx = header.indexOf('date');
+    const currencyIdx = header.indexOf('currency_code');
+    const localPriceIdx = header.indexOf('local_price');
+    const dollarPriceIdx = header.indexOf('dollar_price');
+
+    let latestDate = '';
+    const rows = [];
+    for (const line of lines.slice(1)) {
+      const cols = line.split(',');
+      const date = cols[dateIdx];
+      if (!date) continue;
+      if (date > latestDate) latestDate = date;
+      rows.push(cols);
+    }
+
+    const byCurrency = new Map();
+    for (const cols of rows) {
+      if (cols[dateIdx] !== latestDate) continue;
+      const currency = cols[currencyIdx];
+      const localPrice = parseFloat(cols[localPriceIdx]);
+      const usdPrice = parseFloat(cols[dollarPriceIdx]);
+      if (!currency || !Number.isFinite(localPrice) || !Number.isFinite(usdPrice)) continue;
+      byCurrency.set(currency, { localPrice, usdPrice });
+    }
+    return byCurrency;
+  } catch (err) {
+    console.warn(`  Economist Big Mac CSV error: ${err.message}`);
+    return new Map();
+  }
+}
+
 async function searchExa(query, includeDomains = null) {
+  const searxResult = await searchSearxng(query, includeDomains).catch((err) => {
+    console.warn(`  SearXNG error: ${err.message}`);
+    return null;
+  });
+  if (searxResult) return searxResult;
+
   const apiKey = (process.env.EXA_API_KEYS || process.env.EXA_API_KEY || '').split(/[\n,]+/)[0].trim();
   if (!apiKey) throw new Error('EXA_API_KEYS or EXA_API_KEY not set');
 
@@ -130,37 +212,45 @@ async function searchExa(query, includeDomains = null) {
 // Resolve one country's Big Mac price. NEVER throws for an upstream/EXA failure —
 // a failed lookup yields an `available: false` row so a single flaky country can
 // never fail the whole run. Called concurrently (see fetchBigMacPrices).
-async function processCountry(country, fxRates, searchExaFn) {
+async function processCountry(country, fxRates, searchExaFn, economistData) {
   const fxRate = fxRates[country.currency] ?? FX_FALLBACKS[country.currency] ?? null;
   let localPrice = null;
   let usdPrice = null;
   let sourceSite = '';
 
-  try {
-    // Include currency code in query — helps EXA find per-country specialist pages
-    const query = `Big Mac price ${country.name} ${country.currency}`;
-    const SPECIALIST_SITES = ['theburgerindex.com', 'eatmyindex.com'];
+  const economistHit = economistData?.get(country.currency);
+  if (economistHit) {
+    // Authoritative source — skip search entirely for countries it covers.
+    localPrice = economistHit.localPrice;
+    usdPrice = economistHit.usdPrice;
+    sourceSite = ECONOMIST_BIG_MAC_CSV_URL;
+  } else {
+    try {
+      // Include currency code in query — helps EXA find per-country specialist pages
+      const query = `Big Mac price ${country.name} ${country.currency}`;
+      const SPECIALIST_SITES = ['theburgerindex.com', 'eatmyindex.com'];
 
-    // Specialist Big Mac Index sites only — clean, verified per-country data
-    const exaResult = await searchExaFn(query, SPECIALIST_SITES);
+      // Specialist Big Mac Index sites only — clean, verified per-country data
+      const exaResult = await searchExaFn(query, SPECIALIST_SITES);
 
-    if (exaResult?.results?.length) {
-      for (const result of exaResult.results) {
-        const summary = result?.summary;
-        if (!summary || typeof summary !== 'string') continue;
-        const hit = matchPrice(summary, result.url || '');
-        if (hit?.currency === country.currency) {
-          localPrice = hit.price;
-          sourceSite = hit.source;
-          break;
+      if (exaResult?.results?.length) {
+        for (const result of exaResult.results) {
+          const summary = result?.summary;
+          if (!summary || typeof summary !== 'string') continue;
+          const hit = matchPrice(summary, result.url || '');
+          if (hit?.currency === country.currency) {
+            localPrice = hit.price;
+            sourceSite = hit.source;
+            break;
+          }
         }
       }
+    } catch (err) {
+      console.warn(`    [${country.code}] EXA error: ${err.message}`);
     }
-  } catch (err) {
-    console.warn(`    [${country.code}] EXA error: ${err.message}`);
-  }
 
-  usdPrice = localPrice !== null && fxRate ? +(localPrice * fxRate).toFixed(4) : null;
+    usdPrice = localPrice !== null && fxRate ? +(localPrice * fxRate).toFixed(4) : null;
+  }
 
   // Sanity check: Big Mac USD price must be in a plausible global range
   if (usdPrice !== null && (usdPrice < USD_MIN || usdPrice > USD_MAX)) {
@@ -185,18 +275,27 @@ async function processCountry(country, fxRates, searchExaFn) {
   };
 }
 
-export async function fetchBigMacPrices(prevSnapshot, { searchExaFn = searchExa, getFxRatesFn = getSharedFxRates, concurrency = EXA_CONCURRENCY } = {}) {
-  const fxRates = await getFxRatesFn(FX_SYMBOLS, FX_FALLBACKS);
+export async function fetchBigMacPrices(prevSnapshot, {
+  searchExaFn = searchExa,
+  getFxRatesFn = getSharedFxRates,
+  getEconomistDataFn = fetchEconomistBigMacIndex,
+  concurrency = EXA_CONCURRENCY,
+} = {}) {
+  const [fxRates, economistData] = await Promise.all([
+    getFxRatesFn(FX_SYMBOLS, FX_FALLBACKS),
+    getEconomistDataFn(),
+  ]);
 
   // Fetch the 50 countries with BOUNDED CONCURRENCY. The runner (runSeed) caps the
   // whole fetch phase at 240s; a sequential loop of 50 EXA calls (≤15s each) breaches
   // that deadline the moment average latency exceeds 240/50 ≈ 4.8s, crashing the run
   // with a spurious exit-75 "Deploy Crashed!" alert (issue #4994). At concurrency 6
   // the worst case is ⌈50/6⌉ = 9 waves × 15s ≈ 135s — comfortably under the deadline.
+  // Countries the Economist CSV already covers skip EXA/search entirely.
   const settled = await allSettledWithConcurrency(
     COUNTRIES,
     concurrency,
-    (country) => processCountry(country, fxRates, searchExaFn),
+    (country) => processCountry(country, fxRates, searchExaFn, economistData),
   );
   const results = settled.map((s, i) => {
     if (s.status === 'fulfilled') return s.value;
