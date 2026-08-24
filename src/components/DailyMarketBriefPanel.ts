@@ -45,7 +45,7 @@ export class DailyMarketBriefPanel extends Panel {
   private fwSelector: FrameworkSelector;
 
   constructor() {
-    super({ id: 'daily-market-brief', title: 'Daily Market Brief', infoTooltip: t('components.dailyMarketBrief.infoTooltip'), premium: 'locked' });
+    super({ id: 'daily-market-brief', title: 'Daily Market Brief', infoTooltip: t('components.dailyMarketBrief.infoTooltip') });
     this.fwSelector = new FrameworkSelector({ panelId: 'daily-market-brief', isPremium: hasPremiumAccess(), panel: this, note: 'Applies to client-generated analysis only' });
     this.header.appendChild(this.fwSelector.el);
     this.header.appendChild(createWatchlistButton('Edit Watchlist'));
