@@ -1,5 +1,7 @@
 **SESSION STATUS (2026-08-22, overnight run): the full queue below is now DONE — 01, 02, 03 (built directly by Akul), 04, 06, 07, 08, 09 all complete and pushed to `main`. Only `05` and the Railway go/no-go remain, both explicitly on Akul's plate, not Abdullah's.**
 
+**2026-08-24: none of the above had actually deployed** — live site was still serving the pre-08-22 bundle (confirmed via unchanged CSS/JS hashes) despite all 6 commits sitting on `main`. This trivial edit is a deploy trigger pushed from Akul's own account so Vercel's auto-deploy fires on a fresh HEAD.
+
 # Abdullah's task queue (2026-08-16, updated 2026-08-22)
 
 **Rule for this file, going forward: only put a task here once any decision it needed has already been made.** If a task still needs Akul to pick a methodology, an approach, or a scope, it does NOT belong in this file — it stays on Akul's own plate until he decides, and only lands here after.
