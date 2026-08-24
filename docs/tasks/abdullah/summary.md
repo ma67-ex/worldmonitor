@@ -30,4 +30,4 @@ Full detailed history lives in the brain-repo sidecar note: `sessions/worldmonit
 - Supply-chain's real locked analytics (8 RPCs of scenario modeling) — genuinely needs either Railway seed infra (see the one exception in `CLAUDE.md`) or a from-scratch alt-source approach.
 - Resilience score, sanctions, trade-policy are "done" in the narrow sense of what was asked — but the mission is now everything, not just those four. Sweep the whole codebase per `CLAUDE.md`'s hunting list.
 
-**Explicitly deferred, not yours to decide (the one exception):** Railway seed-infra (would unblock `news/v1/list-feed-digest`, `telegram-feed`, `gpsjam`, `oref-alerts`, and the rest of supply-chain). Flag it if you think it's worth it; don't provision it.
+**Railway seed-infra — now yours to decide too (overridden 2026-08-24, no more exceptions).** Would unblock `news/v1/list-feed-digest`, `telegram-feed`, `gpsjam`, `oref-alerts`, and the rest of supply-chain's real analytics. Real fact to weigh: Railway kills unpaid/inactive projects, unlike Vercel/Upstash's genuinely-free tiers this fork already runs on. Your call whether that tradeoff is worth it.
