@@ -22,6 +22,7 @@ Suggested order (not mandatory — pick whatever's most useful):
 8. [`09-theme-css-tuning.md`](./09-theme-css-tuning.md) — done 2026-08-22, fixed 4 real contrast bugs the SITREP accent-color rebrand introduced (DEFCON badge + pills, BYOK key inputs, desktop settings placeholder)
 9. [`10-remaining-panel-unlocks.md`](./10-remaining-panel-unlocks.md) — done 2026-08-23, unlocked `stock-backtest`, `daily-market-brief`, `wsb-ticker-scanner`, `global-procurement` (client-side gates for all 4 + a real server-side tier gate for 2 of them); `latest-brief` confirmed still genuinely Clerk-bound, left locked
 10. [`11-map-renderer-boot-race.md`](./11-map-renderer-boot-race.md) — done 2026-08-24, not from the paywall hunt list: fixed the 2D map falling back to plain SVG in local dev (window-width mobile check was a one-shot read at construction time, before the window settled)
+11. [`12-supply-chain-trade-unlock.md`](./12-supply-chain-trade-unlock.md) — done 2026-08-24, unlocked supply-chain (8 RPCs), trade (comtrade + tariffs), and food-stocks — confirmed these don't need Railway (scenario modeling and sanctions do, left alone). Full remaining plan at `/Users/muhammadabdullah/.claude/plans/glimmering-sleeping-lerdorf.md` (tasks 13-14 next: dead billing UI + settings gates, then test cleanup)
 
 Mark a file done by adding `**STATUS: DONE — <date>**` at the top when you finish it. Don't delete the files — they're the record of what shipped and why.
 

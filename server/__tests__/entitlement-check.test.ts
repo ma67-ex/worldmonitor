@@ -152,6 +152,26 @@ describe("gateway entitlement check", () => {
     expect(getRequiredTier(path)).toBeNull();
   });
 
+  test.each([
+    "/api/supply-chain/v1/get-country-chokepoint-index",
+    "/api/supply-chain/v1/get-bypass-options",
+    "/api/supply-chain/v1/get-country-cost-shock",
+    "/api/supply-chain/v1/get-route-explorer-lane",
+    "/api/supply-chain/v1/get-route-impact",
+    "/api/supply-chain/v1/get-country-products",
+    "/api/supply-chain/v1/get-multi-sector-cost-shock",
+    "/api/supply-chain/v1/get-sector-dependency",
+    "/api/trade/v1/list-comtrade-flows",
+    "/api/trade/v1/get-tariff-trends",
+    "/api/resilience/v1/get-food-stocks",
+    "/api/intelligence/v1/search-intel-history",
+    "/api/intelligence/v1/get-intel-timeline",
+    "/api/intelligence/v1/get-similar-events",
+    "/api/forecast/v1/trigger-simulation",
+  ])("getRequiredTier returns null for %s (unlocked fork-wide, docs/tasks/abdullah/12)", (path) => {
+    expect(getRequiredTier(path)).toBeNull();
+  });
+
   test("checkEntitlement returns null for ungated endpoint", async () => {
     const result = await checkEntitlement(null, "/api/seismology/v1/list-earthquakes", {});
     expect(result).toBeNull();
