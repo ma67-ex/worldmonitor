@@ -5,7 +5,7 @@ import { CHROME_UA } from '../../../_shared/constants';
 import { cachedFetchJson } from '../../../_shared/redis';
 import { UPSTREAM_TIMEOUT_MS } from './_shared';
 
-export type StockNewsSearchProviderId = 'exa' | 'brave' | 'serpapi' | 'google-news-rss';
+export type StockNewsSearchProviderId = 'searxng' | 'exa' | 'brave' | 'serpapi' | 'google-news-rss';
 
 type StockNewsSearchResult = {
   provider: StockNewsSearchProviderId;
@@ -193,6 +193,44 @@ function providerSignal(signal?: AbortSignal): AbortSignal {
     : AbortSignal.timeout(UPSTREAM_TIMEOUT_MS);
 }
 
+async function searchWithSearxng(
+  query: string,
+  maxResults: number,
+  days: number,
+  signal?: AbortSignal,
+): Promise<StockAnalysisHeadline[]> {
+  const baseUrl = process.env.SEARXNG_URL;
+  if (!baseUrl) return [];
+  const timeRange = days <= 1 ? 'day' : days <= 7 ? 'week' : days <= 30 ? 'month' : 'year';
+  const url = new URL('/search', baseUrl);
+  url.searchParams.set('q', query);
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('time_range', timeRange);
+  url.searchParams.set('categories', 'news');
+
+  const response = await fetch(url, {
+    headers: { Accept: 'application/json', 'User-Agent': CHROME_UA },
+    signal: providerSignal(signal),
+  });
+
+  if (!response.ok) {
+    throw new Error(`SearXNG HTTP ${response.status}`);
+  }
+
+  const payload = await response.json() as {
+    results?: Array<{ title?: string; url?: string; publishedDate?: string }>;
+  };
+  return dedupeHeadlines(
+    (payload.results || []).map(item => ({
+      title: String(item.title || '').trim(),
+      source: extractDomain(String(item.url || '')),
+      link: String(item.url || '').trim(),
+      publishedAt: parsePublishedAt(item.publishedDate),
+    })),
+    maxResults,
+  );
+}
+
 async function searchWithExa(
   query: string,
   maxResults: number,
@@ -333,6 +371,16 @@ async function searchViaProviders(
   days: number,
   signal?: AbortSignal,
 ): Promise<StockNewsProviderResult | null> {
+  signal?.throwIfAborted();
+  try {
+    const headlines = await searchWithSearxng(query, maxResults, days, signal);
+    if (headlines.length > 0) return { provider: 'searxng', headlines };
+  } catch (error) {
+    if (signal?.aborted) throw signal.reason;
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[stock-news-search] searxng failed: ${message}`);
+  }
+
   const providers: SearchProviderDefinition[] = [
     { id: 'exa', envKey: 'EXA_API_KEYS', search: searchWithExa },
     { id: 'brave', envKey: 'BRAVE_API_KEYS', search: searchWithBrave },
