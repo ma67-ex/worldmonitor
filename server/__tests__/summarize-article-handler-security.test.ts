@@ -49,25 +49,34 @@ afterEach(() => {
 });
 
 describe("summarizeArticle handler premium mode gate", () => {
-  test("anonymous article summaries are rejected before provider fetch", async () => {
+  // resolvePremiumCallerIdentity() (premium-check.ts) now unconditionally
+  // resolves every caller as premium — no billing stack behind this deploy
+  // (task 08, docs/tasks/abdullah/08-server-entitlement-stripping.md). The
+  // "Pro subscription required" denial these two tests pinned is dead code
+  // for this fork; rewritten (docs/tasks/abdullah/14) to assert anonymous
+  // callers now pass the gate exactly like "premium callers pass" below —
+  // same technique (drop GROQ_API_KEY so the handler skips before ever
+  // reaching a real provider fetch) so the assertion is real, not aspirational.
+  test("anonymous article summaries pass the summary gate (docs/tasks/abdullah/14)", async () => {
+    delete process.env.GROQ_API_KEY;
+
     const result = await summarizeArticle(makeContext(), request("brief"));
 
     expect(result).toMatchObject({
-      summary: "",
       fallback: true,
-      error: "Pro subscription required",
-      errorType: "AuthError",
-      status: "SUMMARIZE_STATUS_ERROR",
-      statusDetail: "Pro subscription required",
+      status: "SUMMARIZE_STATUS_SKIPPED",
+      statusDetail: "GROQ_API_KEY not configured",
     });
-    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(result.error).not.toBe("Pro subscription required");
   });
 
-  test("anonymous analysis mode is rejected before provider fetch", async () => {
+  test("anonymous analysis mode passes the summary gate (docs/tasks/abdullah/14)", async () => {
+    delete process.env.GROQ_API_KEY;
+
     const result = await summarizeArticle(makeContext({ "X-WorldMonitor-Key": "wms_basic_session" }), request("analysis"));
 
-    expect(result.error).toBe("Pro subscription required");
-    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(result.error).not.toBe("Pro subscription required");
+    expect(result.statusDetail).toBe("GROQ_API_KEY not configured");
   });
 
   test("translation mode remains outside the premium summary gate", async () => {

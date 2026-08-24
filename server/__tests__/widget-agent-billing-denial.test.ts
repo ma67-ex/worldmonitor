@@ -1,14 +1,16 @@
 // @vitest-environment node
 
 /**
- * #4771 — the widget-agent Clerk-bearer path must surface structured
- * billing-verification denials (403/503 + `code` + X-Billing-Verification +
- * Retry-After) BEFORE its legacy generic 403, using the same
- * getBillingVerificationDenial helper as the gateway (server/gateway.ts) and
- * MCP (api/mcp/auth.ts). Mirrors the vi.mock pattern of
- * gateway-user-key-apiaccess.test.ts: auth-session and getEntitlements are
- * stubbed, the denial helper itself is the REAL implementation, and the
- * assertions run against the actual Response the handler returns.
+ * #4771 originally covered structured billing-verification denials
+ * (403/503 + `code` + X-Billing-Verification + Retry-After) ahead of the
+ * legacy generic 403. That whole mechanism is gone: task 08
+ * (docs/tasks/abdullah/08-server-entitlement-stripping.md) made a valid
+ * bearer session unconditionally Pro (api/_widget-agent.ts:132-134,
+ * "no billing stack behind this deploy") — getEntitlements is never even
+ * called on that path anymore. Rewritten (docs/tasks/abdullah/14) to assert
+ * the new contract instead of the old denial responses: a valid session is
+ * always treated as Pro, and the two auth checks that are still real
+ * (invalid session, no credentials at all) still behave as documented.
  */
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
@@ -18,31 +20,16 @@ vi.mock("../auth-session", () => ({
   validateBearerToken: (...a: unknown[]) => validateBearerToken(...a),
 }));
 
-const getEntitlements = vi.fn();
-vi.mock("../_shared/entitlement-check", async (importActual) => {
-  const actual = await importActual<typeof import("../_shared/entitlement-check")>();
-  return {
-    ...actual,
-    getEntitlements: (...a: unknown[]) => getEntitlements(...a),
-  };
-});
-
-// api/widget-agent.ts reads these at module load.
+// api/widget-agent.ts reads these at module load. Also imported at
+// server/__tests__/widget-agent-billing-denial.test.ts's original path,
+// renamed to api/_widget-agent.ts in commit b5839d9b5 (Vercel Hobby's
+// 12-function consolidation) — this import was never updated until now.
 process.env.WIDGET_AGENT_KEY = "server-widget-key";
 process.env.PRO_WIDGET_KEY = "server-pro-key";
 
-const { default: handler } = await import("../../api/widget-agent");
+const { default: handler } = await import("../../api/_widget-agent");
 
-const FREE_FEATURES = {
-  tier: 0,
-  apiAccess: false,
-  apiRateLimit: 0,
-  maxDashboards: 1,
-  prioritySupport: false,
-  exportFormats: [] as string[],
-};
-
-function bearerRequest(): Request {
+function bearerRequest(body: Record<string, unknown> = { prompt: "Build a widget", mode: "create", tier: "basic" }): Request {
   return new Request("https://www.worldmonitor.app/api/widget-agent", {
     method: "POST",
     headers: {
@@ -50,88 +37,55 @@ function bearerRequest(): Request {
       "Content-Type": "application/json",
       Authorization: "Bearer test-session-token",
     },
-    body: JSON.stringify({ prompt: "Build a widget", mode: "create", tier: "basic" }),
+    body: JSON.stringify(body),
   });
 }
 
 beforeEach(() => {
   validateBearerToken.mockReset();
-  getEntitlements.mockReset();
-  validateBearerToken.mockResolvedValue({ valid: true, userId: "user_wa_billing", role: "free" });
+  validateBearerToken.mockResolvedValue({ valid: true, userId: "user_wa", role: "free" });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } })),
+  );
 });
 
-describe("widget-agent billing-verification denial (#4771)", () => {
-  test("renewal_verification_pending: 503 + code + marker header + Retry-After", async () => {
-    getEntitlements.mockResolvedValue({
-      planKey: "pro_monthly",
-      features: FREE_FEATURES,
-      validUntil: 0,
-      billingStatus: "renewal_verification_pending",
-      retryAfterSeconds: 60,
-    });
+describe("widget-agent auth (post docs/tasks/abdullah/08 unconditional-Pro rewrite)", () => {
+  test("valid bearer session is treated as Pro unconditionally, no billing check", async () => {
+    await handler(bearerRequest());
 
-    const res = await handler(bearerRequest());
-    expect(res.status).toBe(503);
-    expect(res.headers.get("X-Billing-Verification")).toBe("renewal_verification_pending");
-    expect(res.headers.get("Retry-After")).toBeTruthy();
-    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://www.worldmonitor.app");
-    const body = await res.json();
-    expect(body.code).toBe("renewal_verification_pending");
+    const relayCall = vi.mocked(fetch).mock.calls[0];
+    expect(relayCall).toBeDefined();
+    const [, init] = relayCall!;
+    const headers = init!.headers as Record<string, string>;
+    expect(headers["X-Pro-Key"]).toBe("server-pro-key");
+    const sentBody = JSON.parse(init!.body as string);
+    expect(sentBody.tier).toBe("pro");
   });
 
-  test("subscription_lapsed: confirmed denial stays a 403 with the stable code", async () => {
-    getEntitlements.mockResolvedValue({
-      planKey: "pro_monthly",
-      features: FREE_FEATURES,
-      validUntil: 0,
-      billingStatus: "subscription_lapsed",
-    });
+  test("invalid or expired session is still rejected with 401", async () => {
+    validateBearerToken.mockResolvedValue({ valid: false });
 
     const res = await handler(bearerRequest());
+
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error).toBe("Invalid or expired session");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test("no Authorization header and no legacy widget/pro key is rejected with 403", async () => {
+    const req = new Request("https://www.worldmonitor.app/api/widget-agent", {
+      method: "POST",
+      headers: { Origin: "https://www.worldmonitor.app", "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: "Build a widget", mode: "create", tier: "basic" }),
+    });
+
+    const res = await handler(req);
+
     expect(res.status).toBe(403);
-    expect(res.headers.get("X-Billing-Verification")).toBe("subscription_lapsed");
     const body = await res.json();
-    expect(body.code).toBe("subscription_lapsed");
-  });
-
-  test("verificationUnavailable marker: retryable 503, not a hard denial", async () => {
-    getEntitlements.mockResolvedValue({
-      planKey: "free",
-      features: FREE_FEATURES,
-      validUntil: 0,
-      verificationUnavailable: true,
-    });
-
-    const res = await handler(bearerRequest());
-    expect(res.status).toBe(503);
-    expect(res.headers.get("X-Billing-Verification")).toBe("entitlement_verification_unavailable");
-    expect(res.headers.get("Retry-After")).toBeTruthy();
-    const body = await res.json();
-    expect(body.code).toBe("entitlement_verification_unavailable");
-  });
-
-  test("plain free-tier row: legacy generic 403, no billing marker", async () => {
-    getEntitlements.mockResolvedValue({
-      planKey: "free",
-      features: FREE_FEATURES,
-      validUntil: 0,
-    });
-
-    const res = await handler(bearerRequest());
-    expect(res.status).toBe(403);
-    expect(res.headers.get("X-Billing-Verification")).toBeNull();
-    const body = await res.json();
-    expect(body.error).toBe("Pro subscription required");
-    expect(body.code).toBeUndefined();
-  });
-
-  test("null entitlement lookup: fail-closed generic 403, no billing marker", async () => {
-    getEntitlements.mockResolvedValue(null);
-
-    const res = await handler(bearerRequest());
-    expect(res.status).toBe(403);
-    expect(res.headers.get("X-Billing-Verification")).toBeNull();
-    const body = await res.json();
-    expect(body.error).toBe("Pro subscription required");
+    expect(body.error).toBe("Forbidden");
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

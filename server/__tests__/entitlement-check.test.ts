@@ -26,6 +26,7 @@ import { getCachedJson, setCachedJson } from "../_shared/redis";
 import {
   getRequiredTier,
   checkEntitlement,
+  checkEntitlementDetailed,
   getEntitlements,
   classifyBillingVerification,
   getBillingVerificationDenial,
@@ -177,60 +178,46 @@ describe("gateway entitlement check", () => {
     expect(result).toBeNull();
   });
 
-  test("checkEntitlement returns 403 when no resolved userId is provided (fail-closed)", async () => {
+  test("checkEntitlement returns null with no resolved userId (no deny path left, docs/tasks/abdullah/14)", async () => {
+    // checkEntitlementDetailed() is hardcoded to never deny (task 08 — no
+    // billing stack behind this deploy). Was a 403 "Authentication required"
+    // before that; now the tier gate never blocks, resolved userId or not.
     const result = await checkEntitlement(null, "/api/market/v1/analyze-stock", {});
-    expect(result).not.toBeNull();
-    expect(result!.status).toBe(403);
-
-    const body = await result!.json();
-    expect(body.error).toBe("Authentication required");
-    expect(body.requiredTier).toBe(1);
+    expect(result).toBeNull();
   });
 
-  test("checkEntitlement returns 403 when Convex CONFIRMS no entitlement row (fail-closed)", async () => {
-    // This test used to rely on "no Convex URL" to produce its null, which
-    // conflated the two states a null now distinguishes: a lookup that was
-    // never attempted vs one that came back empty. Drive the confirmed case
-    // explicitly — backend configured, Convex answering 200 with a null body —
-    // so the terminal 403 is asserted against a real verdict about the account.
+  test("checkEntitlement returns null even when Convex CONFIRMS no entitlement row (docs/tasks/abdullah/14)", async () => {
+    // Same fork of "no resolved userId" above, for the other empty-lookup
+    // shape: backend configured, Convex answering 200 with a null body. The
+    // entitlement RESOLUTION still runs and still resolves to null — that
+    // part is real and worth pinning — it just no longer drives a 403.
     await withConvexEntitlementFetch(
       () => Promise.resolve(new Response("null", {
         status: 200,
         headers: { "Content-Type": "application/json" },
       })),
       async () => {
-        const result = await checkEntitlement("test-user", "/api/market/v1/analyze-stock", {});
-        expect(result).not.toBeNull();
-        expect(result!.status).toBe(403);
-
-        const body = await result!.json();
-        expect(body.error).toBe("Unable to verify entitlements");
-        expect(body.requiredTier).toBe(1);
+        const result = await checkEntitlementDetailed("test-user", "/api/market/v1/analyze-stock", {});
+        expect(result.response).toBeNull();
+        expect(result.entitlements).toBeNull();
       },
     );
   });
 
-  test("checkEntitlement answers the retryable 503 when the backend is UNCONFIGURED", async () => {
-    // The other half of the split above. With CONVEX_SITE_URL / the shared
-    // secret missing, getEntitlements returns null before attempting a lookup —
-    // for every user, paying customers included. Rendering that as the terminal
-    // "unable to verify" 403 tells subscribers their access failed because of
-    // our own deploy defect. This gate is reached from server/gateway.ts on
-    // every tier-gated session request, so it is the widest surface of the
-    // asymmetry #5619 set out to remove (#5600 is the precedent).
+  test("checkEntitlement returns null when the backend is UNCONFIGURED (docs/tasks/abdullah/14)", async () => {
+    // With CONVEX_SITE_URL / the shared secret missing, getEntitlements
+    // returns null before attempting a lookup. Used to render as a retryable
+    // 503; now the tier gate never denies regardless, so this just confirms
+    // an unconfigured backend doesn't throw or otherwise misbehave.
     const originalSiteUrl = process.env.CONVEX_SITE_URL;
     const originalSecret = process.env.CONVEX_SERVER_SHARED_SECRET;
     delete process.env.CONVEX_SITE_URL;
     delete process.env.CONVEX_SERVER_SHARED_SECRET;
     vi.mocked(getCachedJson).mockResolvedValueOnce(null);
     try {
-      const result = await checkEntitlement("test-user", "/api/market/v1/analyze-stock", {});
-      expect(result).not.toBeNull();
-      expect(result!.status).toBe(503);
-      expect(result!.headers.get("X-Billing-Verification")).toBe(
-        "entitlement_verification_unavailable",
-      );
-      expect(Number(result!.headers.get("Retry-After"))).toBeGreaterThan(0);
+      const result = await checkEntitlementDetailed("test-user", "/api/market/v1/analyze-stock", {});
+      expect(result.response).toBeNull();
+      expect(result.entitlements).toBeNull();
     } finally {
       if (originalSiteUrl === undefined) delete process.env.CONVEX_SITE_URL;
       else process.env.CONVEX_SITE_URL = originalSiteUrl;
@@ -353,29 +340,25 @@ describe("gateway entitlement check", () => {
     );
   });
 
-  test("checkEntitlement answers a transient lookup failure with the retryable 503 contract, not a hard 403", async () => {
+  test("checkEntitlement returns null on a transient lookup failure, entitlements still marks it unavailable (docs/tasks/abdullah/14)", async () => {
+    // No response is ever returned now, but the resolved entitlements row
+    // still marks the lookup as unavailable — real signal worth keeping so a
+    // future regression that silently swallows the failure (instead of
+    // marking it) still shows up here.
     await withConvexEntitlementFetch(
       () => Promise.reject(new Error("fetch failed")),
       async () => {
-        const result = await checkEntitlement("user-transient-check", "/api/market/v1/analyze-stock", {});
-        expect(result).not.toBeNull();
-        expect(result!.status).toBe(503);
-        expect(result!.headers.get("X-Billing-Verification")).toBe("entitlement_verification_unavailable");
-        expect(result!.headers.get("Retry-After")).toBe("5");
-        expect(result!.headers.get("Cache-Control")).toBe("no-store");
-
-        const body = await result!.json();
-        expect(body.error).toBe("Unable to verify API access");
-        expect(body.code).toBe("entitlement_verification_unavailable");
-        expect(body.requiredTier).toBe(1);
+        const result = await checkEntitlementDetailed("user-transient-check", "/api/market/v1/analyze-stock", {});
+        expect(result.response).toBeNull();
+        expect(result.entitlements?.verificationUnavailable).toBe(true);
       },
     );
   });
 
   test.each([
-    ["renewal_verification_pending", "Renewal verification pending"],
-    ["renewal_verification_failed", "Renewal verification failed"],
-  ] as const)("%s returns a distinct retryable 503", async (billingStatus, error) => {
+    "renewal_verification_pending",
+    "renewal_verification_failed",
+  ] as const)("%s no longer denies, but the row still resolves the billingStatus (docs/tasks/abdullah/14)", async (billingStatus) => {
     const result = await withConvexEntitlementResponse(
       {
         ...makeEntitlements(0),
@@ -383,13 +366,11 @@ describe("gateway entitlement check", () => {
         billingStatus,
         retryAfterSeconds: 17,
       },
-      () => checkEntitlement("test-user", "/api/market/v1/analyze-stock", {}),
+      () => checkEntitlementDetailed("test-user", "/api/market/v1/analyze-stock", {}),
     );
 
-    expect(result?.status).toBe(503);
-    expect(result?.headers.get("Retry-After")).toBe("17");
-    expect(result?.headers.get("X-Billing-Verification")).toBe(billingStatus);
-    expect(await result?.json()).toMatchObject({ error, code: billingStatus });
+    expect(result.response).toBeNull();
+    expect(result.entitlements?.billingStatus).toBe(billingStatus);
   });
 
   test.each([
@@ -415,25 +396,21 @@ describe("gateway entitlement check", () => {
     },
   );
 
-  test("subscription_lapsed returns a distinct hard-denial code", async () => {
+  test("subscription_lapsed no longer denies, but the row still resolves the status (docs/tasks/abdullah/14)", async () => {
     const result = await withConvexEntitlementResponse(
       {
         ...makeEntitlements(0),
         validUntil: 0,
         billingStatus: "subscription_lapsed",
       },
-      () => checkEntitlement("test-user", "/api/market/v1/analyze-stock", {}),
+      () => checkEntitlementDetailed("test-user", "/api/market/v1/analyze-stock", {}),
     );
 
-    expect(result?.status).toBe(403);
-    expect(result?.headers.get("X-Billing-Verification")).toBe("subscription_lapsed");
-    expect(await result?.json()).toMatchObject({
-      error: "Subscription lapsed",
-      code: "subscription_lapsed",
-    });
+    expect(result.response).toBeNull();
+    expect(result.entitlements?.billingStatus).toBe("subscription_lapsed");
   });
 
-  test("serves a short-lived verification marker from Redis without another Convex request", async () => {
+  test("serves a short-lived verification marker from Redis without another Convex request (docs/tasks/abdullah/14)", async () => {
     vi.mocked(getCachedJson).mockResolvedValueOnce({
       ...makeEntitlements(0),
       validUntil: 0,
@@ -443,21 +420,23 @@ describe("gateway entitlement check", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     try {
-      const result = await checkEntitlement(
+      const result = await checkEntitlementDetailed(
         "test-user",
         "/api/market/v1/analyze-stock",
         {},
       );
 
-      expect(result?.status).toBe(503);
-      expect(result?.headers.get("Retry-After")).toBe("11");
+      expect(result.response).toBeNull();
+      expect(result.entitlements?.billingStatus).toBe("renewal_verification_pending");
+      // The real, still-meaningful signal: the Redis marker short-circuits a
+      // fresh Convex round-trip regardless of what the outward response is.
       expect(fetchMock).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();
     }
   });
 
-  test("serves a recent not-applicable freshness marker without another Convex request", async () => {
+  test("serves a recent not-applicable freshness marker without another Convex request (docs/tasks/abdullah/14)", async () => {
     vi.mocked(getCachedJson).mockResolvedValueOnce({
       ...makeEntitlements(0),
       validUntil: 0,
@@ -469,13 +448,13 @@ describe("gateway entitlement check", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     try {
-      const result = await checkEntitlement(
+      const result = await checkEntitlementDetailed(
         "test-user",
         "/api/market/v1/analyze-stock",
         {},
       );
 
-      expect(result?.status).toBe(403);
+      expect(result.response).toBeNull();
       expect(fetchMock).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();
@@ -596,18 +575,13 @@ describe("gateway entitlement check", () => {
     expect(result).toBeNull();
   });
 
-  test("checkEntitlement returns 403 for insufficient tier", async () => {
+  test("checkEntitlement returns null for insufficient tier (docs/tasks/abdullah/14)", async () => {
+    // Was a 403 "Upgrade required" before task 08 - tier gates never deny now.
     vi.mocked(getCachedJson).mockResolvedValueOnce(makeEntitlements(0));
 
     const result = await checkEntitlement("test-user", "/api/market/v1/analyze-stock", {});
 
-    expect(result).not.toBeNull();
-    expect(result!.status).toBe(403);
-
-    const body = await result!.json();
-    expect(body.error).toBe("Upgrade required");
-    expect(body.requiredTier).toBe(1);
-    expect(body.currentTier).toBe(0);
+    expect(result).toBeNull();
   });
 
   test("checkEntitlement returns null for Pro tier (tier=1) on stock analysis", async () => {
