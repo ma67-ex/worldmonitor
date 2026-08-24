@@ -19,7 +19,7 @@
  * services and the app layer import it.
  */
 
-import { getBillingGateOverride, type BillingUxState } from '../billing-state';
+import type { BillingUxState } from '../billing-state';
 
 /** Formats the dashboard can genuinely produce. Keep this list aligned with
  * `src/utils/export.ts`; unknown catalog values must never become UI actions. */
@@ -111,17 +111,12 @@ export type ExportGateVerdict =
  *   7. otherwise        → LOCK, refined by billing state so a customer with
  *      stale paid evidence sees "update payment" instead of an upsell.
  */
-export function resolveExportLock(input: ExportGateInputs): ExportGateLockReason | null {
-  if (input.desktopKeyPresent) return null;
-  if (input.authPending) return null;
-  if (!input.signedIn) return 'anonymous';
-
-  const features = input.features;
-  if (features === null) return null;
-  if (features.dataExport === true) return null;
-  if (features.dataExport === undefined && features.tier >= 2) return null;
-
-  return getBillingGateOverride(input.billingState) ?? 'free_tier';
+export function resolveExportLock(_input: ExportGateInputs): ExportGateLockReason | null {
+  // docs/tasks/abdullah/19: no billing stack behind this deploy (task 08) —
+  // data export is free for everyone, signed in or not. Kept as a function,
+  // not inlined at call sites, so a real per-tier billing backend can slot
+  // back in here later without touching any caller.
+  return null;
 }
 
 /**
@@ -147,26 +142,10 @@ export function resolveExportGate(input: ExportGateInputs): ExportGateVerdict {
  * source of truth. `dataExport` still owns the locked-versus-unlocked decision
  * because it distinguishes Pro Business from Pro even though both are tier 1.
  */
-export function resolveAvailableExportFormats(input: ExportGateInputs): DataExportFormat[] {
-  if (!input.gateActive || input.desktopKeyPresent || input.authPending) {
-    return allExportFormats();
-  }
-  if (!input.signedIn) return [];
-
-  const features = input.features;
-  if (features === null) return allExportFormats();
-
-  if (features.dataExport === true) {
-    // `exportFormats` predates this gate. A legacy paid row that lacks it must
-    // retain all currently supported exports until its next entitlement write.
-    const declaredFormats = features.exportFormats;
-    if (!Array.isArray(declaredFormats)) return allExportFormats();
-    return SUPPORTED_EXPORT_FORMATS.filter((format) => declaredFormats.includes(format));
-  }
-  if (features.dataExport === undefined && features.tier >= 2) {
-    return allExportFormats();
-  }
-  return [];
+export function resolveAvailableExportFormats(_input: ExportGateInputs): DataExportFormat[] {
+  // docs/tasks/abdullah/19: matches resolveExportLock — every format is
+  // available to everyone, no billing stack behind this deploy.
+  return allExportFormats();
 }
 
 // ---------------------------------------------------------------------------
@@ -193,17 +172,6 @@ export type TabCapVerdict =
 
 const UNCAPPED: TabCapVerdict = { allowed: true, cap: null, pendingActivation: false };
 
-function decideTabCap(
-  input: ExportGateInputs,
-  currentTabCount: number,
-  cap: number,
-  reason: ExportGateLockReason,
-): TabCapVerdict {
-  if (currentTabCount < cap) return { allowed: true, cap, pendingActivation: false };
-  if (!input.gateActive) return { allowed: true, cap, pendingActivation: true };
-  return { allowed: false, cap, reason };
-}
-
 /**
  * May this session create ANOTHER dashboard tab? Creation-only by construction:
  * the verdict carries no removal instruction, so a user sitting above their cap
@@ -219,26 +187,11 @@ function decideTabCap(
  *   5. loaded snapshot → `features.maxDashboards`, refined by billing state so
  *      a customer with stale paid evidence sees "update payment", not an upsell
  */
-export function resolveTabCap(input: ExportGateInputs, currentTabCount: number): TabCapVerdict {
-  if (input.desktopKeyPresent) return UNCAPPED;
-  if (input.authPending) return UNCAPPED;
-  if (!input.signedIn) return decideTabCap(input, currentTabCount, FREE_TAB_CAP, 'anonymous');
-
-  const features = input.features;
-  if (features === null) return UNCAPPED;
-
-  const cap = features.maxDashboards;
-  // `-1` is the catalog's unlimited sentinel (Enterprise). A non-numeric value
-  // can only come from a malformed row — the type says required — and an
-  // unknown allowance must never cap anyone.
-  if (!Number.isFinite(cap) || cap < 0) return UNCAPPED;
-
-  return decideTabCap(
-    input,
-    currentTabCount,
-    cap,
-    getBillingGateOverride(input.billingState) ?? 'free_tier',
-  );
+export function resolveTabCap(_input: ExportGateInputs, _currentTabCount: number): TabCapVerdict {
+  // docs/tasks/abdullah/19: dashboard-tab count is a billing-tier takeaway
+  // like everything else in this file — no billing stack behind this deploy,
+  // so no cap for anyone.
+  return UNCAPPED;
 }
 
 // ---------------------------------------------------------------------------

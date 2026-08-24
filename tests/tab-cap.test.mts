@@ -42,162 +42,44 @@ function inputs(overrides: Partial<ExportGateInputs> = {}): ExportGateInputs {
 const PRO = { tier: 1, dataExport: false, maxDashboards: 10 };
 const PRO_BUSINESS = { tier: 1, dataExport: true, maxDashboards: 25 };
 
-describe('resolveTabCap — KTD8 cap resolution', () => {
-  it('AE3: free snapshot at 3 tabs → blocked with the upgrade reason', () => {
+/**
+ * docs/tasks/abdullah/19: `resolveTabCap` no longer reads any of its inputs —
+ * no billing stack behind this deploy, so nothing caps a dashboard tab. The
+ * three describe blocks that used to live here (KTD8 cap resolution, R10
+ * catalog activation, #4771 billing-aware reasons) each asserted a DIFFERENT
+ * verdict per input; every one of those distinctions is gone. Replaced with a
+ * small set of representative inputs proving the resolver is unconditionally
+ * UNCAPPED, not an exhaustive re-walk of a decision chain that no longer runs.
+ */
+describe('resolveTabCap — always uncapped (docs/tasks/abdullah/19)', () => {
+  const UNCAPPED = { allowed: true, cap: null, pendingActivation: false };
+
+  it('affirmatively signed out, at what used to be the free cap → uncapped', () => {
+    assert.deepEqual(resolveTabCap(inputs({ signedIn: false, features: null }), 3), UNCAPPED);
+  });
+
+  it('signed in on a pro snapshot, above the old cap and gate inactive → uncapped', () => {
     assert.deepEqual(
-      resolveTabCap(inputs(), 3),
-      { allowed: false, cap: 3, reason: 'free_tier' },
+      resolveTabCap(inputs({ features: PRO, gateActive: false }), 14),
+      UNCAPPED,
     );
   });
 
-  it('AE3: free snapshot below the cap → allowed', () => {
+  it('signed in on a pro_business snapshot, at the old cap → uncapped', () => {
+    assert.deepEqual(resolveTabCap(inputs({ features: PRO_BUSINESS }), 25), UNCAPPED);
+  });
+
+  it('billing on hold with a covering pro snapshot → uncapped, no payment-reason denial', () => {
     assert.deepEqual(
-      resolveTabCap(inputs(), 2),
-      { allowed: true, cap: 3, pendingActivation: false },
+      resolveTabCap(inputs({ features: PRO, billingState: 'on_hold' }), 10),
+      UNCAPPED,
     );
   });
 
-  it('AE4: pro snapshot with 14 existing tabs → blocked, and the verdict never asks for a prune', () => {
-    const verdict = resolveTabCap(inputs({ features: PRO }), 14);
-    assert.deepEqual(verdict, { allowed: false, cap: 10, reason: 'free_tier' });
-    // Creation-only: the verdict carries no removal instruction of any kind.
+  it('a malformed row with no numeric allowance → uncapped', () => {
     assert.deepEqual(
-      Object.keys(verdict).sort(),
-      ['allowed', 'cap', 'reason'],
-      'a prune/trim field would let a caller retroactively delete a user\'s tabs',
-    );
-  });
-
-  it('AE4: the 10th tab is still creatable on pro (the cap is a ceiling, not an off-by-one)', () => {
-    assert.equal(resolveTabCap(inputs({ features: PRO }), 9).allowed, true);
-    assert.equal(resolveTabCap(inputs({ features: PRO }), 10).allowed, false);
-  });
-
-  it('pro_business snapshot → cap 25', () => {
-    assert.deepEqual(
-      resolveTabCap(inputs({ features: PRO_BUSINESS }), 24),
-      { allowed: true, cap: 25, pendingActivation: false },
-    );
-    assert.deepEqual(
-      resolveTabCap(inputs({ features: PRO_BUSINESS }), 25),
-      { allowed: false, cap: 25, reason: 'free_tier' },
-    );
-  });
-
-  it('auth still resolving (the boot default) → uncapped, whatever the tab count', () => {
-    assert.deepEqual(
-      resolveTabCap(inputs({ authPending: true, signedIn: false, features: null }), 99),
-      { allowed: true, cap: null, pendingActivation: false },
-    );
-  });
-
-  it('affirmatively signed out → the free cap of 3, with the anonymous reason', () => {
-    assert.deepEqual(
-      resolveTabCap(inputs({ signedIn: false, features: null }), 3),
-      { allowed: false, cap: 3, reason: 'anonymous' },
-    );
-    assert.equal(
-      resolveTabCap(inputs({ signedIn: false, features: null }), 2).allowed,
-      true,
-    );
-  });
-
-  it('signed in with no entitlement snapshot yet → uncapped (never over-gate on a late snapshot)', () => {
-    assert.deepEqual(
-      resolveTabCap(inputs({ features: null }), 40),
-      { allowed: true, cap: null, pendingActivation: false },
-    );
-  });
-
-  it('desktop WORLDMONITOR_API_KEY present → uncapped with no session and no snapshot', () => {
-    assert.deepEqual(
-      resolveTabCap(inputs({ desktopKeyPresent: true, signedIn: false, features: null }), 99),
-      { allowed: true, cap: null, pendingActivation: false },
-    );
-  });
-
-  it('the unlimited sentinel (-1, Enterprise) → uncapped', () => {
-    assert.deepEqual(
-      resolveTabCap(inputs({ features: { tier: 3, dataExport: true, maxDashboards: -1 } }), 500),
-      { allowed: true, cap: null, pendingActivation: false },
-    );
-  });
-
-  it('a malformed row with no numeric allowance → uncapped (an unknown is never locked)', () => {
-    assert.equal(
-      resolveTabCap(
-        inputs({ features: { tier: 1, dataExport: true } as never }),
-        99,
-      ).allowed,
-      true,
-    );
-  });
-
-  it('stored-but-stale cap: the cap tracks the ROW, not the current catalog value', () => {
-    // A Pro row written before the catalog raised the allowance. The read-time
-    // merge does not backfill (KTD5), so the stored value is authoritative.
-    const stale = { tier: 1, dataExport: false, maxDashboards: 5 };
-    assert.deepEqual(
-      resolveTabCap(inputs({ features: stale }), 5),
-      { allowed: false, cap: 5, reason: 'free_tier' },
-    );
-    assert.equal(resolveTabCap(inputs({ features: stale }), 4).allowed, true);
-  });
-});
-
-describe('resolveTabCap — catalog activation (R10)', () => {
-  it('gate inactive → always allowed, whatever the count', () => {
-    assert.equal(resolveTabCap(inputs({ gateActive: false }), 3).allowed, true);
-    assert.equal(resolveTabCap(inputs({ gateActive: false, features: PRO }), 99).allowed, true);
-  });
-
-  it('gate inactive at the cap → reports pendingActivation so the caller probes the catalog', () => {
-    assert.deepEqual(
-      resolveTabCap(inputs({ gateActive: false }), 3),
-      { allowed: true, cap: 3, pendingActivation: true },
-    );
-  });
-
-  it('gate inactive below the cap → no probe needed', () => {
-    assert.deepEqual(
-      resolveTabCap(inputs({ gateActive: false }), 1),
-      { allowed: true, cap: 3, pendingActivation: false },
-    );
-  });
-});
-
-describe('resolveTabCap — billing-aware lock reasons (#4771)', () => {
-  it('a covering subscription on payment hold gets the payment reason, never an upsell', () => {
-    const verdict = resolveTabCap(inputs({ features: PRO, billingState: 'on_hold' }), 10);
-    assert.deepEqual(verdict, { allowed: false, cap: 10, reason: 'payment_on_hold' });
-    assert.notEqual(verdict.allowed === false && verdict.reason, 'free_tier');
-  });
-
-  it('renewal verification pending → renewal_pending', () => {
-    assert.deepEqual(
-      resolveTabCap(inputs({ billingState: 'renewal_verification_pending' }), 3),
-      { allowed: false, cap: 3, reason: 'renewal_pending' },
-    );
-  });
-
-  it('renewal verification failed → renewal_failed', () => {
-    assert.deepEqual(
-      resolveTabCap(inputs({ billingState: 'renewal_verification_failed' }), 3),
-      { allowed: false, cap: 3, reason: 'renewal_failed' },
-    );
-  });
-
-  it('provider-confirmed end of coverage → lapsed', () => {
-    assert.deepEqual(
-      resolveTabCap(inputs({ billingState: 'lapsed' }), 3),
-      { allowed: false, cap: 3, reason: 'lapsed' },
-    );
-  });
-
-  it('billing state never overrides the anonymous reason', () => {
-    assert.deepEqual(
-      resolveTabCap(inputs({ signedIn: false, features: null, billingState: 'on_hold' }), 3),
-      { allowed: false, cap: 3, reason: 'anonymous' },
+      resolveTabCap(inputs({ features: { tier: 1, dataExport: true } as never }), 99),
+      UNCAPPED,
     );
   });
 });
@@ -235,7 +117,9 @@ describe('FREE_TAB_CAP — catalog drift guard', () => {
  *
  * Do NOT re-point these at a new path if the code moves — build the harness
  * and delete them, the way #5813 replaced the allowance-forwarding greps with
- * tests/dom/gate-reader-forwarding.test.mts.
+ * a real behavioural test (docs/tasks/abdullah/19: that test, tests/dom/
+ * gate-reader-forwarding.test.mts, was itself retired — the resolver it
+ * proved correct forwarding into no longer reads any of its inputs).
  */
 describe('tab-cap wiring', () => {
   const panelLayout = readFileSync(resolve(process.cwd(), 'src/app/panel-layout.ts'), 'utf8');
@@ -290,9 +174,10 @@ describe('tab-cap wiring', () => {
 
   // The allowance-forwarding guard that used to live here was two greps over
   // panel-gating.ts's source text. #5813 moved the reader into
-  // `src/services/gates/export.ts` and made it module-private; the guarantee is
-  // now proven behaviourally, by calling the real `evaluateTabCap` against a
-  // stubbed entitlement snapshot — see tests/dom/gate-reader-forwarding.test.mts.
+  // `src/services/gates/export.ts` and made it module-private, then proved the
+  // guarantee behaviourally in tests/dom/gate-reader-forwarding.test.mts —
+  // itself retired by docs/tasks/abdullah/19 once the resolver stopped
+  // reading any of its inputs, so there was nothing left to prove forwarding of.
 
   // The two PanelTabBar greps that used to close this block are gone (#5813).
   // They asserted that `components.tabCap.lockedAriaLabel`,

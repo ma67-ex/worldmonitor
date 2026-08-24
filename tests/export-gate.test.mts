@@ -40,190 +40,54 @@ function inputs(overrides: Partial<ExportGateInputs> = {}): ExportGateInputs {
   };
 }
 
-describe('resolveExportGate — KTD2 decision chain', () => {
-  it('AE1: signed in with no entitlement snapshot yet → allowed (never over-gate)', () => {
-    assert.deepEqual(
-      resolveExportGate(inputs({ features: null })),
-      { locked: false, pendingActivation: false },
-    );
-  });
-
-  it('AE1: auth still resolving (boot default) → allowed even before a user exists', () => {
-    assert.equal(
-      resolveExportGate(inputs({ authPending: true, signedIn: false, features: null })).locked,
-      false,
-    );
-  });
-
-  it('desktop WORLDMONITOR_API_KEY present → allowed with no snapshot and no session', () => {
-    assert.equal(
-      resolveExportGate(inputs({ desktopKeyPresent: true, signedIn: false, features: null })).locked,
-      false,
-    );
-  });
-
-  it('AE2: affirmatively signed out → locked with the anonymous reason', () => {
+/**
+ * docs/tasks/abdullah/19: `resolveExportLock` / `resolveExportGate` /
+ * `resolveAvailableExportFormats` no longer read any of their inputs — no
+ * billing stack behind this deploy, so export is unconditionally unlocked and
+ * every format is always available. The four describe blocks that used to
+ * live here (KTD2 decision chain, catalog-backed format menu, #4771
+ * billing-aware reasons, R10 catalog activation) each asserted a DIFFERENT
+ * verdict per input; every one of those distinctions is gone. Replaced with a
+ * small set of representative inputs proving the always-unlocked contract,
+ * not an exhaustive re-walk of a decision chain that no longer runs.
+ */
+describe('resolveExportGate / resolveAvailableExportFormats — always unlocked', () => {
+  it('affirmatively signed out, with no snapshot → unlocked, every format available', () => {
     assert.deepEqual(
       resolveExportGate(inputs({ signedIn: false, features: null })),
-      { locked: true, reason: 'anonymous' },
-    );
-  });
-
-  it('loaded snapshot with dataExport false on a free plan → locked with the upgrade reason', () => {
-    assert.deepEqual(
-      resolveExportGate(inputs({ features: { tier: 0, dataExport: false } })),
-      { locked: true, reason: 'free_tier' },
-    );
-  });
-
-  it('loaded snapshot with dataExport true → allowed', () => {
-    assert.equal(
-      resolveExportGate(inputs({ features: { tier: 1, dataExport: true } })).locked,
-      false,
-    );
-  });
-
-  it('AE8: dataExport undefined on a tier >= 2 row → allowed (permanent legacy fail-open)', () => {
-    assert.equal(
-      resolveExportGate(inputs({ features: { tier: 2 } })).locked,
-      false,
-    );
-  });
-
-  it('dataExport undefined on a tier 1 row → still locked (the fail-open is bounded)', () => {
-    assert.deepEqual(
-      resolveExportGate(inputs({ features: { tier: 1 } })),
-      { locked: true, reason: 'free_tier' },
-    );
-  });
-
-  it('dataExport false on a tier >= 2 row → locked (an explicit false is never a stale row)', () => {
-    assert.deepEqual(
-      resolveExportGate(inputs({ features: { tier: 2, dataExport: false } })),
-      { locked: true, reason: 'free_tier' },
-    );
-  });
-});
-
-describe('resolveAvailableExportFormats — catalog-backed export menu', () => {
-  it('uses the loaded entitlement row to expose only its declared formats', () => {
-    assert.deepEqual(
-      resolveAvailableExportFormats(inputs({
-        features: { tier: 1, dataExport: true, maxDashboards: 25, exportFormats: ['pdf', 'csv'] },
-      })),
-      ['csv', 'pdf'],
-    );
-  });
-
-  it('does not turn a pre-activation or pending snapshot into an export lockout', () => {
-    assert.deepEqual(
-      resolveAvailableExportFormats(inputs({ gateActive: false })),
-      ['csv', 'json', 'pdf'],
+      { locked: false, pendingActivation: false },
     );
     assert.deepEqual(
-      resolveAvailableExportFormats(inputs({ features: null })),
+      resolveAvailableExportFormats(inputs({ signedIn: false, features: null })),
       ['csv', 'json', 'pdf'],
     );
   });
 
-  it('keeps every format for an entitled legacy row without exportFormats', () => {
-    assert.deepEqual(
-      resolveAvailableExportFormats(inputs({
-        features: { tier: 1, dataExport: true, maxDashboards: 25 },
-      })),
-      ['csv', 'json', 'pdf'],
-    );
+  it('signed in on a known free row with dataExport explicitly false → unlocked', () => {
+    assert.equal(resolveExportLock(inputs({ features: { tier: 0, dataExport: false } })), null);
   });
 
-  it('keeps every format for a legacy tier-2 row without dataExport', () => {
+  it('billing on hold with a covering subscription → unlocked, no payment-reason denial', () => {
     assert.deepEqual(
-      resolveAvailableExportFormats(inputs({
-        features: { tier: 2, maxDashboards: 50 },
-      })),
-      ['csv', 'json', 'pdf'],
-    );
-  });
-
-  it('filters unsupported catalog values and cannot expose formats to a known free row', () => {
-    assert.deepEqual(
-      resolveAvailableExportFormats(inputs({
-        features: {
-          tier: 1,
-          dataExport: true,
-          maxDashboards: 25,
-          exportFormats: ['xlsx', 'json', 'json'],
-        },
-      })),
-      ['json'],
-    );
-    assert.deepEqual(
-      resolveAvailableExportFormats(inputs({
-        features: { tier: 0, dataExport: false, maxDashboards: 3, exportFormats: ['csv'] },
-      })),
-      [],
-    );
-  });
-});
-
-describe('resolveExportGate — billing-aware lock reasons (#4771)', () => {
-  it('AE5: a covering subscription on payment hold gets the payment reason, never an upsell', () => {
-    const verdict = resolveExportGate(inputs({ billingState: 'on_hold' }));
-    assert.deepEqual(verdict, { locked: true, reason: 'payment_on_hold' });
-    assert.notEqual(verdict.locked && verdict.reason, 'free_tier');
-  });
-
-  it('renewal verification pending → renewal_pending', () => {
-    assert.deepEqual(
-      resolveExportGate(inputs({ billingState: 'renewal_verification_pending' })),
-      { locked: true, reason: 'renewal_pending' },
-    );
-  });
-
-  it('renewal verification failed → renewal_failed', () => {
-    assert.deepEqual(
-      resolveExportGate(inputs({ billingState: 'renewal_verification_failed' })),
-      { locked: true, reason: 'renewal_failed' },
-    );
-  });
-
-  it('provider-confirmed end of coverage → lapsed', () => {
-    assert.deepEqual(
-      resolveExportGate(inputs({ billingState: 'lapsed' })),
-      { locked: true, reason: 'lapsed' },
-    );
-  });
-
-  it('billing state never overrides the anonymous reason', () => {
-    assert.deepEqual(
-      resolveExportGate(inputs({ signedIn: false, billingState: 'on_hold' })),
-      { locked: true, reason: 'anonymous' },
-    );
-  });
-});
-
-describe('resolveExportGate — catalog activation (R10)', () => {
-  it('gate inactive → allowed even for a signed-in free user', () => {
-    const verdict = resolveExportGate(inputs({ gateActive: false }));
-    assert.equal(verdict.locked, false);
-  });
-
-  it('gate inactive but the chain would lock → reports pendingActivation so the caller probes', () => {
-    assert.deepEqual(
-      resolveExportGate(inputs({ gateActive: false })),
-      { locked: false, pendingActivation: true },
-    );
-  });
-
-  it('gate inactive and the chain allows → no probe needed', () => {
-    assert.deepEqual(
-      resolveExportGate(inputs({ gateActive: false, features: { tier: 1, dataExport: true } })),
+      resolveExportGate(inputs({ billingState: 'on_hold' })),
       { locked: false, pendingActivation: false },
     );
   });
 
-  it('resolveExportLock is activation-independent (the chain alone)', () => {
-    assert.equal(resolveExportLock(inputs({ gateActive: false })), 'free_tier');
-    assert.equal(resolveExportLock(inputs({ features: { tier: 1, dataExport: true } })), null);
+  it('catalog gate inactive → still unlocked, never a pendingActivation probe', () => {
+    assert.deepEqual(
+      resolveExportGate(inputs({ gateActive: false })),
+      { locked: false, pendingActivation: false },
+    );
+  });
+
+  it('a declared exportFormats allowlist on the entitlement row no longer filters the menu', () => {
+    assert.deepEqual(
+      resolveAvailableExportFormats(inputs({
+        features: { tier: 1, dataExport: true, maxDashboards: 25, exportFormats: ['pdf'] },
+      })),
+      ['csv', 'json', 'pdf'],
+    );
   });
 });
 
