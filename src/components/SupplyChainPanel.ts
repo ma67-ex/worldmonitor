@@ -15,9 +15,6 @@ import { t } from '@/services/i18n';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
 import { isFeatureAvailable } from '@/services/runtime-config';
 import { isDesktopRuntime } from '@/services/runtime';
-import { getAuthState, subscribeAuthState } from '@/services/auth-state';
-import { hasPremiumAccess } from '@/services/panel-gating';
-import { trackGateHit } from '@/services/analytics';
 import { runScenario, getScenarioStatus } from '@/services/scenario';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 
@@ -43,8 +40,6 @@ export class SupplyChainPanel extends Panel {
   // so we don't refetch 35KB per expand/collapse cycle.
   private historyCache = new Map<string, TransitDayCount[]>();
   private historyInflight = new Set<string>();
-  private bypassUnsubscribe: (() => void) | null = null;
-  private bypassGateTracked = false;
   private onDismissScenario: (() => void) | null = null;
   private onScenarioActivate: ((scenarioId: string, result: ScenarioResult) => void) | null = null;
   private activeScenarioState: { scenarioId: string; result: ScenarioResult } | null = null;
@@ -93,8 +88,6 @@ export class SupplyChainPanel extends Panel {
     if (this.chartMountTimer) { clearTimeout(this.chartMountTimer); this.chartMountTimer = null; }
     if (this.chartObserver) { this.chartObserver.disconnect(); this.chartObserver = null; }
     this.transitChart.destroy();
-    if (this.bypassUnsubscribe) { this.bypassUnsubscribe(); this.bypassUnsubscribe = null; }
-    this.bypassGateTracked = false;
   }
 
   public updateShippingRates(data: GetShippingRatesResponse): void {
@@ -274,10 +267,6 @@ export class SupplyChainPanel extends Panel {
   private renderBypassSection(container: HTMLElement, chokepointId: string): void {
     if (!chokepointId) return;
 
-    const renderGate = (): string => {
-      return `<div class="sc-bypass-gate"><span class="sc-bypass-lock">\uD83D\uDD12</span><span class="sc-bypass-gate-text">Bypass corridors available with PRO</span></div>`;
-    };
-
     const renderRows = (options: import('@/services/supply-chain').BypassOption[]): string => {
       const top3 = options.slice(0, 3);
       if (!top3.length) return `<div class="sc-bypass-error">No bypass options available</div>`;
@@ -301,44 +290,9 @@ export class SupplyChainPanel extends Panel {
       </table>`;
     };
 
-    const applyAuthState = (isPro: boolean, bypassOptions?: import('@/services/supply-chain').BypassOption[]): void => {
-      if (!isPro) {
-        setTrustedHtml(container, trustedHtml(renderGate(), "legacy direct innerHTML migration"));
-        if (!this.bypassGateTracked) {
-          trackGateHit('bypass-corridors');
-          this.bypassGateTracked = true;
-        }
-        return;
-      }
-      if (bypassOptions !== undefined) {
-        setTrustedHtml(container, trustedHtml(renderRows(bypassOptions), "legacy direct innerHTML migration"));
-      }
-    };
-
-    const isPro = hasPremiumAccess(getAuthState());
-    if (!isPro) {
-      applyAuthState(false);
-      if (this.bypassUnsubscribe) { this.bypassUnsubscribe(); }
-      this.bypassUnsubscribe = subscribeAuthState(state => {
-        if (hasPremiumAccess(state)) {
-          if (this.bypassUnsubscribe) { this.bypassUnsubscribe(); this.bypassUnsubscribe = null; }
-          if (!this.content.contains(container)) return;
-          setTrustedHtml(container, trustedHtml(`<div class="sc-bypass-loading">Loading bypass options\u2026</div>`, "legacy direct innerHTML migration"));
-          void fetchBypassOptions(chokepointId, 'container', 100).then(resp => {
-            if (!this.content.contains(container)) return;
-            setTrustedHtml(container, trustedHtml(renderRows(resp.options), "legacy direct innerHTML migration"));
-          }).catch(() => {
-            if (!this.content.contains(container)) return;
-            setTrustedHtml(container, trustedHtml(`<div class="sc-bypass-error">Bypass data unavailable</div>`, "legacy direct innerHTML migration"));
-          });
-        }
-      });
-      return;
-    }
-
     void fetchBypassOptions(chokepointId, 'container', 100).then(resp => {
       if (!this.content.contains(container)) return;
-      applyAuthState(true, resp.options);
+      setTrustedHtml(container, trustedHtml(renderRows(resp.options), "legacy direct innerHTML migration"));
     }).catch(() => {
       if (!this.content.contains(container)) return;
       setTrustedHtml(container, trustedHtml(`<div class="sc-bypass-error">Bypass data unavailable</div>`, "legacy direct innerHTML migration"));
@@ -411,7 +365,6 @@ export class SupplyChainPanel extends Panel {
             tmpl.affectedChokepointIds.includes(cp.id) && tmpl.type !== 'tariff_shock'
           );
           if (!template) return '';
-          const isPro = hasPremiumAccess(getAuthState());
           // Derive button state from activeScenarioState so it stays correct
           // across re-renders. Previously runScenario() imperatively set
           // btn.disabled = true + btn.textContent = 'Active' AFTER the
@@ -422,14 +375,10 @@ export class SupplyChainPanel extends Panel {
           const isActiveScenario = this.activeScenarioState?.scenarioId === template.id;
           const btnClass = [
             'sc-scenario-btn',
-            !isPro ? 'sc-scenario-btn--gated' : '',
             isActiveScenario ? 'sc-scenario-btn--active' : '',
           ].filter(Boolean).join(' ');
           const btnLabel = isActiveScenario ? 'Active' : 'Simulate Closure';
-          const btnAttrs = [
-            !isPro ? 'data-gated="1"' : '',
-            isActiveScenario ? 'disabled' : '',
-          ].filter(Boolean).join(' ');
+          const btnAttrs = isActiveScenario ? 'disabled' : '';
           return `<div class="sc-scenario-trigger" data-scenario-id="${escapeHtml(template.id)}" data-chokepoint-id="${escapeHtml(cp.id)}">
             <button class="${btnClass}" ${btnAttrs} aria-label="Simulate ${escapeHtml(template.name)}">
               ${btnLabel}
@@ -896,10 +845,6 @@ export class SupplyChainPanel extends Panel {
   }
 
   private async runScenario(trigger: HTMLElement, btn: HTMLButtonElement): Promise<void> {
-    if (btn.dataset.gated === '1') {
-      trackGateHit('scenario-engine');
-      return;
-    }
     this.scenarioPollController?.abort();
     this.scenarioPollController = new AbortController();
     const { signal } = this.scenarioPollController;

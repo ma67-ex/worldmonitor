@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 // @ts-check
 /**
- * Scenario Engine Worker — always-on Railway service
+ * Scenario Engine Worker — scheduled drain, run via GitHub Actions
+ * (docs/tasks/abdullah/15-scenario-modeling-unlock.md; no Railway worker
+ * behind this deploy).
  *
  * Atomically dequeues scenario jobs from Redis using BLMOVE (Redis 6.2 / Upstash),
  * runs computeScenario(), and writes results back to Redis with a 24-hour TTL.
- *
- * Railway config:
- *   rootDirectory: scripts
- *   startCommand:  node scenario-worker.mjs
- *   vCPUs: 1 / memoryGB: 1
- *   cronSchedule:  <none> (always-on long-running process)
+ * Exits once the queue is empty (or MAX_RUN_MS elapses) rather than blocking
+ * forever — .github/workflows/scenario-worker-drain.yml re-invokes it on a
+ * fixed schedule, so idle time between jobs costs nothing and there is no
+ * long-running process to host.
  */
 
 import { pathToFileURL } from 'node:url';
@@ -22,6 +22,10 @@ const QUEUE_KEY = 'scenario-queue:pending';
 const PROCESSING_KEY = 'scenario-queue:processing';
 const RESULT_TTL_SECONDS = 86_400; // 24 h
 const BLMOVE_TIMEOUT_SECONDS = 30;  // block for up to 30s waiting for a job
+// Scheduled-drain safety net: exit before the next cron tick would overlap
+// this run, even if the queue never empties (e.g. a persistent Redis error).
+// scenario-worker-drain.yml fires every 5 minutes — 4 leaves real headroom.
+const MAX_RUN_MS = 4 * 60 * 1_000;
 
 /** @typedef {{ jobId: string; scenarioId: string; iso2: string | null; enqueuedAt: number }} ScenarioJob */
 
@@ -349,30 +353,38 @@ const JOB_ID_RE = /^scenario:\d{13}:[a-z0-9]{8}$/;
 // ────────────────────────────────────────────────────────────────────────────
 
 async function runWorker() {
-  console.log('[scenario-worker] starting — listening on scenario-queue:pending');
+  console.log('[scenario-worker] starting drain — scenario-queue:pending');
 
   await requeueOrphanedJobs();
 
+  const runStartedAt = Date.now();
+
   while (!shuttingDown) {
+    if (Date.now() - runStartedAt > MAX_RUN_MS) {
+      console.log('[scenario-worker] time budget exceeded, exiting — next scheduled run continues');
+      break;
+    }
+
     let raw;
     try {
       // Atomic FIFO dequeue+claim: moves item from pending → processing.
       // Note: Upstash REST API does not honour the BLMOVE blocking timeout —
-      // it returns null immediately for empty queues. The 5s sleep below prevents
-      // busy-looping when the queue is idle.
+      // it returns null immediately for empty queues.
       raw = await redisCmd('blmove', [QUEUE_KEY, PROCESSING_KEY, 'LEFT', 'RIGHT', BLMOVE_TIMEOUT_SECONDS]);
     } catch (err) {
       console.error('[scenario-worker] BLMOVE error:', err.message);
-      // Brief pause before retrying to avoid hot-loop on connectivity issues
+      // Brief pause before retrying to avoid hot-looping a transient
+      // connectivity issue within this run's time budget.
       await new Promise(r => setTimeout(r, 5_000));
       continue;
     }
 
     if (!raw) {
-      // Upstash REST returns null immediately for empty queue (no true HTTP blocking).
-      // Sleep before retrying to avoid busy-loop burning CPU.
-      await new Promise(r => setTimeout(r, 5_000));
-      continue;
+      // Upstash REST returns null immediately for empty queue (no true HTTP
+      // blocking). Queue's drained — exit rather than idle-poll; the next
+      // scheduled run picks up whatever arrives in the meantime.
+      console.log('[scenario-worker] queue empty, exiting');
+      break;
     }
 
     /** @type {ScenarioJob | null} */
@@ -435,7 +447,7 @@ async function runWorker() {
     }
   }
 
-  console.log('[scenario-worker] shutdown complete (SIGTERM received)');
+  console.log(shuttingDown ? '[scenario-worker] shutdown complete (SIGTERM received)' : '[scenario-worker] run complete');
 }
 
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

@@ -173,6 +173,13 @@ describe("gateway entitlement check", () => {
     expect(getRequiredTier(path)).toBeNull();
   });
 
+  test.each([
+    "/api/scenario/v1/run-scenario",
+    "/api/scenario/v1/get-scenario-status",
+  ])("getRequiredTier returns null for %s (unlocked fork-wide, docs/tasks/abdullah/15)", (path) => {
+    expect(getRequiredTier(path)).toBeNull();
+  });
+
   test("checkEntitlement returns null for ungated endpoint", async () => {
     const result = await checkEntitlement(null, "/api/seismology/v1/list-earthquakes", {});
     expect(result).toBeNull();

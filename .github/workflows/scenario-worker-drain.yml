@@ -1,0 +1,58 @@
+name: Scenario Worker Drain
+
+# Replaces the always-on Railway worker scripts/scenario-worker.mjs was
+# originally written for (docs/tasks/abdullah/15-scenario-modeling-unlock.md
+# — real recurring cost, not worth it for this fork's traffic). Runs the same
+# script on a 5-minute schedule; it drains scenario-queue:pending until empty
+# (or its own 4-minute time budget) and exits, so idle time between jobs
+# costs nothing.
+#
+# Trade-off vs the always-on worker: up to ~5 minutes of latency between a
+# client's "run scenario" click and the job being picked up, instead of
+# ~30s. The client already polls get-scenario-status asynchronously
+# (server/worldmonitor/scenario/v1/run-scenario.ts returns 202 + a status
+# URL), so this degrades the wait, it doesn't break the contract.
+#
+# No npm dependencies: scripts/scenario-worker.mjs and its one local import
+# (scripts/_seed-utils.mjs) use only Node built-ins, so no `npm ci` step.
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+# Never run two drains at once — the queue's idempotency check (result
+# already written) makes an overlap safe, not free; skip it entirely instead.
+concurrency:
+  group: scenario-worker-drain
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    # Real ceiling above the script's own 4-minute internal budget, so a
+    # runner-level hang (not the script's own logic) is what this catches.
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Skip when Redis is not configured
+        id: check
+        run: |
+          if [ -z "${{ secrets.UPSTASH_REDIS_REST_URL }}" ] || [ -z "${{ secrets.UPSTASH_REDIS_REST_TOKEN }}" ]; then
+            echo "::warning title=scenario worker skipped::UPSTASH_REDIS_REST_URL/TOKEN are not configured as repo secrets — scenario-queue:pending will not be drained, run-scenario requests will never complete."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Drain scenario-queue:pending
+        if: steps.check.outputs.skip == 'false'
+        run: node scripts/scenario-worker.mjs
+        env:
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}

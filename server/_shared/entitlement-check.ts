@@ -150,8 +150,6 @@ const ENDPOINT_ENTITLEMENTS: Record<string, number> = {
   '/api/market/v1/analyze-stock': 1,
   '/api/market/v1/get-stock-analysis-history': 1,
   '/api/sanctions/v1/list-sanctions-pressure': 1,
-  '/api/scenario/v1/run-scenario': 1,
-  '/api/scenario/v1/get-scenario-status': 1,
 };
 
 const CONVEX_INTERNAL_ENTITLEMENTS_PATH = '/api/internal-entitlements';
