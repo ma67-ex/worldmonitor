@@ -267,11 +267,6 @@ function emitEntitlement(state: EntitlementState | null): void {
   for (const listener of [...entitlementMocks.listeners]) listener(state);
 }
 
-function emitEntitlementVerification(status: EntitlementVerificationStatus): void {
-  entitlementMocks.verificationStatus = status;
-  for (const listener of [...entitlementMocks.verificationListeners]) listener(status);
-}
-
 function apiKey(id = 'key-a'): ApiKeyInfo {
   return {
     id,
@@ -369,40 +364,6 @@ afterEach(() => {
 });
 
 describe('UnifiedSettings real auth-subscription handoff', () => {
-  it('keeps checking past 12 seconds while entitlement verification is still in flight', () => {
-    vi.useFakeTimers();
-    panelGatingMocks.hasPremiumAccess = false;
-    entitlementMocks.state = null;
-    entitlementMocks.verificationStatus = 'pending';
-
-    try {
-      settings.open('billing');
-      expect(internal.overlay.textContent).toContain('Checking your plan');
-
-      vi.advanceTimersByTime(12_000);
-
-      expect(internal.overlay.textContent).toContain('Checking your plan');
-      expect(internal.overlay.textContent).not.toContain('Plan status unavailable');
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('shows retry only after entitlement verification becomes unavailable', () => {
-    panelGatingMocks.hasPremiumAccess = false;
-    entitlementMocks.state = null;
-    entitlementMocks.verificationStatus = 'pending';
-    settings.open('billing');
-
-    expect(internal.overlay.textContent).toContain('Checking your plan');
-    expect(internal.overlay.querySelector('.retry-plan-status-btn')).toBeNull();
-
-    emitEntitlementVerification('unavailable');
-
-    expect(internal.overlay.textContent).toContain('Plan status unavailable');
-    expect(internal.overlay.querySelector('.retry-plan-status-btn')).not.toBeNull();
-  });
-
   it('synchronously purges A plaintext and rendered account lists when auth emits B', () => {
     internal.apiKeys = [apiKey()];
     internal.planLimitNotices = [notice()];

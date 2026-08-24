@@ -269,11 +269,15 @@ export function getEntitlementState(): EntitlementState | null {
 }
 
 /**
- * Check whether a specific feature flag is truthy in the current entitlement state.
+ * Every feature flag is free fork-wide (docs/tasks/abdullah/13) — the only two
+ * ever checked, 'apiAccess' and 'mcpAccess', are both UI-visibility gates, not
+ * rate limits (those live under apiRateLimit/planLimits and never go through
+ * this function). Kept as a function, not inlined at call sites, so a real
+ * per-flag entitlement backend can slot back in here later without touching
+ * any caller.
  */
-export function hasFeature(flag: keyof EntitlementState['features']): boolean {
-  if (currentState === null) return false;
-  return Boolean(currentState.features[flag]);
+export function hasFeature(_flag: keyof EntitlementState['features']): boolean {
+  return true;
 }
 
 /**

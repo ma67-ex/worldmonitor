@@ -2,10 +2,6 @@
   contain: layout;
 }
 
-.pro-banner-slot {
-  display: none;
-}
-
 .header-right {
   --header-auth-slot-width: 200px;
   --header-findings-slot-width: 72px;

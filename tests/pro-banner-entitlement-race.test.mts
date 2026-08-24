@@ -484,20 +484,6 @@ describe('pre-paint reservation honors entitlement hint', () => {
 });
 
 describe('wiring contracts (#5728)', () => {
-  it('ProBanner uses account-backed resolution and auth/entitlement retries', () => {
-    const src = readFileSync(resolve(root, 'src/components/ProBanner.ts'), 'utf-8');
-    assert.match(src, /decideProBannerMount\(/);
-    assert.match(src, /resolveBannerPremium\(/);
-    assert.match(src, /stabilizeProBannerPremium\(/);
-    assert.match(src, /schedulePremiumStabilityRecheck\(/);
-    assert.match(src, /subscribeAuthState\(/);
-    assert.match(src, /isClerkAuthEnabled\(/);
-    assert.match(src, /accountBacked/);
-    assert.match(src, /hasLocalUnlockPremium/);
-    assert.match(src, /writePremiumHint\(true\)/);
-    assert.match(src, /writePremiumHint\(false\)/);
-  });
-
   it('Clerk load failure settles pending auth subscribers without dropping the queue', () => {
     const src = readFileSync(resolve(root, 'src/services/clerk.ts'), 'utf-8');
     assert.match(src, /notifyPendingSubscribersOfHydrationFailure\(/);
