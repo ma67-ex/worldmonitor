@@ -42,6 +42,7 @@ import {
   getFollowed,
   subscribe,
   serviceEntitlementState,
+  hasSignedInUser,
   isFollowFeatureEnabled,
   FREE_TIER_FOLLOW_LIMIT,
   type FollowMutationResult,
@@ -196,8 +197,15 @@ function computeViewState(countryCode: string): ButtonViewState {
   // that benefits from knowing "would clicking this fail?" upfront, and
   // for that we do a cheap-and-correct check: if free + already at cap
   // + not currently followed, the next click would hit FREE_CAP.
+  // `entState` is `'free'` for BOTH anonymous and signed-in-free-tier
+  // users (`serviceEntitlementState()` in followed-countries.ts can't
+  // tell them apart on its own). Only signed-in users have a real,
+  // server-enforced cap (`convex/followedCountries.ts` ~381-388) — the
+  // anonymous cap was removed (no Convex row to enforce it), so the
+  // "at cap" tooltip must never fire for anonymous users or it lies
+  // (shows locked, click actually succeeds).
   let atCap = false;
-  if (entState === 'free' && !followed) {
+  if (entState === 'free' && !followed && hasSignedInUser()) {
     // Local import to avoid a circular dependency through addCountry's
     // re-entry. We import getFollowed lazily via the top-level service.
     // Doing this dynamically keeps the synchronous render path simple.

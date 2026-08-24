@@ -568,6 +568,18 @@ export function serviceEntitlementState(): ServiceEntitlementState {
   return _hasTierFn(1) ? 'pro' : 'free';
 }
 
+/**
+ * Whether there's a signed-in Clerk user. `serviceEntitlementState()`
+ * collapses anonymous AND signed-in-free-tier users to the same
+ * `'free'` value, so callers that need to tell the two apart (e.g. to
+ * gate a real, server-backed cap vs. a population with no server row
+ * at all) use this instead. Routes through the same test-injectable
+ * `_clerkUserGetter` seam as `serviceEntitlementState()`.
+ */
+export function hasSignedInUser(): boolean {
+  return _clerkUserGetter() !== null;
+}
+
 // ---------------------------------------------------------------------------
 // Auth-state listener (U3)
 // ---------------------------------------------------------------------------
@@ -1217,18 +1229,17 @@ export async function addCountry(input: string): Promise<FollowMutationResult> {
     }
   }
 
-  // Anonymous mode — localStorage path.
+  // Anonymous mode — localStorage path. No FREE_TIER_FOLLOW_LIMIT check
+  // here: the cap is a real, server-enforced entitlement for signed-in
+  // users (Convex `entitlements` table — see `convex/followedCountries.ts`
+  // lines ~381-388), but anonymous users have no Convex row to check
+  // against, so a client-side cap here would be purely cosmetic with
+  // nothing backing it. `ent` is always `'free'` for anonymous users
+  // (see `serviceEntitlementState()` above), so branching on it here
+  // would have gated 100% of anonymous follows, not a real tier split.
   const existing = getFollowed();
   if (existing.includes(code)) {
     return { ok: true };
-  }
-  if (ent === 'free' && existing.length >= FREE_TIER_FOLLOW_LIMIT) {
-    return {
-      ok: false,
-      reason: 'FREE_CAP',
-      currentCount: existing.length,
-      limit: FREE_TIER_FOLLOW_LIMIT,
-    };
   }
   return _writeLocalStorageAdd(code);
 }

@@ -447,15 +447,24 @@ describe('followed-countries service — entitlement loading', () => {
 });
 
 describe('followed-countries service — anonymous never blocks on entitlement loading', () => {
-  it("Codex round-2 finding #1: anon user with entitlement null treated as 'free' immediately, can add 3, 4th hits FREE_CAP", async () => {
+  it("Codex round-2 finding #1: anon user with entitlement null treated as 'free' immediately, no ENTITLEMENT_LOADING block", async () => {
     // Default `setAnonymous()` already gives null entitlement.
     assert.equal(serviceEntitlementState(), 'free');
+    assert.deepEqual(await addCountry('US'), { ok: true });
+  });
+
+  it('anonymous users have no FREE_TIER_FOLLOW_LIMIT cap: 4th add still succeeds (no Convex row to enforce it against)', async () => {
+    // Task 17: the anon cap was a client-only soft gate with zero
+    // server-side backing (no Convex `entitlements` row exists for a
+    // user with no account). Only the signed-in path enforces the real
+    // cap (see the sibling 'FREE_CAP' describe block below, which uses
+    // `setSignedInFreeLoaded()` and is unchanged by this fix).
     assert.deepEqual(await addCountry('US'), { ok: true });
     assert.deepEqual(await addCountry('FR'), { ok: true });
     assert.deepEqual(await addCountry('DE'), { ok: true });
     const res = await addCountry('JP');
-    assert.equal(res.ok, false);
-    assert.equal(res.reason, 'FREE_CAP');
+    assert.deepEqual(res, { ok: true });
+    assert.deepEqual(getFollowed().sort(), ['DE', 'FR', 'JP', 'US']);
   });
 });
 

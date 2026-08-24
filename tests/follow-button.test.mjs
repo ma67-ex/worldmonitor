@@ -430,7 +430,7 @@ describe('renderFollowButton — click behavior (anonymous mode)', () => {
     teardown();
   });
 
-  it('free user at cap → click triggers upgrade-modal, addCountry not committed', async () => {
+  it('anonymous user at 3-follow mark → no upgrade CTA, click still commits (task 17: anon has no server-backed cap)', async () => {
     setupAnonymousFree();
     _localStorage.setItem(
       FOLLOWED_COUNTRIES_STORAGE_KEY,
@@ -442,19 +442,19 @@ describe('renderFollowButton — click behavior (anonymous mode)', () => {
     const handle = renderFollowButton({ countryCode: 'GB' });
     const host = makeHost();
     const teardown = handle.attach(host);
-    // Tooltip should already reflect at-cap state.
-    assert.match(host.innerHTML, /Upgrade to follow more/);
+    // No "at cap" tooltip for anonymous users — nothing server-side would
+    // ever reject this click, so the cosmetic cap CTA must not fire.
+    assert.doesNotMatch(host.innerHTML, /Upgrade to follow more/);
+    assert.match(host.innerHTML, /title="Follow GB"/);
 
     host.clickButton();
     await flushMicrotasks();
 
-    assert.equal(upgradeCalls.length, 1);
-    assert.equal(upgradeCalls[0], 'follow-cap');
-    // GB was NOT added.
+    assert.equal(upgradeCalls.length, 0);
+    // GB WAS added — anon has no cap.
     const stored = JSON.parse(_localStorage.getItem(FOLLOWED_COUNTRIES_STORAGE_KEY)).countries;
-    assert.deepEqual(stored, ['US', 'FR', 'DE']);
-    // Visual state still unfollowed.
-    assert.match(host.innerHTML, /data-state="unfollowed"/);
+    assert.deepEqual(stored, ['US', 'FR', 'DE', 'GB']);
+    assert.match(host.innerHTML, /data-state="followed"/);
 
     teardown();
   });
