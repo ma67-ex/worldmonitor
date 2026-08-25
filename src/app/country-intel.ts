@@ -1,5 +1,5 @@
 import type { AppContext, AppModule, CountryBriefSignals } from '@/app/app-context';
-import { getSignalAggregator } from '@/app/lazy-services';
+import { getSignalAggregator } from '@/services/lazy-signal-aggregator';
 import type { CountrySignalCluster } from '@/services/signal-aggregator';
 import { getRpcBaseUrl } from '@/services/rpc-client';
 import { getCountryDefenseIndustrialBase } from '@/services/defense-industrial';

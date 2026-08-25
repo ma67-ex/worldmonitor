@@ -8,7 +8,7 @@ import { premiumFetch } from '@/services/premium-fetch';
 import { getAuthState } from '@/services/auth-state';
 import { hasPremiumAccess, readClientEntitlementBelief } from '@/services/panel-gating';
 import { hasUserAiKey, generateStructuredCompletion } from '@/services/user-ai-keys';
-import { getSignalAggregator } from '@/app/lazy-services';
+import { getSignalAggregator } from '@/services/lazy-signal-aggregator';
 import {
   analystDenialMessage,
   isBillingVerificationDenial,

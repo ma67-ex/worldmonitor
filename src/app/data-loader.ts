@@ -4,7 +4,7 @@ import { enqueuePanelCall } from '@/app/pending-panel-data';
 import { markLcpDebug } from '@/utils/lcp-debug';
 import { runHydrationTier, type HydrationTask } from '@/app/hydration-scheduler';
 import { yieldToMain } from '@/utils/after-paint';
-import { getSignalAggregator, type SignalAggregator } from '@/app/lazy-services';
+import { getSignalAggregator, type SignalAggregator } from '@/services/lazy-signal-aggregator';
 import { getMilitaryVesselsModule, isVesselRuntimeStoppedError } from '@/services/military-vessels-lazy';
 import type { NewsItem, MapLayers, SocialUnrestEvent, MilitaryFlight } from '@/types';
 import type { MarketData } from '@/types';

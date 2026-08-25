@@ -6,7 +6,7 @@ import { hasPremiumAccess } from '@/services/panel-gating';
 import { hasUserAiKey, generateStructuredCompletion } from '@/services/user-ai-keys';
 import { subscribeAuthState } from '@/services/auth-state';
 import { onEntitlementChange } from '@/services/entitlements';
-import { getSignalAggregator } from '@/app/lazy-services';
+import { getSignalAggregator } from '@/services/lazy-signal-aggregator';
 
 import type { RegionalSnapshot, RegimeTransition, RegionalBrief } from '@/generated/client/worldmonitor/intelligence/v1/service_client';
 import { h, replaceChildren, setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
