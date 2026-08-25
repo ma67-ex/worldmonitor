@@ -10,6 +10,69 @@ import {
   __setR2S3TimeoutForTests,
 } from '../scripts/_r2-storage.mjs';
 
+describe('resolveR2StorageConfig Backblaze B2 (default profile)', () => {
+  it('prefers Backblaze env vars over Cloudflare R2 ones when both are set', () => {
+    const config = resolveR2StorageConfig({
+      BACKBLAZE_B2_ENDPOINT: 'https://s3.us-east-005.backblazeb2.com',
+      BACKBLAZE_B2_BUCKET: 'worldmonitor-storage',
+      BACKBLAZE_B2_ACCESS_KEY_ID: '005e547f3ff5c620000000002',
+      BACKBLAZE_B2_SECRET_ACCESS_KEY: 'K005test',
+      BACKBLAZE_B2_REGION: 'us-east-005',
+      CLOUDFLARE_R2_ACCOUNT_ID: 'legacy-account',
+      CLOUDFLARE_R2_TRACE_BUCKET: 'legacy-bucket',
+      CLOUDFLARE_R2_ACCESS_KEY_ID: 'legacy-key',
+      CLOUDFLARE_R2_SECRET_ACCESS_KEY: 'legacy-secret',
+    });
+
+    assert.deepEqual(config, {
+      mode: 's3',
+      // accountId is cosmetic here — it's read straight from
+      // CLOUDFLARE_R2_ACCOUNT_ID unconditionally (nothing downstream reads
+      // it) and does NOT mean Cloudflare served this request: endpoint,
+      // bucket, and credentials below are all Backblaze's.
+      accountId: 'legacy-account',
+      bucket: 'worldmonitor-storage',
+      endpoint: 'https://s3.us-east-005.backblazeb2.com',
+      region: 'us-east-005',
+      credentials: { accessKeyId: '005e547f3ff5c620000000002', secretAccessKey: 'K005test' },
+      forcePathStyle: false,
+      basePrefix: 'seed-data/forecast-traces',
+    });
+  });
+
+  it('resolves with no Cloudflare account id at all — endpoint alone is sufficient', () => {
+    const config = resolveR2StorageConfig({
+      BACKBLAZE_B2_ENDPOINT: 'https://s3.us-east-005.backblazeb2.com',
+      BACKBLAZE_B2_BUCKET: 'worldmonitor-storage',
+      BACKBLAZE_B2_ACCESS_KEY_ID: 'k',
+      BACKBLAZE_B2_SECRET_ACCESS_KEY: 's',
+    });
+    assert.notEqual(config, null);
+    assert.equal(config.forcePathStyle, false);
+  });
+
+  it('an explicit BACKBLAZE_B2_FORCE_PATH_STYLE override still wins over the B2 default', () => {
+    const config = resolveR2StorageConfig({
+      BACKBLAZE_B2_ENDPOINT: 'https://s3.us-east-005.backblazeb2.com',
+      BACKBLAZE_B2_BUCKET: 'worldmonitor-storage',
+      BACKBLAZE_B2_ACCESS_KEY_ID: 'k',
+      BACKBLAZE_B2_SECRET_ACCESS_KEY: 's',
+      BACKBLAZE_B2_FORCE_PATH_STYLE: 'true',
+    });
+    assert.equal(config.forcePathStyle, true);
+  });
+
+  it('still defaults forcePathStyle to true for plain Cloudflare R2 config (no regression)', () => {
+    const config = resolveR2StorageConfig({
+      CLOUDFLARE_R2_ACCOUNT_ID: 'acct123',
+      CLOUDFLARE_R2_TRACE_BUCKET: 'trace-bucket',
+      CLOUDFLARE_R2_ACCESS_KEY_ID: 'abc',
+      CLOUDFLARE_R2_SECRET_ACCESS_KEY: 'def',
+    });
+    assert.equal(config.forcePathStyle, true);
+  });
+});
+
 describe('resolveR2StorageConfig bootstrap profile', () => {
   it('uses only the dedicated bootstrap credentials and derives the R2 endpoint', () => {
     const config = resolveR2StorageConfig({

@@ -41,28 +41,37 @@ function withSettleTimeout(promise, ms, label) {
   return Promise.race([promise, guard]).finally(() => clearTimeout(timer));
 }
 
+// Free-tier-first: Backblaze B2 (10GB free, no card) is S3-compatible, so it
+// slots into the exact same S3-SDK branch below as Cloudflare R2 — only the
+// credential/endpoint env vars differ. BACKBLAZE_B2_* is checked before the
+// CLOUDFLARE_R2_* fallback in every field via getEnvValue's first-match order.
 const R2_STORAGE_PROFILES = Object.freeze({
   default: Object.freeze({
+    // No Backblaze entry here: accountId only exists to derive CLOUDFLARE's
+    // https://{accountId}.r2.cloudflarestorage.com default endpoint (below).
+    // Feeding it B2's keyID would silently build a bogus Cloudflare-shaped
+    // URL if BACKBLAZE_B2_ENDPOINT were ever left unset. B2 auth lives
+    // entirely in accessKeyId/secretAccessKey below, same as any S3 provider.
     accountId: ['CLOUDFLARE_R2_ACCOUNT_ID'],
-    endpoint: ['CLOUDFLARE_R2_ENDPOINT'],
-    accessKeyId: ['CLOUDFLARE_R2_ACCESS_KEY_ID'],
-    secretAccessKey: ['CLOUDFLARE_R2_SECRET_ACCESS_KEY'],
+    endpoint: ['BACKBLAZE_B2_ENDPOINT', 'CLOUDFLARE_R2_ENDPOINT'],
+    accessKeyId: ['BACKBLAZE_B2_ACCESS_KEY_ID', 'CLOUDFLARE_R2_ACCESS_KEY_ID'],
+    secretAccessKey: ['BACKBLAZE_B2_SECRET_ACCESS_KEY', 'CLOUDFLARE_R2_SECRET_ACCESS_KEY'],
     apiToken: ['CLOUDFLARE_R2_TOKEN', 'CLOUDFLARE_API_TOKEN'],
     apiBaseUrl: ['CLOUDFLARE_API_BASE_URL'],
-    region: ['CLOUDFLARE_R2_REGION'],
-    forcePathStyle: ['CLOUDFLARE_R2_FORCE_PATH_STYLE'],
+    region: ['BACKBLAZE_B2_REGION', 'CLOUDFLARE_R2_REGION'],
+    forcePathStyle: ['BACKBLAZE_B2_FORCE_PATH_STYLE', 'CLOUDFLARE_R2_FORCE_PATH_STYLE'],
     defaultPrefix: 'seed-data/forecast-traces',
   }),
   bootstrap: Object.freeze({
     accountId: ['R2_ACCOUNT_ID'],
-    endpoint: ['R2_ENDPOINT'],
-    bucket: ['R2_BOOTSTRAP_BUCKET'],
-    accessKeyId: ['R2_BOOTSTRAP_ACCESS_KEY_ID'],
-    secretAccessKey: ['R2_BOOTSTRAP_SECRET_ACCESS_KEY'],
+    endpoint: ['BACKBLAZE_B2_ENDPOINT', 'R2_ENDPOINT'],
+    bucket: ['BACKBLAZE_B2_BUCKET', 'R2_BOOTSTRAP_BUCKET'],
+    accessKeyId: ['BACKBLAZE_B2_ACCESS_KEY_ID', 'R2_BOOTSTRAP_ACCESS_KEY_ID'],
+    secretAccessKey: ['BACKBLAZE_B2_SECRET_ACCESS_KEY', 'R2_BOOTSTRAP_SECRET_ACCESS_KEY'],
     apiToken: [],
     apiBaseUrl: [],
-    region: [],
-    forcePathStyle: [],
+    region: ['BACKBLAZE_B2_REGION'],
+    forcePathStyle: ['BACKBLAZE_B2_FORCE_PATH_STYLE'],
     defaultPrefix: '',
   }),
 });
@@ -143,7 +152,7 @@ function resolveR2StorageConfig(env = process.env, options = {}) {
   const isDefaultProfile = profileName === 'default';
   const accountId = getEnvValue(env, profile.accountId);
   const bucketKeys = profile.bucket
-    || [options.bucketEnv || 'CLOUDFLARE_R2_TRACE_BUCKET', 'CLOUDFLARE_R2_BUCKET'];
+    || ['BACKBLAZE_B2_BUCKET', options.bucketEnv || 'CLOUDFLARE_R2_TRACE_BUCKET', 'CLOUDFLARE_R2_BUCKET'];
   const bucket = getEnvValue(env, bucketKeys);
   const accessKeyId = getEnvValue(env, profile.accessKeyId);
   const secretAccessKey = getEnvValue(env, profile.secretAccessKey);
@@ -154,10 +163,19 @@ function resolveR2StorageConfig(env = process.env, options = {}) {
   const prefixKeys = isDefaultProfile ? [options.prefixEnv || 'CLOUDFLARE_R2_TRACE_PREFIX'] : [];
   const basePrefix = (getEnvValue(env, prefixKeys) || profile.defaultPrefix)
     .replace(/^\/+|\/+$/g, '');
-  const forcePathStyle = parseBoolean(getEnvValue(env, profile.forcePathStyle), true);
+  // Cloudflare R2 requires path-style addressing (default true). Backblaze's
+  // own SDK examples use virtual-hosted-style with no forcePathStyle set at
+  // all (bucket.s3.region.backblazeb2.com) — defaulting a B2 config to `true`
+  // here would send path-style requests B2 doesn't expect and break auth.
+  const isBackblaze = !!getEnvValue(env, ['BACKBLAZE_B2_ENDPOINT']);
+  const forcePathStyle = parseBoolean(getEnvValue(env, profile.forcePathStyle), !isBackblaze);
 
-  if (!bucket || !accountId) {
-    console.log(`  [R2] Config: accountId=${accountId ? 'set' : 'MISSING'}, bucket=${bucket ? 'set' : 'MISSING'}`);
+  // accountId only exists to derive Cloudflare's default endpoint (below) and
+  // to address its account-scoped REST API in 'api' mode. Backblaze B2 (and
+  // any other S3-compatible provider) always supplies an explicit endpoint
+  // instead, so accountId is optional once endpoint is already known.
+  if (!bucket || (!accountId && !endpoint)) {
+    console.log(`  [R2] Config: accountId=${accountId ? 'set' : 'MISSING'}, endpoint=${endpoint ? 'set' : 'MISSING'}, bucket=${bucket ? 'set' : 'MISSING'}`);
     return null;
   }
 

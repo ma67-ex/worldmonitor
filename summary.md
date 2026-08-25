@@ -32,9 +32,15 @@ Swap `BRAVE_API_KEYS` / `EXA_API_KEYS` / `FIRECRAWL_API_KEY` for self-hosted Sea
 - [x] Settings/config-only references (`src/services/runtime-config.ts`, `mcp-store.ts`, `settings-constants.ts`, `src-tauri/sidecar/local-api-server.mjs`) — confirmed these just declare the env var name for UI/secrets listing, no HTTP calls, nothing to swap.
 - [ ] Decide whether to drop Firecrawl fallback entirely or keep as final tier
 
-### Task 2 — Cloudflare R2 → Backblaze B2 (NOT STARTED)
-Touches: `scripts/_r2-storage.mjs`, `scripts/_kv-storage.mjs`, `scripts/seed-forecast-resolutions.mjs`, `scripts/seed-military-bases.mjs`, plus `tests/bootstrap-kv-publisher.test.mjs`, `tests/bootstrap-r2-env-docs.test.mjs`, `tests/forecast-trace-export.test.mjs`, `tests/r2-storage-s3-timeout.test.mjs`, `tests/forecast-resolutions-seeder.test.mjs`.
-Highest blast radius of all tasks here — most files touch it.
+### Task 2 — Cloudflare R2 → Backblaze B2 (DONE)
+`scripts/_r2-storage.mjs`'s `resolveR2StorageConfig()` now checks `BACKBLAZE_B2_*` env vars first, falling through to `CLOUDFLARE_R2_*` — covers every caller of the shared module automatically: `scripts/seed-forecasts.mjs`, `scripts/seed-forecast-resolutions.mjs`, `scripts/publish-bootstrap-tiers.mjs` (bootstrap profile). Backblaze is S3-compatible so it reuses the exact same S3-SDK client/retry/timeout code — no new provider class needed.
+- Bucket created (`worldmonitor-storage`, Private, `us-east-005`), scoped app key generated (bucket-restricted, `listFiles/readFiles/writeFiles/deleteFiles` only — **not** the account-wide master key, which was rotated out after being pasted in chat).
+- Fixed a real footgun before shipping: B2's "keyID" is an S3 `accessKeyId`, not a Cloudflare-style account ID — mapping it into the `accountId` slot would've silently built a bogus `https://{keyID}.r2.cloudflarestorage.com` endpoint if `BACKBLAZE_B2_ENDPOINT` were ever left unset. Kept `accountId` Cloudflare-only.
+- Fixed `forcePathStyle`: Cloudflare R2 needs path-style (default `true`); Backblaze's own SDK docs show virtual-hosted-style with the flag unset. Now defaults per-provider (`false` when `BACKBLAZE_B2_ENDPOINT` is set) instead of one global default.
+- Verified live end-to-end: real put+get+delete against the actual bucket (credential used in-memory for one command, never written to a file), plus 4 new unit tests, full `_r2-storage`/forecast-trace/bootstrap test files pass (17+422 tests), typecheck clean.
+- Skipped `scripts/_kv-storage.mjs` — Cloudflare Workers KV is a different product (edge key-value DB), not S3-compatible, no B2 equivalent.
+- Skipped `scripts/seed-military-bases.mjs`'s R2 call — third-tier fallback that only fires on a fresh Railway deploy with no volume yet, hand-rolled against Cloudflare's proprietary REST API (not S3), low frequency/value for the effort.
+- `.env.example` documents the new `BACKBLAZE_B2_*` block, `bootstrap-r2-env-docs.test.mjs` still passes (only checks the fixed `R2_*` names, unaffected by additions).
 
 ### Task 3 — ANTHROPIC_API_KEY → free LLM fallback (NOT STARTED)
 Single file: `scripts/translate-locales.mjs` (currently hard-requires `ANTHROPIC_API_KEY`, no fallback). Swap to Gemini free tier or reuse Groq/OpenRouter already wired elsewhere in the repo.
