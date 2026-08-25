@@ -22,7 +22,13 @@
  *   ... --adopt-baseline   # FIRST adoption of a root only; records the current
  *                          # translations as correct without checking them
  *
- * Cost: ~8.3K strings × 20 locales backfill ≈ ~$3 on claude-haiku-4-5.
+ * Provider: Claude Haiku (ANTHROPIC_API_KEY) if set — otherwise falls back to
+ * whichever of OPENROUTER_API_KEY / GROQ_API_KEY is already configured (same
+ * free-tier keys the forecast/market seeders use). No key at all still works
+ * with --dry-run.
+ *
+ * Cost: ~8.3K strings × 20 locales backfill ≈ ~$3 on claude-haiku-4-5, or $0
+ * on the OpenRouter/Groq fallback (free tiers).
  */
 
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
@@ -147,7 +153,54 @@ const DOMAIN_GLOSSARY = [
   'spot, spread, long, short, hedge, perp, open interest, drawdown = finance terms; keep the established term of the target language, which is often the English one',
 ].map((line) => `   - ${line}`).join('\n');
 
-async function translateBatch(client, langName, batch) {
+// Free-tier fallback for when ANTHROPIC_API_KEY isn't set: reuse whichever
+// of OPENROUTER_API_KEY / GROQ_API_KEY is already configured elsewhere in
+// this repo (seed-forecasts.mjs uses the same two, same model choices) —
+// no new provider signup, just an already-wired key doing double duty.
+// OpenRouter first: seed-forecasts.mjs's own comment (#4944 U6) picks it
+// over Groq for narrative/text-quality output, which translation is too.
+const OPENAI_COMPAT_PROVIDERS = [
+  { name: 'openrouter', envKey: 'OPENROUTER_API_KEY', apiUrl: 'https://openrouter.ai/api/v1/chat/completions', model: 'deepseek/deepseek-v4-flash' },
+  { name: 'groq', envKey: 'GROQ_API_KEY', apiUrl: 'https://api.groq.com/openai/v1/chat/completions', model: 'llama-3.3-70b-versatile' },
+];
+
+export function resolveTranslationProvider(env = process.env) {
+  if (env.ANTHROPIC_API_KEY) return { kind: 'anthropic', apiKey: env.ANTHROPIC_API_KEY };
+  for (const p of OPENAI_COMPAT_PROVIDERS) {
+    if (env[p.envKey]) return { kind: 'openai-compat', name: p.name, apiUrl: p.apiUrl, apiKey: env[p.envKey], model: p.model };
+  }
+  return null;
+}
+
+async function callOpenAiCompat(provider, prompt, fetchFn = fetch) {
+  const resp = await fetchFn(provider.apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${provider.apiKey}`,
+    },
+    body: JSON.stringify({
+      model: provider.model,
+      max_tokens: 8192,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+    // Translation batches ask for the full 8192-token completion — longer
+    // than the ~20-25s budget other scripts use for short forecast text.
+    signal: AbortSignal.timeout(60_000),
+  });
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '');
+    throw new Error(`${provider.name} translate failed: HTTP ${resp.status} — ${body.slice(0, 200)}`);
+  }
+  const data = await resp.json();
+  const choice = data.choices?.[0];
+  if (choice?.finish_reason === 'length') {
+    console.warn('  ! reply hit the token limit and was truncated — the tail of this batch was dropped');
+  }
+  return choice?.message?.content || '';
+}
+
+export async function translateBatch(provider, langName, batch, { fetchFn = fetch } = {}) {
   const items = batch.map(([k, v]) => `${k}\t${v}`).join('\n');
   const prompt = `You are a professional UI translator. Translate the following English UI strings to ${langName}.
 
@@ -169,21 +222,26 @@ ${items}
 
 Output (key<TAB>${langName}):`;
 
-  const res = await client.messages.create({
-    model: MODEL,
-    max_tokens: 8192,
-    messages: [{ role: 'user', content: prompt }],
-  });
   // A batch of 50 long strings (the welcome FAQ answers run 300+ chars each) can
   // exceed max_tokens, and the reply is then cut mid-stream: the tail keys are
   // simply absent from the tab-separated output and look indistinguishable from
   // "the model chose to skip them". Say so, because it is a common reason a run
   // reports a shortfall. The re-run fills them — it only resends what is still
   // outstanding, so the retry batch is small enough not to truncate again.
-  if (res.stop_reason === 'max_tokens') {
-    console.warn('  ! reply hit max_tokens and was truncated — the tail of this batch was dropped');
+  let text;
+  if (provider.kind === 'anthropic') {
+    const res = await provider.client.messages.create({
+      model: MODEL,
+      max_tokens: 8192,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    if (res.stop_reason === 'max_tokens') {
+      console.warn('  ! reply hit max_tokens and was truncated — the tail of this batch was dropped');
+    }
+    text = res.content.filter(c => c.type === 'text').map(c => c.text).join('');
+  } else {
+    text = await callOpenAiCompat(provider, prompt, fetchFn);
   }
-  const text = res.content.filter(c => c.type === 'text').map(c => c.text).join('');
 
   const out = {};
   for (const line of text.split('\n')) {
@@ -605,11 +663,13 @@ async function main() {
     }
   }
 
-  if (!dryRun && !process.env.ANTHROPIC_API_KEY) {
-    console.error('ANTHROPIC_API_KEY not set. Use --dry-run to see the gap without translating.');
+  const provider = dryRun ? null : resolveTranslationProvider();
+  if (!dryRun && !provider) {
+    console.error('No translation provider configured. Set ANTHROPIC_API_KEY, OPENROUTER_API_KEY, or GROQ_API_KEY — or use --dry-run to see the gap without translating.');
     process.exit(1);
   }
-  const client = dryRun ? null : new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  if (provider?.kind === 'anthropic') provider.client = new Anthropic({ apiKey: provider.apiKey });
+  if (provider?.kind === 'openai-compat') console.log(`[translate] Using ${provider.name} (${provider.model}) — ANTHROPIC_API_KEY not set`);
 
   const enPath = path.join(ROOT, 'en.json');
   const enFlat = flatten(JSON.parse(readFileSync(enPath, 'utf8')));
@@ -692,7 +752,7 @@ async function main() {
       raw,
       expected,
       toTranslate,
-      translate: batch => translateBatch(client, LANG_NAMES[loc], batch),
+      translate: batch => translateBatch(provider, LANG_NAMES[loc], batch),
       persist: () => writeFileSync(locPath, `${JSON.stringify(raw, null, 2)}\n`),
     });
     refreshedByLocale.set(loc, refreshed);

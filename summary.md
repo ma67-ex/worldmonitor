@@ -42,8 +42,12 @@ Swap `BRAVE_API_KEYS` / `EXA_API_KEYS` / `FIRECRAWL_API_KEY` for self-hosted Sea
 - Skipped `scripts/seed-military-bases.mjs`'s R2 call — third-tier fallback that only fires on a fresh Railway deploy with no volume yet, hand-rolled against Cloudflare's proprietary REST API (not S3), low frequency/value for the effort.
 - `.env.example` documents the new `BACKBLAZE_B2_*` block, `bootstrap-r2-env-docs.test.mjs` still passes (only checks the fixed `R2_*` names, unaffected by additions).
 
-### Task 3 — ANTHROPIC_API_KEY → free LLM fallback (NOT STARTED)
-Single file: `scripts/translate-locales.mjs` (currently hard-requires `ANTHROPIC_API_KEY`, no fallback). Swap to Gemini free tier or reuse Groq/OpenRouter already wired elsewhere in the repo.
+### Task 3 — ANTHROPIC_API_KEY → free LLM fallback (DONE)
+`scripts/translate-locales.mjs`: `resolveTranslationProvider()` picks Anthropic (Haiku, unchanged behavior) if `ANTHROPIC_API_KEY` is set, else falls through to `OPENROUTER_API_KEY` then `GROQ_API_KEY` — same two keys and same models `seed-forecasts.mjs` already uses, so no new signup, just reuse.
+- `translateBatch()` now dispatches on `provider.kind` (`anthropic` vs `openai-compat`); the OpenAI-compatible branch is a plain `fetch` POST with the same tab-separated prompt/parsing.
+- `--dry-run` still works with zero keys configured (verified). Hard error without `--dry-run` and no provider names all three env vars instead of only `ANTHROPIC_API_KEY`.
+- Live-tested the new code path with a deliberately invalid Groq key: provider selection logs correctly, hits the real Groq endpoint, HTTP 401 is caught by the pre-existing per-batch retry logic (unchanged) rather than crashing — confirms the wiring reaches production code, not just mocks.
+- 7 new unit tests (`tests/translate-locales-provider.test.mjs`) plus the 3 existing locale test files (55 tests) all pass; `translateLocale`'s own tests were untouched since it takes an injected `translate` callback and never saw the Anthropic client directly.
 
 ### Task 4 — DATABASE_URL → Neon/Supabase (NOT STARTED)
 `consumer-prices-core` Postgres connection string only — no code change, just point `.env`/Railway var at a free-tier host (Neon.tech no-card, or reuse existing Supabase Postgres).
