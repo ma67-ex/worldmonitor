@@ -23,6 +23,11 @@ Abdullah's `ddae8c5a0` already wires a SearXNG attempt ahead of Exa/Brave, corre
 - **Self-hosting**: SearXNG is a persistent Python service. Every genuinely card-free always-on host either is Railway (explicitly deferred, cost decision not yours to make) or has an unverified/conflicting card requirement (Render's free-tier card policy has contradictory reports as of this check).
 - **Net**: not a safe swap tonight. Also low-value to force — `EXA_API_KEYS`/`BRAVE_API_KEYS` are both unset already, so `stock-news-search.ts` already falls through to `google-news-rss` (free, no key) today. SearXNG would only be a quality upgrade on an already-working free path, not a fix for something broken. Leave `SEARXNG_URL` unset; revisit once Railway's status is decided or a genuinely free always-on host is confirmed.
 
+## `lint:api-contract` — CI, unrelated to the paid-service audit
+Found 2026-08-25 chasing an unrelated Deploy Gate failure. Dozens of `src/generated/server/worldmonitor/**/service_server.ts` files (positive_events, prediction, radiation, research, resilience, sanctions, scenario, seismology, shipping, supply_chain, thermal, trade, unrest, webcam, wildfire, more) have no matching `api/<domain>/v1/[rpc].ts` HTTP gateway, which `lint:api-contract` requires. Pre-existing, not caused by anything in this file's swap work. Real production deploys are unaffected — Vercel deploys directly on push regardless of GitHub Actions status, confirmed live 2026-08-25 while these checks were red. Genuinely CI-only debt.
+
+Not fixed tonight: real scope question (which of these RPCs are actually wired to a live feature vs. dead generated code that should be deleted instead of gatewayed), and any new `api/` route has to be checked against the Vercel Hobby 12-function cap (`CLAUDE.md`'s dispatcher-registry rule) before adding it. Needs its own pass.
+
 ---
 
 **Everything else from the original audit** (R2, Anthropic, Axiom) turned out to be safe — see commits landed 2026-08-25 for the actual swaps, and `docs/tasks/abdullah/README.md` for the index entry.
