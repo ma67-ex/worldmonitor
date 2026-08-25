@@ -17,6 +17,38 @@ const FIRECRAWL_DELAY_MS = 500;
 const FX_FALLBACKS = SHARED_FX_FALLBACKS;
 
 
+// Free/self-hosted first, site:-restricted to the same retailer domains EXA
+// would target. Shaped like Exa's { results: [{ summary, url, title }] } so
+// extractPrice() needs no changes regardless of which path answered.
+async function searchSearxng(query, sites) {
+  const baseUrl = process.env.SEARXNG_URL;
+  if (!baseUrl) return null;
+
+  const siteFilter = sites?.length ? ` (${sites.map(s => `site:${s}`).join(' OR ')})` : '';
+  const url = new URL('/search', baseUrl);
+  url.searchParams.set('q', query + siteFilter);
+  url.searchParams.set('format', 'json');
+
+  try {
+    const resp = await fetch(url, {
+      headers: { Accept: 'application/json', 'User-Agent': CHROME_UA },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!resp.ok) {
+      console.warn(`  SearXNG ${resp.status}`);
+      return null;
+    }
+    const payload = await resp.json();
+    const results = (payload.results || [])
+      .filter(r => r.content || r.title)
+      .map(r => ({ summary: r.content || '', title: r.title || '', url: r.url || '' }));
+    return results.length ? { results } : null;
+  } catch (err) {
+    console.warn(`  SearXNG error: ${err.message}`);
+    return null;
+  }
+}
+
 async function searchExa(query, sites, locationCode) {
   const apiKey = (process.env.EXA_API_KEYS || process.env.EXA_API_KEY || '').split(/[\n,]+/)[0].trim();
   if (!apiKey) throw new Error('EXA_API_KEYS or EXA_API_KEY not set');
@@ -192,6 +224,52 @@ function matchPrice(text, url) {
   return null;
 }
 
+// Numbeo publishes real per-country grocery prices as plain static HTML — free,
+// no key, no CAPTCHA (unlike search-engine scraping). Covers 5 of our 10 items;
+// the rest (sugar, salt, pasta, oil, flour) aren't tracked by Numbeo at all and
+// stay on the existing search/EXA/Firecrawl ladder below. Labels are stable
+// English text regardless of the country page (confirmed across US/JP/etc).
+// LB_TO_KG converts Numbeo's imperial units to our kg-based item units.
+const LB_TO_KG = 2.2046226218;
+const NUMBEO_ITEM_LABELS = {
+  milk: { label: 'Milk (Regular, 1 Liter)', unitScale: 1 },
+  rice: { label: 'White Rice (1 lb)', unitScale: LB_TO_KG },
+  potatoes: { label: 'Potatoes (1 lb)', unitScale: LB_TO_KG },
+  eggs: { label: 'Eggs (12, Large Size)', unitScale: 1 },
+  bread: { label: 'Fresh White Bread (1 lb Loaf)', unitScale: 1 }, // loaf-for-loaf, no unit conversion
+};
+
+export async function fetchNumbeoCountryPrices(countryName, { fetchFn = fetch } = {}) {
+  const url = `https://www.numbeo.com/cost-of-living/country_result.jsp?country=${encodeURIComponent(countryName)}`;
+  const prices = new Map();
+  try {
+    const resp = await fetchFn(url, {
+      headers: { 'User-Agent': CHROME_UA },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!resp.ok) {
+      console.warn(`  Numbeo ${resp.status} for ${countryName}`);
+      return prices;
+    }
+    const html = await resp.text();
+    for (const [itemId, { label, unitScale }] of Object.entries(NUMBEO_ITEM_LABELS)) {
+      // Numbeo prefixes the price with an HTML numeric entity for the currency
+      // symbol (e.g. &#36; for $) — that entity's own digits ("36") would be
+      // mismatched as the price by a naive [^\d]* skip, so match it explicitly.
+      const re = new RegExp(`${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*</td>\\s*<td[^>]*class="priceValue[^"]*"[^>]*>\\s*<span[^>]*>(?:&#\\d+;)?\\s*([\\d,]+\\.?\\d*)</span>`);
+      const match = html.match(re);
+      if (!match) continue;
+      const rawPrice = parseFloat(match[1].replace(/,/g, ''));
+      if (Number.isFinite(rawPrice) && rawPrice > 0) {
+        prices.set(itemId, +(rawPrice * unitScale).toFixed(4));
+      }
+    }
+  } catch (err) {
+    console.warn(`  Numbeo error for ${countryName}: ${err.message}`);
+  }
+  return prices;
+}
+
 function extractPrice(result, expectedCurrency) {
   const url = result.url || '';
   const summary = result?.summary;
@@ -265,9 +343,32 @@ async function fetchGroceryBasketPrices(prevSnapshot) {
     console.log(`\n  Processing ${country.flag} ${country.name} (${country.currency})...`);
     const fxRate = fxRates[country.currency] || FX_FALLBACKS[country.currency] || null;
     const allowedHosts = country.sites.map(s => s.replace(/^www\./, '').split('/')[0]);
+    const numbeoPrices = await fetchNumbeoCountryPrices(country.name);
 
     // Process all items concurrently — 100ms stagger to respect EXA/Firecrawl rate limits
     const itemPrices = await Promise.all(config.items.map(async (item, idx) => {
+      // Numbeo covers this item for every country in one static-page fetch —
+      // skip the learned-route/search/EXA/Firecrawl ladder entirely when it hits.
+      const numbeoPrice = numbeoPrices.get(item.id);
+      if (numbeoPrice != null) {
+        const usdEquiv = fxRate ? numbeoPrice * fxRate : null;
+        if (!ITEM_USD_MAX[item.id] || !usdEquiv || usdEquiv <= ITEM_USD_MAX[item.id]) {
+          const usdPrice = usdEquiv != null ? +usdEquiv.toFixed(4) : null;
+          console.log(`    ${item.id}: ${numbeoPrice} ${country.currency} = $${usdPrice} (numbeo)`);
+          return {
+            itemId: item.id,
+            itemName: item.name,
+            unit: item.unit,
+            localPrice: numbeoPrice,
+            usdPrice,
+            currency: country.currency,
+            sourceSite: 'https://www.numbeo.com',
+            available: true,
+          };
+        }
+        console.warn(`    [numbeo bulk] ${item.id}: ${numbeoPrice} ${country.currency} ($${usdEquiv.toFixed(2)}) > max $${ITEM_USD_MAX[item.id]} — skipping`);
+      }
+
       await sleep(idx * 200); // stagger starts — 200ms prevents EXA rate limit with 10 concurrent
 
       const routeKey = `${country.code}:${item.id}`;
@@ -287,23 +388,42 @@ async function fetchGroceryBasketPrices(prevSnapshot) {
           let exaPrice = null;
           let exaSite = '';
           let exaUrls = [];
+
+          const extractFromResults = (results) => {
+            for (const result of results) {
+              const extracted = extractPrice(result, country.currency);
+              if (!extracted) continue;
+              if (fxRate && ITEM_USD_MAX[item.id]) {
+                const usdEquiv = extracted.price * fxRate;
+                if (usdEquiv > ITEM_USD_MAX[item.id]) {
+                  console.warn(`    [bulk] ${item.id}: ${extracted.price} ${country.currency} ($${usdEquiv.toFixed(2)}) > max $${ITEM_USD_MAX[item.id]} — skipping`);
+                  continue;
+                }
+              }
+              return extracted;
+            }
+            return null;
+          };
+
+          const searxResult = await searchSearxng(`${item.query} price`, country.sites);
+          if (searxResult?.results?.length) {
+            const hit = extractFromResults(searxResult.results);
+            if (hit) {
+              exaPrice = hit.price;
+              exaSite = hit.source;
+            }
+          }
+
+          if (exaPrice !== null) return { localPrice: exaPrice, sourceSite: exaSite };
+
           try {
             const exaResult = await searchExa(`${item.query} price`, country.sites, country.code);
             if (exaResult?.results?.length) {
               exaUrls = exaResult.results.map(r => r.url).filter(Boolean);
-              for (const result of exaResult.results) {
-                const extracted = extractPrice(result, country.currency);
-                if (!extracted) continue;
-                if (fxRate && ITEM_USD_MAX[item.id]) {
-                  const usdEquiv = extracted.price * fxRate;
-                  if (usdEquiv > ITEM_USD_MAX[item.id]) {
-                    console.warn(`    [bulk] ${item.id}: ${extracted.price} ${country.currency} ($${usdEquiv.toFixed(2)}) > max $${ITEM_USD_MAX[item.id]} — skipping`);
-                    continue;
-                  }
-                }
-                exaPrice = extracted.price;
-                exaSite = extracted.source;
-                break;
+              const hit = extractFromResults(exaResult.results);
+              if (hit) {
+                exaPrice = hit.price;
+                exaSite = hit.source;
               }
             }
           } catch (err) {
@@ -453,42 +573,49 @@ async function fetchGroceryBasketPrices(prevSnapshot) {
   };
 }
 
-const prevSnapshot = await readSeedSnapshot(CANONICAL_KEY);
-
 export function declareRecords(data) {
   return Array.isArray(data?.countries) ? data.countries.length : 0;
 }
 
-await runSeed('economic', 'grocery-basket', CANONICAL_KEY, () => fetchGroceryBasketPrices(prevSnapshot), {
-  ttlSeconds: CACHE_TTL,
-  // 24 countries are fetched SERIALLY (items within a country run concurrently);
-  // per-country critical path is ~8s healthy but ~25s degraded (direct 8s fails →
-  // EXA 15s / Firecrawl 30s on the priced item), so a full run is ~192s healthy but
-  // ~600s degraded — routinely over the default 240s fetch-phase deadline (lockTtlMs
-  // 120s + 120s margin), tripping the #4786 backstop into a graceful exit-75 "crash"
-  // (issue #4864). Every fetch is individually bounded (8/15/30s AbortSignal.timeout),
-  // so this is legitimate serialized latency, not a hang. Size lockTtlMs to the real
-  // worst-case runtime so the deadline (lockTtlMs + 120s = 14min) is a genuine-hang
-  // backstop again — and so the lock outlives the run instead of lapsing at 120s.
-  lockTtlMs: 720_000, // 12min
+// Only run the seed when invoked directly (`node seed-grocery-basket.mjs`), not
+// when imported by a test — matches the repo-wide seeder main-guard idiom
+// (see seed-bigmac.mjs). Previously unguarded, so importing this module's
+// exports for testing crashed on missing Redis config.
+const isMain = process.argv[1]?.endsWith('seed-grocery-basket.mjs');
+if (isMain) {
+  const prevSnapshot = await readSeedSnapshot(CANONICAL_KEY);
 
-  validateFn: (data) => {
-    if (!data?.countries?.length) return false;
-    const minItems = Math.ceil(config.items.length * 0.4); // 40% item coverage per country
-    const covered = data.countries.filter(c => c.items.filter(i => i.available).length >= minItems);
-    if (covered.length < 5) { console.warn(`  [validate] only ${covered.length} countries with ≥40% item coverage — rejecting`); return false; }
-    return true;
-  },
-  recordCount: (data) => data?.countries?.length || 0,
-  extraKeys: prevSnapshot ? [{
-    key: `${CANONICAL_KEY}:prev`,
-    transform: () => prevSnapshot,  // write PRE-overwrite snapshot; ignore new data
-    ttl: CACHE_TTL * 2,
+  await runSeed('economic', 'grocery-basket', CANONICAL_KEY, () => fetchGroceryBasketPrices(prevSnapshot), {
+    ttlSeconds: CACHE_TTL,
+    // 24 countries are fetched SERIALLY (items within a country run concurrently);
+    // per-country critical path is ~8s healthy but ~25s degraded (direct 8s fails →
+    // EXA 15s / Firecrawl 30s on the priced item), so a full run is ~192s healthy but
+    // ~600s degraded — routinely over the default 240s fetch-phase deadline (lockTtlMs
+    // 120s + 120s margin), tripping the #4786 backstop into a graceful exit-75 "crash"
+    // (issue #4864). Every fetch is individually bounded (8/15/30s AbortSignal.timeout),
+    // so this is legitimate serialized latency, not a hang. Size lockTtlMs to the real
+    // worst-case runtime so the deadline (lockTtlMs + 120s = 14min) is a genuine-hang
+    // backstop again — and so the lock outlives the run instead of lapsing at 120s.
+    lockTtlMs: 720_000, // 12min
+
+    validateFn: (data) => {
+      if (!data?.countries?.length) return false;
+      const minItems = Math.ceil(config.items.length * 0.4); // 40% item coverage per country
+      const covered = data.countries.filter(c => c.items.filter(i => i.available).length >= minItems);
+      if (covered.length < 5) { console.warn(`  [validate] only ${covered.length} countries with ≥40% item coverage — rejecting`); return false; }
+      return true;
+    },
+    recordCount: (data) => data?.countries?.length || 0,
+    extraKeys: prevSnapshot ? [{
+      key: `${CANONICAL_KEY}:prev`,
+      transform: () => prevSnapshot,  // write PRE-overwrite snapshot; ignore new data
+      ttl: CACHE_TTL * 2,
+      declareRecords,
+    }] : undefined,
+
     declareRecords,
-  }] : undefined,
-
-  declareRecords,
-  schemaVersion: 1,
-  maxStaleMin: 10080,
-  sourceVersion: 'grocery-basket-v1',
-});
+    schemaVersion: 1,
+    maxStaleMin: 10080,
+    sourceVersion: 'grocery-basket-v1',
+  });
+}
