@@ -5391,6 +5391,9 @@
           "path": "scripts/generate-oref-locations.mjs"
         },
         {
+          "path": "scripts/seed-bigmac.mjs"
+        },
+        {
           "path": "scripts/seed-cyber-threats.mjs"
         },
         {
