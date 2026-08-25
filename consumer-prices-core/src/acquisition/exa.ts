@@ -1,6 +1,41 @@
 import Exa from 'exa-js';
 import type { AcquisitionProvider, ExtractResult, ExtractSchema, FetchOptions, FetchResult, SearchOptions, SearchResult } from './types.js';
 
+// Free/self-hosted first: SearXNG covers the same "URL discovery on a
+// retailer domain" job Exa's neural search does here, site:-restricted to
+// the same includeDomains Exa would target. Returns null (not []) on any
+// miss so the caller falls through to the paid Exa call below rather than
+// mistaking "no free hit" for "confirmed zero results".
+async function searchSearxng(query: string, opts: SearchOptions): Promise<SearchResult[] | null> {
+  const baseUrl = process.env.SEARXNG_URL;
+  if (!baseUrl) return null;
+
+  const siteFilter = opts.includeDomains?.length
+    ? ` (${opts.includeDomains.map((d) => `site:${d}`).join(' OR ')})`
+    : '';
+  const url = new URL('/search', baseUrl);
+  url.searchParams.set('q', query + siteFilter);
+  url.searchParams.set('format', 'json');
+
+  try {
+    const response = await globalThis.fetch(url, {
+      headers: { Accept: 'application/json', 'User-Agent': 'worldmonitor-consumer-prices/1.0' },
+      signal: AbortSignal.timeout(opts.timeout ?? 15_000),
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as {
+      results?: Array<{ url?: string; title?: string; content?: string }>;
+    };
+    const results = (payload.results ?? [])
+      .filter((r): r is { url: string; title?: string; content?: string } => !!r.url)
+      .slice(0, opts.numResults ?? 10)
+      .map((r) => ({ url: r.url, title: r.title ?? '', text: r.content || undefined }));
+    return results.length ? results : null;
+  } catch {
+    return null;
+  }
+}
+
 export class ExaProvider implements AcquisitionProvider {
   readonly name = 'exa' as const;
 
@@ -34,6 +69,9 @@ export class ExaProvider implements AcquisitionProvider {
   }
 
   async search(query: string, opts: SearchOptions = {}): Promise<SearchResult[]> {
+    const searxResults = await searchSearxng(query, opts);
+    if (searxResults) return searxResults;
+
     const result = await this.request<{
       results?: Array<{
         url: string;

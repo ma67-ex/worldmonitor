@@ -3,6 +3,7 @@ import { ExaProvider } from './exa.js';
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  delete process.env.SEARXNG_URL;
 });
 
 describe('ExaProvider.extract', () => {
@@ -153,6 +154,44 @@ describe('ExaProvider.extract', () => {
       numResults: 3,
       includeDomains: ['retailer.example'],
     });
+  });
+
+  it('tries SearXNG first when SEARXNG_URL is set, and skips the paid Exa call', async () => {
+    process.env.SEARXNG_URL = 'http://localhost:8080';
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ results: [{ url: 'https://retailer.example/p/bread', title: 'White Bread', content: 'SGD 4.95' }] }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const results = await new ExaProvider('test-key').search('white bread', { includeDomains: ['retailer.example'] });
+
+    expect(results).toEqual([{ url: 'https://retailer.example/p/bread', title: 'White Bread', text: 'SGD 4.95' }]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const requestedUrl = new URL(String(fetchMock.mock.calls[0]?.[0]));
+    expect(requestedUrl.origin + requestedUrl.pathname).toBe('http://localhost:8080/search');
+    expect(requestedUrl.searchParams.get('q')).toBe('white bread (site:retailer.example)');
+  });
+
+  it('falls through to the paid Exa call when SearXNG returns no results', async () => {
+    process.env.SEARXNG_URL = 'http://localhost:8080';
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ results: [] }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ results: [{ url: 'https://retailer.example/p/bread', title: 'White Bread' }] }),
+          { status: 200 },
+        ),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const results = await new ExaProvider('test-key').search('white bread');
+
+    expect(results).toEqual([{ url: 'https://retailer.example/p/bread', title: 'White Bread' }]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('https://api.exa.ai/search');
   });
 
   it('surfaces malformed structured summaries as provider errors', async () => {
