@@ -1070,12 +1070,12 @@ function claims(s) {
     { file: 'public/home.md', re: /(\d+)\s+data layers, \d+\+\s+observed upstream hosts, and \d+\+\s+curated news feeds/, value: s.layerDefinitions },
     { file: 'public/home.md', re: /(\d+)\+\s+observed upstream hosts/, value: s.sourceAttributionHosts },
     { file: 'middleware.ts', re: /(\d+)\+\s+observed upstream hosts/, value: s.sourceAttributionHosts },
-    { file: 'public/pricing.md', re: /Includes: (\d+)\s+map layers \(all free except Resilience/, value: s.layerDefinitions },
+    { file: 'public/pricing.md', re: /Includes: (\d+)\s+map layers, all free/, value: s.layerDefinitions },
     { file: 'public/pricing.md', re: /(\d+)\+\s+observed upstream hosts/, value: s.sourceAttributionHosts },
-    { file: 'public/pricing.md', re: /"(\d+)\s+map layers \(Resilience is Pro\)"/, value: s.layerDefinitions },
-    { file: 'docs/pricing.mdx', re: /\*\*Free\*\* — (\d+)\s+map layers \(all free except Resilience/, value: s.layerDefinitions },
+    { file: 'public/pricing.md', re: /"(\d+)\s+map layers"/, value: s.layerDefinitions },
+    { file: 'docs/pricing.mdx', re: /\*\*Free\*\* — (\d+)\s+map layers, all free/, value: s.layerDefinitions },
     { file: 'docs/pricing.mdx', re: /(\d+)\+\s+observed upstream hosts/, value: s.sourceAttributionHosts },
-    { file: 'docs/accounts.mdx', re: /(\d+)\s+map layers \(all but the Pro-only Resilience layer\)/, value: s.layerDefinitions },
+    { file: 'docs/accounts.mdx', re: /(\d+)\s+map layers, 500\+ feeds/, value: s.layerDefinitions },
     { file: 'docs/zh/pricing.mdx', re: /\*\*Free\*\* — (\d+)\s*个地图图层/, value: s.layerDefinitions },
     { file: 'docs/zh/accounts.mdx', re: /Free 套餐下列出的所有功能 — (\d+)\s*个地图图层/, value: s.layerDefinitions },
 
@@ -1563,9 +1563,40 @@ export const PLAN_LAYER_COPY_SURFACES = [
 export const PLAN_LAYER_PRO_ONLY_KEY = 'resilienceScore';
 const PLAN_LAYER_PRO_ONLY_LABEL = 'Resilience';
 
+// De-paywalled on this fork (task 03, 2026-08-22): LAYER_REGISTRY web-locks
+// nothing today, and PLAN_LAYER_PRO_ONLY_KEY exists only so the copy has a
+// stated target to return to IF a layer is ever re-locked. The literal
+// substrings below are what every one of the 8 surfaces actually said while
+// Resilience was still marked Pro — a regression lock against that specific
+// stale claim reappearing, not a general "mentions both words" heuristic.
+const STALE_LOCKED_LAYER_PATTERNS = [
+  /except (?:the )?Resilience/,
+  /Pro-only Resilience/,
+  /仅\s*Resilience/,
+  /除\s*Resilience/,
+];
+
 export function validatePlanLayerEntitlementCopy(stats, readFile = read) {
   const failures = [];
   const locked = stats.lockedLayerKeys ?? [];
+
+  if (locked.length === 0) {
+    for (const file of PLAN_LAYER_COPY_SURFACES) {
+      let text;
+      try {
+        text = readFile(file);
+      } catch {
+        failures.push(`${file}: file not found`);
+        continue;
+      }
+      if (STALE_LOCKED_LAYER_PATTERNS.some((re) => re.test(text))) {
+        failures.push(
+          `${file}: free-tier copy still claims a Pro-only map layer exists, but LAYER_REGISTRY web-locks nothing (#5387 follow-up)`,
+        );
+      }
+    }
+    return failures;
+  }
 
   if (locked.join(',') !== PLAN_LAYER_PRO_ONLY_KEY) {
     failures.push(

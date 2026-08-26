@@ -37,11 +37,12 @@ const REAL_STATS = computeStats();
 const ONLY_LOCKED = { lockedLayerKeys: [PLAN_LAYER_PRO_ONLY_KEY] };
 
 describe('locked-layer set', () => {
-  it('derives exactly one web-locked layer from the real registry', () => {
+  it('derives no web-locked layer from the real registry (task 03: de-paywalled 2026-08-22)', () => {
     // The desktop-only `_desktop ? 'locked' : undefined` ternaries on
     // iranAttacks/gpsJamming must NOT count — plan copy describes the web.
-    assert.deepEqual(REAL_STATS.lockedLayerKeys, [PLAN_LAYER_PRO_ONLY_KEY]);
-    assert.equal(REAL_STATS.lockedLayerDefinitions, 1);
+    // resilienceScore itself carries no 'locked' marker any more either.
+    assert.deepEqual(REAL_STATS.lockedLayerKeys, []);
+    assert.equal(REAL_STATS.lockedLayerDefinitions, 0);
   });
 
   it('publishes no free-layer count, which would not be derivable', () => {
@@ -51,33 +52,56 @@ describe('locked-layer set', () => {
     assert.equal((REAL_STATS as Record<string, unknown>).freeLayerDefinitions, undefined);
   });
 
-  it('fires when a SECOND layer becomes Pro-locked', () => {
-    const failures = validatePlanLayerEntitlementCopy(
-      { lockedLayerKeys: ['cables', PLAN_LAYER_PRO_ONLY_KEY] },
-      read,
-    );
+  it('fires when a layer becomes Pro-locked while the copy still claims nothing is locked', () => {
+    const failures = validatePlanLayerEntitlementCopy({ lockedLayerKeys: ['cables'] }, read);
     assert.equal(failures.length, 1);
-    assert.match(failures[0], /web-locks \[cables, resilienceScore\]/);
+    assert.match(failures[0], /web-locks \[cables\]/);
     // The operator needs to be told WHICH copy now over-promises.
     for (const surface of PLAN_LAYER_COPY_SURFACES) assert.ok(failures[0].includes(surface));
   });
-
-  it('fires when the Pro-only layer is unlocked without updating the copy', () => {
-    const failures = validatePlanLayerEntitlementCopy({ lockedLayerKeys: [] }, read);
-    assert.equal(failures.length, 1);
-    assert.match(failures[0], /web-locks \[\]/);
-  });
 });
 
-describe('copy surfaces', () => {
-  it('passes on the real repo', () => {
+// The empty-lock-set branch is the PERMANENT real state since task 03, not a
+// transient error case — validatePlanLayerEntitlementCopy checks the copy
+// directly for the stale claim instead of just diffing against a fixed key.
+describe('copy surfaces — de-paywalled (no locked layer)', () => {
+  it('passes on the real repo — no surface still claims a Pro-only layer', () => {
     assert.deepEqual(validatePlanLayerEntitlementCopy(REAL_STATS, read), []);
   });
 
+  it('fires when a surface regresses to the retired "except Resilience" claim', () => {
+    const failures = validatePlanLayerEntitlementCopy(REAL_STATS, (p: string) =>
+      p === 'docs/accounts.mdx'
+        ? read(p).replace('58 map layers', '58 map layers (all but the Pro-only Resilience layer)')
+        : read(p),
+    );
+    assert.equal(failures.length, 1);
+    assert.match(failures[0], /docs\/accounts\.mdx: free-tier copy still claims a Pro-only map layer exists/);
+  });
+
+  it('reports a missing surface rather than passing it over', () => {
+    const failures = validatePlanLayerEntitlementCopy(REAL_STATS, (p: string) => {
+      if (p === 'docs/accounts.mdx') throw new Error('ENOENT');
+      return read(p);
+    });
+    assert.deepEqual(failures, ['docs/accounts.mdx: file not found']);
+  });
+});
+
+// Forward-compat path: if a layer is ever re-locked, PLAN_LAYER_PRO_ONLY_KEY
+// gives the copy a stated target to name again. Real surfaces contain zero
+// mentions of "Resilience" today (task 03 removed the carve-out everywhere,
+// not just the qualifier), so this synthesizes a world where every surface
+// WAS updated to name it except the one under test.
+describe('copy surfaces — hypothetical single-lock scenario', () => {
   it('fires once per surface that stops naming the Pro-only layer', () => {
     for (const dropped of PLAN_LAYER_COPY_SURFACES) {
+      // pro-test/src/locales/en.json legitimately says "Resilience" elsewhere
+      // (neutral UI chip/stat labels, unrelated to pricing) even at baseline
+      // — replaceAll guarantees the "dropped" surface truly has zero
+      // mentions rather than assuming baseline absence.
       const failures = validatePlanLayerEntitlementCopy(ONLY_LOCKED, (p: string) =>
-        p === dropped ? read(p).replaceAll('Resilience', 'Instability') : read(p),
+        p === dropped ? read(p).replaceAll('Resilience', 'Instability') : `${read(p)}\nResilience`,
       );
       assert.equal(failures.length, 1, `${dropped}: expected exactly one failure`);
       assert.match(failures[0], new RegExp(`^${dropped}: free-tier copy must name`));
@@ -87,7 +111,7 @@ describe('copy surfaces', () => {
   it('reports a missing surface rather than passing it over', () => {
     const failures = validatePlanLayerEntitlementCopy(ONLY_LOCKED, (p: string) => {
       if (p === 'docs/accounts.mdx') throw new Error('ENOENT');
-      return read(p);
+      return `${read(p)}\nResilience`;
     });
     assert.deepEqual(failures, ['docs/accounts.mdx: file not found']);
   });

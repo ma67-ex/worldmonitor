@@ -83,6 +83,11 @@ async function loadChatAnalystPanel() {
       export function readClientEntitlementBelief() {
         return { entitlementTier: null, authRole: null };
       }
+      // Anonymous/no-access posture, matching readClientEntitlementBelief
+      // above — same non-configurable false country-deep-dive-panel-harness
+      // uses as its default (that harness accepts a premiumAccess param this
+      // one doesn't need yet).
+      export function hasPremiumAccess() { return false; }
     `],
     ['auth-state-stub', `
       export function getAuthState() { return { user: null }; }

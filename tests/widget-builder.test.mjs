@@ -1803,47 +1803,50 @@ describe('PRO widget — i18n keys and CSS', () => {
 });
 
 // ---------------------------------------------------------------------------
-// PRO widget — edge-proxy auth (Convex entitlement fallback for paid users)
+// PRO widget — edge-proxy auth (task 08: any valid session is Pro, no billing)
 // ---------------------------------------------------------------------------
 //
-// Dodo webhook does NOT sync Clerk publicMetadata.plan, so a paying subscriber's
-// Clerk session.role stays 'free' indefinitely. The edge proxy at
-// api/widget-agent.ts must accept EITHER Clerk role==='pro' OR Convex
-// entitlement tier>=1, mirroring server/_shared/premium-check.ts::isCallerPremium
-// and server/gateway.ts:521-526. A regression here surfaces as a misleading
-// "PRO key rejected. Update wm-pro-key…" 403 in the modal — the user has no
-// tester key, so the suggested action is a dead end.
-describe('widget-agent edge proxy — Convex entitlement fallback', () => {
-  const edge = src('api/widget-agent.ts');
+// This fork runs no billing stack (docs/tasks/abdullah/08-server-entitlement-
+// stripping.md). The Clerk-role/Convex-entitlement check this file used to
+// have was removed: a valid Bearer session now sets isPro = true
+// unconditionally, and getEntitlements is never called on this path. Locks in
+// the CURRENT (correct, de-paywalled) shape — a regression back toward the
+// old gate would 403 every user again, same failure mode the old tests here
+// used to guard against from the other direction.
+describe('widget-agent edge proxy — Bearer session auth (task 08)', () => {
+  const edge = src('api/_widget-agent.ts');
 
-  it('imports getEntitlements from server/_shared/entitlement-check', () => {
+  it('does not reference getEntitlements — the Convex check was removed entirely', () => {
     assert.ok(
-      /import\s*\{[^}]*\bgetEntitlements\b[^}]*\}\s*from\s*['"][^'"]*entitlement-check['"]/.test(edge),
-      'api/widget-agent.ts must import getEntitlements for Dodo entitlement fallback',
+      !/getEntitlements/.test(edge),
+      'api/_widget-agent.ts must not reference getEntitlements — task 08 removed the entitlement check',
     );
   });
 
-  it('Clerk JWT path falls back to Convex entitlement when role !== "pro"', () => {
+  it('Bearer-token branch sets isPro unconditionally once the session is valid', () => {
     const bearerIdx = edge.indexOf("authHeader?.startsWith('Bearer ')");
-    assert.ok(bearerIdx !== -1, 'Bearer-token branch not found in api/widget-agent.ts');
-    // Constrain the search to the bearer-token branch only.
+    assert.ok(bearerIdx !== -1, 'Bearer-token branch not found in api/_widget-agent.ts');
     const region = edge.slice(bearerIdx, bearerIdx + 2000);
     assert.ok(
-      region.includes('getEntitlements(session.userId)'),
-      'Bearer-token branch must call getEntitlements(session.userId) when Clerk role !== "pro"',
+      /if\s*\(\s*!session\.valid\s*\)[\s\S]{0,80}401/.test(region),
+      'An invalid/expired session must still get a real 401',
     );
     assert.ok(
-      /features\.tier\s*>=\s*1/.test(region),
-      'Bearer-token branch must accept Convex entitlement tier >= 1',
+      /isPro = true;/.test(region),
+      'A valid session must set isPro = true unconditionally — no role or tier check',
     );
   });
 
-  it('does NOT 403 immediately on session.role !== "pro"', () => {
-    // The legacy shape `if (session.role !== 'pro') return 403` is the bug —
-    // it would short-circuit before the Convex fallback. Lock it out.
+  it('does not gate on session.role or a Convex entitlement tier', () => {
+    const bearerIdx = edge.indexOf("authHeader?.startsWith('Bearer ')");
+    const region = edge.slice(bearerIdx, bearerIdx + 2000);
     assert.ok(
-      !/if\s*\(\s*session\.role\s*!==\s*['"]pro['"]\s*\)\s*\{\s*return\s+json\([^}]*403/.test(edge),
-      'api/widget-agent.ts must NOT 403 on session.role !== "pro" without checking Convex entitlement',
+      !/session\.role\s*!==\s*['"]pro['"]/.test(region),
+      'Bearer-token branch must not re-introduce a Clerk-role check — task 08 removed it on purpose',
+    );
+    assert.ok(
+      !/features\.tier/.test(region),
+      'Bearer-token branch must not re-introduce a Convex tier check — task 08 removed it on purpose',
     );
   });
 });
@@ -2192,32 +2195,25 @@ describe('WidgetChatModal — preflight 403 message branches on auth mode', () =
 });
 
 // ---------------------------------------------------------------------------
-// widget-agent edge proxy — observability for fail-closed entitlement 403s
+// widget-agent edge proxy — no credentials still gets a real 403
 // ---------------------------------------------------------------------------
 //
-// When getEntitlements returns null, callers can't tell "user genuinely not
-// entitled" from "entitlement service degraded" — both shapes 403 paying users
-// during a Convex/Upstash outage. Emit a structured log at the 403 site so
-// on-call can grep Vercel logs and disambiguate incident vs not-entitled
-// without waiting for refund tickets.
-describe('widget-agent edge proxy — fail-closed observability', () => {
-  const edge = src('api/widget-agent.ts');
+// Task 08 removed the entitlement-denial 403 (and the structured logging that
+// used to sit at that site) entirely — there is no more Pro/free split to
+// observe. What's still real: a request with no Bearer session AND no legacy
+// tester key must still be rejected, same contract widget-agent-billing-
+// denial.test.ts locks in for that same path.
+describe('widget-agent edge proxy — no-credentials request', () => {
+  const edge = src('api/_widget-agent.ts');
 
-  it('403 site emits a structured log with reason + userId + entitlementTier', () => {
-    const idx = edge.indexOf("error: 'Pro subscription required'");
-    assert.ok(idx !== -1, 'Pro-required 403 site not found');
-    // Walk backward from the 403 to find the preceding console.warn — must
-    // sit in the same allowed-check block, not in some unrelated error path.
-    const before = edge.slice(Math.max(0, idx - 1500), idx);
+  it('still 403s when there is no Bearer session and no legacy tester key', () => {
     assert.ok(
-      /console\.warn\([^)]*widget-agent[^)]*pro-required/i.test(before),
-      'A console.warn naming "widget-agent" + "pro-required" must precede the 403 return',
+      !edge.includes("error: 'Pro subscription required'"),
+      'the old entitlement-denial 403 message must not reappear — task 08 removed that branch',
     );
-    assert.ok(before.includes('reason'), 'Structured log must include "reason" field (not_entitled vs service_unavailable)');
-    assert.ok(before.includes('userId'), 'Structured log must include userId for grep/correlation');
     assert.ok(
-      before.includes('service_unavailable') && before.includes('not_entitled'),
-      'Structured log must distinguish service_unavailable (Convex/Redis down) from not_entitled (real free user)',
+      edge.includes("return json({ error: 'Forbidden' }, 403, corsHeaders);"),
+      'the legacy no-credentials 403 (Forbidden) must still exist for the no-Bearer, no-tester-key case',
     );
   });
 });

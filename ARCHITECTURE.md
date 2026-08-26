@@ -46,7 +46,7 @@ World Monitor is a real-time global intelligence dashboard built as a TypeScript
         │ CoinGeck│ │  FRED   │ │ FIRMS   │
         │   ...   │ │   ...   │ │   ...   │
         └─────────┘ └─────────┘ └─────────┘
-           547+ observed upstream hosts
+           548+ observed upstream hosts
 ```
 
 **Source files**: `package.json`, `vercel.json`
@@ -373,6 +373,7 @@ Runs before every `git push`:
 | `china-decision-parity-live.yml` | 6-hourly cron, push to main (audit paths), manual (optional staging URL) | Live half of the China decision-signal parity audit: probes the deployed composition RPC and the public `chinaDecisionSignals` bootstrap projection for the six-domain contract and a canonical snapshot under one hour old (#5643 — the probe existed but nothing invoked it, and `--require-live` keeps a lost `--url` from passing vacuously) |
 | `security-audit.yml` | PR, push to main, daily cron, manual | Production dependency audits for every tracked `package-lock.json` workspace, failing on unbaselined high/critical advisories |
 | `seed-freshness-monitor.yml` | 15-minute cron, manual | Enforces production ingestion acceptance after a green scheduled main gate; fails on every actionable compact-health problem except explicitly on-demand sources without grading production before Railway deploys or runs |
+| `scenario-worker-drain.yml` | 5-minute cron, manual | Drains `scenario-queue:pending` via `scripts/scenario-worker.mjs` until empty or a 4-minute budget, then exits — replaces an always-on Railway worker (real recurring cost) with idle-time-costs-nothing polling; trades up to ~5 minutes of pickup latency, which the client already tolerates via async status polling |
 | `railway-deploy-drift.yml` | Hourly cron, manual | Runs two independent read-only checks against the exact production fleet: Viewer-safe source/build/deploy configuration drift and deployment/Git-closure drift. It has no mutation, dispatch, retry, approval, or acceptance-baseline path |
 | `railway-deploy-trigger.yml` | Manual rollback only | Keeps the legacy reconciler quiesced unless an operator explicitly activates the bounded rollback path; it does not own normal Railway deployment creation |
 | `analytics-collector-monitor.yml` | 15-minute cron, manual | Probes the self-hosted Umami collector directly (heartbeat, tracker script, ingest route) and fails when events are being dropped — Railway reported a green deployment through the 4-day #5565 blackout, so deployment status is not trusted here |
