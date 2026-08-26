@@ -20,7 +20,7 @@ vi.mock("../auth-session", () => ({
   validateBearerToken: (...a: unknown[]) => validateBearerToken(...a),
 }));
 
-// api/widget-agent.ts reads these at module load. Also imported at
+// api/_widget-agent.ts reads these at module load. Also imported at
 // server/__tests__/widget-agent-billing-denial.test.ts's original path,
 // renamed to api/_widget-agent.ts in commit b5839d9b5 (Vercel Hobby's
 // 12-function consolidation) — this import was never updated until now.

@@ -1,24 +1,22 @@
 {
   "_generated": "scripts/docs-stats.mjs — do not edit by hand; run `npm run docs:stats`",
-  "layerDefinitions": 56,
-  "lockedLayerDefinitions": 1,
-  "lockedLayerKeys": [
-    "resilienceScore"
-  ],
+  "layerDefinitions": 58,
+  "lockedLayerDefinitions": 0,
+  "lockedLayerKeys": [],
   "tier1Countries": 31,
   "rankableUniverseCountries": 196,
   "variantLayers": {
-    "full": 37,
+    "full": 39,
     "tech": 13,
-    "finance": 17,
+    "finance": 19,
     "happy": 6,
-    "commodity": 18,
-    "energy": 18
+    "commodity": 20,
+    "energy": 20
   },
   "variantCount": 6,
-  "componentTopLevelTsFiles": 186,
-  "serviceTopLevelEntries": 234,
-  "apiEndpointEntries": 91,
+  "componentTopLevelTsFiles": 184,
+  "serviceTopLevelEntries": 240,
+  "apiEndpointEntries": 23,
   "panelClasses": 109,
   "protoFiles": 298,
   "protoServices": 36,
@@ -85,6 +83,7 @@
     "railway-deploy-trigger-watchdog.yml",
     "railway-deploy-trigger.yml",
     "railway-reconcile-manual-recovery.yml",
+    "scenario-worker-drain.yml",
     "security-audit.yml",
     "seed-freshness-monitor.yml",
     "test-linux-app.yml",
@@ -92,20 +91,20 @@
     "typecheck.yml",
     "umami-storage-monitor.yml"
   ],
-  "workflowCount": 34,
-  "freshnessSources": 35,
+  "workflowCount": 35,
+  "freshnessSources": 39,
   "freshnessRequiredForRisk": 2,
   "feedDefinitions": 658,
   "sourceAttribution": {
-    "activeHosts": 547,
-    "structuredHosts": 296,
+    "activeHosts": 548,
+    "structuredHosts": 297,
     "feedHosts": 279,
     "operationalStatusHosts": 30,
-    "providerCount": 545,
+    "providerCount": 546,
     "observedHosts": 666,
-    "reviewNeeded": 518
+    "reviewNeeded": 519
   },
-  "sourceAttributionHosts": 547,
+  "sourceAttributionHosts": 548,
   "airportCount": 115,
   "stockExchangeCount": 29,
   "centralBankInstitutionCount": 14,
@@ -299,6 +298,18 @@
       "chinaDecisionSignals": {
         "browser": "max-age=60, stale-while-revalidate=120, stale-if-error=900",
         "cdn": "public, s-maxage=900, stale-while-revalidate=120, stale-if-error=900"
+      },
+      "canadaRoads": {
+        "browser": "max-age=60, stale-while-revalidate=120, stale-if-error=900",
+        "cdn": "public, s-maxage=900, stale-while-revalidate=120, stale-if-error=900"
+      },
+      "albertaRoads": {
+        "browser": "max-age=60, stale-while-revalidate=120, stale-if-error=900",
+        "cdn": "public, s-maxage=900, stale-while-revalidate=120, stale-if-error=900"
+      },
+      "bcOpen511": {
+        "browser": "max-age=60, stale-while-revalidate=120, stale-if-error=1800",
+        "cdn": "public, s-maxage=1800, stale-while-revalidate=300, stale-if-error=1800"
       }
     },
     "onDemandDefaultTier": "slow",
