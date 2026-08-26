@@ -49,8 +49,10 @@ Swap `BRAVE_API_KEYS` / `EXA_API_KEYS` / `FIRECRAWL_API_KEY` for self-hosted Sea
 - Live-tested the new code path with a deliberately invalid Groq key: provider selection logs correctly, hits the real Groq endpoint, HTTP 401 is caught by the pre-existing per-batch retry logic (unchanged) rather than crashing — confirms the wiring reaches production code, not just mocks.
 - 7 new unit tests (`tests/translate-locales-provider.test.mjs`) plus the 3 existing locale test files (55 tests) all pass; `translateLocale`'s own tests were untouched since it takes an injected `translate` callback and never saw the Anthropic client directly.
 
-### Task 4 — DATABASE_URL → Neon/Supabase (NOT STARTED)
-`consumer-prices-core` Postgres connection string only — no code change, just point `.env`/Railway var at a free-tier host (Neon.tech no-card, or reuse existing Supabase Postgres).
+### Task 4 — DATABASE_URL → Neon (HANDED OFF TO AKUL)
+`consumer-prices-core`'s DB client (`src/db/client.ts`) is a generic `pg.Pool` on `DATABASE_URL` — no code change needed, confirmed compatible with any Postgres host (SSL handling already generic). Corrected an earlier wrong assumption: the existing `SUPABASE_URL`/`SUPABASE_ANON_KEY` in `.env.example` is read-only access to a *third party's* public Supabase project (PIZZINT dataset maintainers), not an account Akul owns — not reusable here.
+Neon.tech confirmed the better zero-signup-cost fit over Railway's own Postgres addon: Railway's permanent free tier is only $1/month usage credit (too small for an always-on DB), Neon's free tier is a genuine indefinite 0.5GB/100 compute-hours, no card, auto-suspends when idle.
+Neon project created, connection string ready. Setting `DATABASE_URL` in Railway is Akul's action (his Railway account/deploy, not the user's) — task blocked on him, not code.
 
 ### Task 5 — Case-by-case, no clean 1:1 swap (NOT STARTED)
 `AVIATIONSTACK_API`, `WINGBITS_API_KEY`, `SCRAPECREATORS_API_KEY`, `CORRIDOR_RISK_API_KEY`, `AXIOM_API_TOKEN`, `IMF_API_KEY` — each needs its own decision (drop feature vs. degrade vs. free alt), see table above for options per service.
