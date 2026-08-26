@@ -107,7 +107,7 @@ describe('panel-layout billing-state wiring (#4771)', () => {
 
 describe('widget-agent structured billing denial (#4771)', () => {
   it('returns the structured billing-verification denial before the generic 403', async () => {
-    const src = await read('api/widget-agent.ts');
+    const src = await read('api/_widget-agent.ts');
     assert.match(src, /getBillingVerificationDenial/, 'widget-agent must import/use the shared denial helper');
     const denialIdx = src.indexOf('getBillingVerificationDenial(ent');
     const genericIdx = src.indexOf("json({ error: 'Pro subscription required' }, 403");
@@ -136,31 +136,31 @@ describe('Pro-gated endpoint policy and billing denial ordering (#5600, #5646)',
     decisionHelper?: string;
   }> = [
     {
-      file: 'api/latest-brief.ts',
+      file: 'api/_latest-brief.ts',
       decisionCall: 'checkProEntitlement(session.userId, session.role, cors)',
       decisionHelper: 'checkProEntitlement',
     },
     {
-      file: 'api/notify.ts',
+      file: 'api/_notify.ts',
       decisionCall: 'checkTierProEntitlement(session.userId, cors)',
       decisionHelper: 'checkTierProEntitlement',
     },
     {
-      file: 'api/brief/share-url.ts',
+      file: 'api/brief/_share-url.ts',
       decisionCall: 'checkProEntitlement(session.userId, session.role, cors)',
       decisionHelper: 'checkProEntitlement',
     },
     {
-      file: 'api/slack/oauth/start.ts',
+      file: 'api/slack/oauth/_start.ts',
       decisionCall: 'checkTierProEntitlement(session.userId, corsHeaders)',
       decisionHelper: 'checkTierProEntitlement',
     },
     {
-      file: 'api/discord/oauth/start.ts',
+      file: 'api/discord/oauth/_start.ts',
       decisionCall: 'checkTierProEntitlement(session.userId, corsHeaders)',
       decisionHelper: 'checkTierProEntitlement',
     },
-    { file: 'api/notification-channels.ts' },
+    { file: 'api/_notification-channels.ts' },
   ];
 
   for (const { file, decisionCall, decisionHelper } of endpoints) {
@@ -200,9 +200,9 @@ describe('Pro-gated endpoint policy and billing denial ordering (#5600, #5646)',
   }
 
   for (const file of [
-    'api/notify.ts',
-    'api/slack/oauth/start.ts',
-    'api/discord/oauth/start.ts',
+    'api/_notify.ts',
+    'api/slack/oauth/_start.ts',
+    'api/discord/oauth/_start.ts',
   ]) {
     it(`${file} does not grant notification access from Clerk role alone`, async () => {
       const src = await read(file);

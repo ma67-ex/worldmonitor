@@ -20,7 +20,7 @@ const registry = JSON.parse(
 ) as RailwayServiceEntry[];
 
 const seedSrc = readFileSync(resolve(repoRoot, 'scripts/seed-military-cii.mjs'), 'utf8');
-const healthSrc = readFileSync(resolve(repoRoot, 'api/health.js'), 'utf8');
+const healthSrc = readFileSync(resolve(repoRoot, 'api/_health.js'), 'utf8');
 
 function extractConstNumber(src: string, name: string): number {
   const match = new RegExp(`const\\s+${name}\\s*=\\s*(\\d+)\\s*;`).exec(src);
@@ -36,13 +36,13 @@ function extractConstString(src: string, name: string): string {
 
 function extractHealthMilitaryCiiSeedMeta(): { key: string; maxStaleMin: number } {
   const match = /militaryCii:\s*\{\s*key:\s*'([^']+)'\s*,\s*maxStaleMin:\s*(\d+)\s*\}/.exec(healthSrc);
-  assert.ok(match, 'api/health.js must define SEED_META.militaryCii');
+  assert.ok(match, 'api/_health.js must define SEED_META.militaryCii');
   return { key: match[1]!, maxStaleMin: Number(match[2]) };
 }
 
 function extractHealthMilitaryCiiDataKey(): string {
   const match = /militaryCii:\s*'([^']+)'/.exec(healthSrc);
-  assert.ok(match, 'api/health.js must define STANDALONE_KEYS.militaryCii');
+  assert.ok(match, 'api/_health.js must define STANDALONE_KEYS.militaryCii');
   return match[1]!;
 }
 
@@ -78,7 +78,7 @@ describe('seed-military-cii production registration', () => {
     const { maxStaleMin } = extractHealthMilitaryCiiSeedMeta();
 
     assert.equal(intervalMin, 10, 'seed-military-cii Railway cron must stay at the documented 10min cadence');
-    assert.equal(maxStaleMin, 45, 'api/health.js militaryCii maxStaleMin is the production alarm budget');
+    assert.equal(maxStaleMin, 45, 'api/_health.js militaryCii maxStaleMin is the production alarm budget');
     assert.ok(
       maxStaleMin >= intervalMin * 3,
       `militaryCii maxStaleMin (${maxStaleMin}) must tolerate at least 3 cron intervals (${intervalMin * 3})`,
@@ -89,7 +89,7 @@ describe('seed-military-cii production registration', () => {
     );
   });
 
-  it('keeps the seeder output key and freshness metadata aligned with api/health.js', () => {
+  it('keeps the seeder output key and freshness metadata aligned with api/_health.js', () => {
     const liveKey = extractConstString(seedSrc, 'LIVE_KEY');
     const liveTtlSec = extractConstNumber(seedSrc, 'LIVE_TTL');
     const seedMeta = extractHealthMilitaryCiiSeedMeta();

@@ -30,7 +30,7 @@ describe('api/brief/[userId]/[issueDate] module resolution', () => {
 
 describe('api/latest-brief module resolution', () => {
   it('loads the preview RPC handler without error', async () => {
-    const mod = await import('../api/latest-brief.ts');
+    const mod = await import('../api/_latest-brief.ts');
     assert.equal(typeof mod.default, 'function', 'handler must be a function');
     assert.equal(mod.config?.runtime, 'edge', 'route must declare edge runtime');
   });
@@ -278,7 +278,7 @@ describe('api/latest-brief retry-on-Upstash-timeout', () => {
   // of truth for the retry semantics.
 
   it('retries once on TimeoutError and returns the second attempt result', async () => {
-    const { readWithOneRetry } = await import('../api/latest-brief.ts');
+    const { readWithOneRetry } = await import('../api/_latest-brief.ts');
     let calls = 0;
     const attempt = async () => {
       calls += 1;
@@ -295,7 +295,7 @@ describe('api/latest-brief retry-on-Upstash-timeout', () => {
   });
 
   it('retries once on AbortError and returns the second attempt result', async () => {
-    const { readWithOneRetry } = await import('../api/latest-brief.ts');
+    const { readWithOneRetry } = await import('../api/_latest-brief.ts');
     let calls = 0;
     const attempt = async () => {
       calls += 1;
@@ -312,7 +312,7 @@ describe('api/latest-brief retry-on-Upstash-timeout', () => {
   });
 
   it('does NOT retry on non-timeout/abort errors (preserves fast-fail on real bugs)', async () => {
-    const { readWithOneRetry } = await import('../api/latest-brief.ts');
+    const { readWithOneRetry } = await import('../api/_latest-brief.ts');
     let calls = 0;
     const attempt = async () => {
       calls += 1;
@@ -326,7 +326,7 @@ describe('api/latest-brief retry-on-Upstash-timeout', () => {
   });
 
   it('re-throws when BOTH attempts fail with TimeoutError (503 fallback path)', async () => {
-    const { readWithOneRetry } = await import('../api/latest-brief.ts');
+    const { readWithOneRetry } = await import('../api/_latest-brief.ts');
     let calls = 0;
     const attempt = async () => {
       calls += 1;
@@ -342,7 +342,7 @@ describe('api/latest-brief retry-on-Upstash-timeout', () => {
   });
 
   it('first attempt receives FIRST_ATTEMPT_MS, retry receives RETRY_ATTEMPT_MS', async () => {
-    const mod = await import('../api/latest-brief.ts');
+    const mod = await import('../api/_latest-brief.ts');
     const observed = [];
     const attempt = async (timeoutMs) => {
       observed.push(timeoutMs);

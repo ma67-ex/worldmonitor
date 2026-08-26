@@ -1,5 +1,5 @@
 // RUN WITH: `npm run test:data` OR `node --import=tsx --test tests/mcp-proxy.test.mjs`.
-// The handler under test (api/mcp-proxy.ts) imports isCallerPremium from
+// The handler under test (api/_mcp-proxy.ts) imports isCallerPremium from
 // server/_shared/premium-check (extensionless TS). Plain `node --test`
 // cannot resolve that import and will fail with ERR_MODULE_NOT_FOUND —
 // this is expected; use tsx (the project's standard test runner).
@@ -147,7 +147,7 @@ describe('api/mcp-proxy', () => {
   beforeEach(async () => {
     // mcp-proxy migrated .js → .ts in PR #3768 to unlock the
     // isCallerPremium import from server/. Test must follow the rename.
-    const mod = await import(`../api/mcp-proxy.ts?t=${Date.now()}`);
+    const mod = await import(`../api/_mcp-proxy.ts?t=${Date.now()}`);
     handler = mod.default;
     assert.equal(mod.__setMcpProxyResolveHostnameForTest, undefined);
     setResolvedAddresses([PUBLIC_TEST_ADDRESS]);

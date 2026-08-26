@@ -56,7 +56,7 @@ function hapiHdxMetadata(resources = [hapiHdxResource(2026)]) {
 }
 
 test('humanitarian health reports partial target-country coverage', () => {
-  const healthSource = readFileSync(new URL('../api/health.js', import.meta.url), 'utf8');
+  const healthSource = readFileSync(new URL('../api/_health.js', import.meta.url), 'utf8');
   const seedSource = readFileSync(new URL('../scripts/seed-conflict-intel.mjs', import.meta.url), 'utf8');
   assert.match(
     healthSource,

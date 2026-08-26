@@ -78,9 +78,9 @@ describe('China macro production registration', () => {
   it('registers bootstrap, health, seed-health, cache-key, and slow gateway surfaces', () => {
     assert.equal(BOOTSTRAP_CACHE_KEYS.chinaMacro, 'economic:china:macro:v2');
     assert.equal(BOOTSTRAP_CACHE_KEYS.chinaReleaseCalendar, 'economic:china:release-calendar:v1');
-    assert.match(read('api/health.js'), /chinaMacro:\s*\{ key: 'seed-meta:economic:china-macro-transport'/);
-    assert.match(read('api/health.js'), new RegExp(`chinaMacro:\\s*\\{[^\\n]*maxStaleMin:\\s*${CHINA_MACRO_MAX_TRANSPORT_AGE_MIN.toLocaleString('en-US').replace(',', '_')}`));
-    assert.match(read('api/seed-health.js'), /'economic:china-macro':\s*\{ key: 'seed-meta:economic:china-macro-transport'/);
+    assert.match(read('api/_health.js'), /chinaMacro:\s*\{ key: 'seed-meta:economic:china-macro-transport'/);
+    assert.match(read('api/_health.js'), new RegExp(`chinaMacro:\\s*\\{[^\\n]*maxStaleMin:\\s*${CHINA_MACRO_MAX_TRANSPORT_AGE_MIN.toLocaleString('en-US').replace(',', '_')}`));
+    assert.match(read('api/_seed-health.js'), /'economic:china-macro':\s*\{ key: 'seed-meta:economic:china-macro-transport'/);
     assert.match(read('server/_shared/cache-keys.ts'), /CHINA_MACRO_KEY\s*=\s*BOOTSTRAP_CACHE_KEYS\.chinaMacro/);
     assert.match(read('server/gateway.ts'), /'\/api\/economic\/v1\/get-china-macro-snapshot':\s*'slow'/);
   });
@@ -103,7 +103,7 @@ describe('China macro production registration', () => {
   });
 
   it('exposes the snapshot through the economic MCP cache tool and public API path', () => {
-    const source = read('api/mcp/registry/cache-tools.ts');
+    const source = read('api/mcp/registry/_cache-tools.ts');
     assert.match(source, /BOOTSTRAP_CACHE_KEYS\.chinaMacro/);
     assert.match(source, /BOOTSTRAP_CACHE_KEYS\.chinaReleaseCalendar/);
     assert.match(source, /GET \/api\/economic\/v1\/get-china-macro-snapshot/);

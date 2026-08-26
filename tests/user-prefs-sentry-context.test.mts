@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildSentryContext } from '../api/user-prefs.ts';
+import { buildSentryContext } from '../api/_user-prefs.ts';
 
 // ---------------------------------------------------------------------------
 // buildSentryContext — Sentry tag/extra/fingerprint shape for /api/user-prefs

@@ -4,7 +4,7 @@
  * `setupPlaybackControl` used to hide the control behind
  * `getAuthState().user?.role === 'pro'`. Nothing in this codebase writes Clerk
  * `publicMetadata.plan`/`role` (zero `clerkClient`/`updateUser` writers; the
- * gap is documented at src/services/panel-gating.ts, api/widget-agent.ts and
+ * gap is documented at src/services/panel-gating.ts, api/_widget-agent.ts and
  * server/gateway.ts), so that field is `'free'` for EVERY account including
  * paying subscribers — the control rendered for nobody.
  *

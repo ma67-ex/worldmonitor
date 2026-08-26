@@ -17,7 +17,7 @@ describe('nlweb: /ask endpoint', () => {
   let handler;
 
   before(async () => {
-    const mod = await import(`../api/ask.ts?t=${Date.now()}`);
+    const mod = await import(`../api/_ask.ts?t=${Date.now()}`);
     handler = mod.default;
   });
 

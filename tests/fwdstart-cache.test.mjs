@@ -67,7 +67,7 @@ test('repeat fwdstart requests are served from Redis, not re-scraped', async (t)
   process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
 
   const { scrapeCalls } = installStub();
-  const { default: handler } = await import('../api/fwdstart.js');
+  const { default: handler } = await import('../api/_fwdstart.js');
 
   const first = await handler(request(), undefined);
   const firstBody = await first.text();
@@ -89,7 +89,7 @@ test('a Redis outage still serves the feed', async (t) => {
   process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
 
   const { scrapeCalls } = installStub({ redisAvailable: false });
-  const { default: handler } = await import('../api/fwdstart.js');
+  const { default: handler } = await import('../api/_fwdstart.js');
 
   const res = await handler(request(), undefined);
   assert.equal(res.status, 200, 'Redis being down must not break the feed');
@@ -117,7 +117,7 @@ test('an upstream failure with no cache still returns 502, not a fake empty feed
     throw new Error(`unexpected request: ${url}`);
   };
 
-  const { default: handler } = await import('../api/fwdstart.js');
+  const { default: handler } = await import('../api/_fwdstart.js');
   const res = await handler(request(), undefined);
   assert.equal(res.status, 502, 'a scrape failure with no cached items must not look like an empty feed');
   assert.equal(store.size, 0, 'a failed scrape must not write anything to the cache');
@@ -144,7 +144,7 @@ test('an empty extraction is not cached, so a broken parser cannot persist a hol
     throw new Error(`unexpected request: ${url}`);
   };
 
-  const { default: handler } = await import('../api/fwdstart.js');
+  const { default: handler } = await import('../api/_fwdstart.js');
   await handler(request(), undefined);
   assert.equal(store.size, 0, 'a zero-item extraction must not be persisted');
 });

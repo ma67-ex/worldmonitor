@@ -135,7 +135,7 @@ describe('classifyPremiumDenial — 403 entitlement denials', () => {
 
   /**
    * Every entitlement 403 our own handlers emit carries a JSON `error` string
-   * (api/latest-brief.ts:199-207, api/chat-analyst.ts:126, and every branch of
+   * (api/_latest-brief.ts:199-207, api/_chat-analyst.ts:126, and every branch of
    * entitlement-check.ts). So a 403 with no parseable code did NOT come from
    * our entitlement logic — it is an intermediary (WAF, CDN, proxy). Calling
    * that "Pro required" is the exact conflation this change exists to remove.
@@ -153,8 +153,8 @@ describe('classifyPremiumDenial — 403 entitlement denials', () => {
   /**
    * Every string a 403 actually carries today. Drift here silently turns an
    * upsell into a retry loop (or back again), so they are pinned explicitly:
-   *   api/latest-brief.ts:201                  → 'pro_required'
-   *   api/chat-analyst.ts:126                  → 'Pro subscription required'
+   *   api/_latest-brief.ts:201                  → 'pro_required'
+   *   api/_chat-analyst.ts:126                  → 'Pro subscription required'
    *   server/_shared/entitlement-check.ts:556  → 'Upgrade required'
    *   server/_shared/entitlement-check.ts:446  → 'Subscription lapsed'
    *   api/internal/mcp-grant-*.ts              → 'INSUFFICIENT_TIER'
@@ -526,8 +526,8 @@ describe('premium panels route their denials through the classifier', () => {
  * is genuinely not a statement about the user's plan.
  */
 const DENIAL_SOURCES = [
-  'api/latest-brief.ts',
-  'api/chat-analyst.ts',
+  'api/_latest-brief.ts',
+  'api/_chat-analyst.ts',
   'server/_shared/entitlement-check.ts',
 ];
 
@@ -537,10 +537,10 @@ const DENIAL_SOURCES = [
  * upsell. Each must stay non-upselling.
  */
 const KNOWN_NON_ENTITLEMENT_CODES = new Set([
-  'Origin not allowed',            // api/latest-brief.ts — rejected origin
+  'Origin not allowed',            // api/_latest-brief.ts — rejected origin
   'Unable to verify entitlements', // entitlement-check.ts — fail-closed lookup
   'Unable to verify API access',   // entitlement-check.ts — 503 verification path
-  'UNAUTHENTICATED',               // api/latest-brief.ts — 401
+  'UNAUTHENTICATED',               // api/_latest-brief.ts — 401
   'Authentication required',       // entitlement-check.ts — 403-shaped 401
 ]);
 
@@ -551,7 +551,7 @@ const KNOWN_NON_ENTITLEMENT_CODES = new Set([
  * billing-verification strings are NOT reachable this way any more — they moved
  * behind `classifyBillingVerification`, which returns `{ message, status }` for a
  * renderer to map onto the wire `error` field. Widening the pattern to `message:`
- * is the wrong fix: it also scrapes prose fields like api/latest-brief.ts's
+ * is the wrong fix: it also scrapes prose fields like api/_latest-brief.ts's
  * `message: 'The Brief is available on the Pro plan.'`, which is copy, not a code.
  * Those strings are covered by executing the classifier instead — see the
  * describe block below this one.
@@ -631,7 +631,7 @@ describe('classifier vocabulary matches what the servers actually emit', () => {
  * covering them (it kept passing on the file's other literals).
  *
  * Widening the regex to `message:` is the wrong repair: it also scrapes prose
- * fields like api/latest-brief.ts's `message: 'The Brief is available on the Pro
+ * fields like api/_latest-brief.ts's `message: 'The Brief is available on the Pro
  * plan.'`, which is copy rather than a code. Instead, CALL the classifier and
  * assert the client agrees with every string it can actually emit. Exact by
  * construction, and it cannot drift — a new billing status shows up here the

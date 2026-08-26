@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { __testing__ } from '../api/health.js';
+import { __testing__ } from '../api/_health.js';
 
 const {
   HEALTH_VERDICT_SNAPSHOT_KEY,

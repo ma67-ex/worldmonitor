@@ -144,7 +144,7 @@ describe('why-matters story block row forgery', () => {
   });
 
   it('collapses newlines at the sanitizer, so the legacy relay path inherits the guard', () => {
-    // api/internal/brief-why-matters.ts:303 feeds buildWhyMattersUserPrompt
+    // api/internal/_brief-why-matters.ts:303 feeds buildWhyMattersUserPrompt
     // from this same function, so the fix has to live here rather than at the
     // analyst call site.
     const safe = sanitizeStoryFields({

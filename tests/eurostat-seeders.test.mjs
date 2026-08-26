@@ -186,14 +186,14 @@ describe('Registry wiring (issue #3028)', () => {
   });
 
   it('health.js maps each new key to a seed-meta freshness check', async () => {
-    const src = await readFile(resolve(ROOT, 'api/health.js'), 'utf8');
+    const src = await readFile(resolve(ROOT, 'api/_health.js'), 'utf8');
     assert.match(src, /eurostatHousePrices:\s*\{[^}]*seed-meta:economic:eurostat-house-prices/);
     assert.match(src, /eurostatGovDebtQ:\s*\{[^}]*seed-meta:economic:eurostat-gov-debt-q/);
     assert.match(src, /eurostatIndProd:\s*\{[^}]*seed-meta:economic:eurostat-industrial-production/);
   });
 
   it('MCP tool registry exposes the three new EU overlay tools', async () => {
-    const src = await readFile(resolve(ROOT, 'api/mcp/registry/cache-tools.ts'), 'utf8');
+    const src = await readFile(resolve(ROOT, 'api/mcp/registry/_cache-tools.ts'), 'utf8');
     assert.match(src, /name: 'get_eu_housing_cycle'/);
     assert.match(src, /name: 'get_eu_quarterly_gov_debt'/);
     assert.match(src, /name: 'get_eu_industrial_production'/);

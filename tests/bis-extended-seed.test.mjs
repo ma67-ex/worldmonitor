@@ -60,7 +60,7 @@ describe('seed-bis-extended parser', () => {
   });
 
   it('exports per-dataset seed-meta keys distinct from the aggregate', () => {
-    // Health monitoring (api/health.js bisDsr / bisPropertyResidential /
+    // Health monitoring (api/_health.js bisDsr / bisPropertyResidential /
     // bisPropertyCommercial) points at these keys — the whole point of the
     // P1 fix is that a DSR-only outage stales ONLY bisDsr, not all three.
     assert.equal(META_KEYS.dsr, 'seed-meta:economic:bis-dsr');
@@ -288,7 +288,7 @@ describe('BIS-Extended health-check maxStaleMin co-pinned to section gate (load-
 
   const __dirname = dirname(fileURLToPath(import.meta.url));
   const root = resolve(__dirname, '..');
-  const healthSrc = readFileSync(resolve(root, 'api/health.js'), 'utf-8');
+  const healthSrc = readFileSync(resolve(root, 'api/_health.js'), 'utf-8');
   const bundleSrc = readFileSync(resolve(root, 'scripts/seed-bundle-macro.mjs'), 'utf-8');
 
   function extractBundleSectionGateMin(label) {

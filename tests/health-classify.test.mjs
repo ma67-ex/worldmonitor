@@ -15,7 +15,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { __testing__ } from '../api/health.js';
+import { __testing__ } from '../api/_health.js';
 
 const {
   classifyKey,
@@ -57,11 +57,11 @@ const classifyNewsInsights = (over = {}) => classifyKey(
   }),
 );
 
-// Mirror of the handler's overall-status computation (api/health.js ~850-859).
+// Mirror of the handler's overall-status computation (api/_health.js ~850-859).
 // The handler computes this inline; these tests exercise the LOCAL replica —
 // they document the intended HEALTHY/WARNING/DEGRADED/UNHEALTHY thresholds but
 // do NOT catch handler drift if the 0.03 constant or branch order changes in
-// api/health.js without updating here. Non-REDIS_DOWN states return HTTP 200
+// api/_health.js without updating here. Non-REDIS_DOWN states return HTTP 200
 // (verdict in the JSON `status`); REDIS_DOWN returns 503.
 function computeOverall(critCount, realWarnCount, totalChecks) {
   let status;
@@ -929,7 +929,7 @@ test('classifyKey: a blocked source with no data escalates like every other faul
 
 test('classifyKey: a collapsed forecast funnel keeps SEED_ERROR when its payload is absent', () => {
   // forecastFunnel is in EMPTY_DATA_OK_KEYS, so its absence branch resolves to
-  // OK/STALE_SEED — softer than the fault. api/health.js's own comment on the
+  // OK/STALE_SEED — softer than the fault. api/_health.js's own comment on the
   // set entry states the dependency: "A COLLAPSED funnel still surfaces via
   // seed-meta status:'error' → SEED_ERROR, which classifyKey checks before this
   // branch." A bare `&& hasData` guard would demote the collapse to a generic
@@ -1554,7 +1554,7 @@ test('classifyKey: dead relay, data still present (9h–12h window) → STALE_SE
 test('classifyKey: dead relay past the 12h TTL, data key expired → EMPTY (crit) escalation', () => {
   // Once the data key expires (after the 12h TTL on a fully-dead relay),
   // hasData=false → classifyKey hits the !hasData branch (checked BEFORE seedStale,
-  // api/health.js) and returns EMPTY (crit), escalating from the earlier STALE_SEED
+  // api/_health.js) and returns EMPTY (crit), escalating from the earlier STALE_SEED
   // warn. Verified shape: { status: 'EMPTY', records: 0 }.
   for (const [name, metaKey] of [
     ['socialVelocity', 'seed-meta:intelligence:social-reddit'],

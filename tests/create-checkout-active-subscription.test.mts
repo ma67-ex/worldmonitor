@@ -13,7 +13,7 @@ function restoreEnv(): void {
 async function importFreshCreateCheckout() {
   process.env.CONVEX_SITE_URL = 'https://convex.test';
   process.env.RELAY_SHARED_SECRET = 'relay-secret';
-  return import(`../api/create-checkout.ts?test=${Date.now()}-${Math.random()}`);
+  return import(`../api/_create-checkout.ts?test=${Date.now()}-${Math.random()}`);
 }
 
 function makeCheckoutRequest(): Request {

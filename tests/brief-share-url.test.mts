@@ -180,7 +180,7 @@ describe('BRIEF_PUBLIC_POINTER_PREFIX', () => {
 });
 
 describe('pointer wire format (P1 regression — write ↔ read must round-trip)', () => {
-  // Both write sites (api/brief/share-url.ts and api/brief/[userId]/
+  // Both write sites (api/brief/_share-url.ts and api/brief/[userId]/
   // [issueDate].ts) JSON.stringify the pointer before SETting in
   // Redis. The public route reads via readRawJsonFromUpstash which
   // ALWAYS JSON.parses — so a bare colon-delimited string would
@@ -188,7 +188,7 @@ describe('pointer wire format (P1 regression — write ↔ read must round-trip)
   // resolving the pointer. This test locks the wire format.
   it('JSON.stringify + JSON.parse + decodePublicPointer round-trips cleanly', () => {
     const encoded = encodePublicPointer('user_abc', '2026-04-18-0800');
-    // Write side: what api/brief/share-url.ts sends to Redis.
+    // Write side: what api/brief/_share-url.ts sends to Redis.
     const wireValue = JSON.stringify(encoded);
     // Read side: what readRawJsonFromUpstash returns after parsing
     // Upstash's `{result: <wireValue>}` response.

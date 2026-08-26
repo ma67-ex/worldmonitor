@@ -23,7 +23,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { authorizeProHandler } from '../api/oauth/authorize-pro.ts';
+import { authorizeProHandler } from '../api/oauth/_authorize-pro.ts';
 import { signGrant } from '../api/_mcp-grant-hmac.ts';
 import { ProMcpIssueFailed } from '../server/_shared/pro-mcp-token.ts';
 

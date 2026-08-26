@@ -5,7 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { load as loadYaml } from 'js-yaml';
 
-import { SUPPORTED_VARIANTS } from '../api/download.js';
+import { SUPPORTED_VARIANTS } from '../api/_download.js';
 import { SITE_VARIANTS } from '../src/config/variant.ts';
 
 // #5908 was not one bug — it was five surfaces disagreeing about whether the
@@ -159,7 +159,7 @@ test('the publish gate requires exactly the platforms /api/download can serve', 
   // the gate asserting only the error string would have stayed green.
   const publish = theStepNamed(desktopWorkflow.jobs['update-release-notes'].steps, 'Publish the release');
 
-  const handler = readRepoFile('api/download.js');
+  const handler = readRepoFile('api/_download.js');
   const endpointSuffixes = [...handler.matchAll(/endsWith\('([^']+)'\)/g)].map((m) => m[1]).sort();
   assert.ok(endpointSuffixes.length > 0, 'no PLATFORM_PATTERNS suffixes parsed — this guard would be vacuous');
 
@@ -282,7 +282,7 @@ test('the desktop updater does not request a per-variant download asset', () => 
 test('/api/download applies the binary-identity filter on every path', () => {
   // The updater sends no variant, so a variant-gated filter would leave the
   // app's own download unfiltered.
-  const handler = readRepoFile('api/download.js');
+  const handler = readRepoFile('api/_download.js');
   assert.match(handler, /const asset = findDesktopAsset\(assets, matcher\);/);
   assert.doesNotMatch(
     handler,

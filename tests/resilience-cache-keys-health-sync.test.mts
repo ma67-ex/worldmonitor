@@ -32,16 +32,16 @@ function cacheVersion(label: string, value: string, pattern: RegExp): number {
 //
 // If a future PR bumps any of the resilience cache key constants in
 // server/worldmonitor/resilience/v1/_shared.ts (e.g. resilience:score:v7
-// becomes v8), the api/health.js SEED_META / KEY_TO_DOMAIN registry MUST
+// becomes v8), the api/_health.js SEED_META / KEY_TO_DOMAIN registry MUST
 // be updated in the same PR or health probes will silently watch the
 // wrong key and stop paging on real staleness.
 //
-// This test reads api/health.js as text and asserts the ranking cache
+// This test reads api/_health.js as text and asserts the ranking cache
 // key string (the only resilience key currently tracked in health) is
 // literally present. When new resilience keys are added to health, add
 // their assertions here too.
 //
-// Rationale: api/health.js is a plain .js file with hand-maintained
+// Rationale: api/_health.js is a plain .js file with hand-maintained
 // string literals for the KEY_TO_DOMAIN mapping and the SEED_META
 // registry. Those string literals are the single source of truth for
 // what the health probe watches, and they are copy-pasted (not
@@ -49,13 +49,13 @@ function cacheVersion(label: string, value: string, pattern: RegExp): number {
 // match is the cheapest possible drift guard.
 
 describe('resilience cache-key health-registry sync (T1.9)', () => {
-  const healthText = readFileSync(join(repoRoot, 'api/health.js'), 'utf-8');
+  const healthText = readFileSync(join(repoRoot, 'api/_health.js'), 'utf-8');
 
-  it('RESILIENCE_RANKING_CACHE_KEY literal appears in api/health.js', () => {
+  it('RESILIENCE_RANKING_CACHE_KEY literal appears in api/_health.js', () => {
     assert.ok(
       healthText.includes(`'${RESILIENCE_RANKING_CACHE_KEY}'`) ||
         healthText.includes(`"${RESILIENCE_RANKING_CACHE_KEY}"`),
-      `api/health.js must reference ${RESILIENCE_RANKING_CACHE_KEY} in KEY_TO_DOMAIN or SEED_META. Did you bump the key in _shared.ts without updating health?`,
+      `api/_health.js must reference ${RESILIENCE_RANKING_CACHE_KEY} in KEY_TO_DOMAIN or SEED_META. Did you bump the key in _shared.ts without updating health?`,
     );
   });
 
@@ -79,25 +79,25 @@ describe('resilience cache-key health-registry sync (T1.9)', () => {
     );
   });
 
-  it('RESILIENCE_INTERVAL_KEY_PREFIX probe literal appears in api/health.js', () => {
+  it('RESILIENCE_INTERVAL_KEY_PREFIX probe literal appears in api/_health.js', () => {
     const probeKey = `${RESILIENCE_INTERVAL_KEY_PREFIX}US`;
     assert.ok(
       healthText.includes(`'${probeKey}'`) || healthText.includes(`"${probeKey}"`),
-      `api/health.js must reference ${probeKey} for the resilienceIntervals probe. Did you bump the interval key without updating health?`,
+      `api/_health.js must reference ${probeKey} for the resilienceIntervals probe. Did you bump the interval key without updating health?`,
     );
   });
 
-  it('api/seed-health.js resilience interval probe mirrors the script prefix, methodology, and formula gate', () => {
-    const seedHealthText = readFileSync(join(repoRoot, 'api/seed-health.js'), 'utf-8');
+  it('api/_seed-health.js resilience interval probe mirrors the script prefix, methodology, and formula gate', () => {
+    const seedHealthText = readFileSync(join(repoRoot, 'api/_seed-health.js'), 'utf-8');
     assert.ok(
       seedHealthText.includes(`const RESILIENCE_INTERVAL_KEY_PREFIX = '${SCRIPT_INTERVAL_KEY_PREFIX}';`) ||
         seedHealthText.includes(`const RESILIENCE_INTERVAL_KEY_PREFIX = "${SCRIPT_INTERVAL_KEY_PREFIX}";`),
-      `api/seed-health.js must mirror scripts/_resilience-intervals.mjs RESILIENCE_INTERVAL_KEY_PREFIX=${SCRIPT_INTERVAL_KEY_PREFIX}`,
+      `api/_seed-health.js must mirror scripts/_resilience-intervals.mjs RESILIENCE_INTERVAL_KEY_PREFIX=${SCRIPT_INTERVAL_KEY_PREFIX}`,
     );
     assert.ok(
       seedHealthText.includes(`const RESILIENCE_INTERVAL_METHODOLOGY = '${SCRIPT_INTERVAL_METHODOLOGY}';`) ||
         seedHealthText.includes(`const RESILIENCE_INTERVAL_METHODOLOGY = "${SCRIPT_INTERVAL_METHODOLOGY}";`),
-      `api/seed-health.js must mirror scripts/_resilience-intervals.mjs RESILIENCE_INTERVAL_METHODOLOGY=${SCRIPT_INTERVAL_METHODOLOGY}`,
+      `api/_seed-health.js must mirror scripts/_resilience-intervals.mjs RESILIENCE_INTERVAL_METHODOLOGY=${SCRIPT_INTERVAL_METHODOLOGY}`,
     );
     assert.ok(
       seedHealthText.includes("function currentResilienceCacheFormula()") &&
@@ -106,19 +106,19 @@ describe('resilience cache-key health-registry sync (T1.9)', () => {
         seedHealthText.includes("RESILIENCE_SCHEMA_V2_ENABLED") &&
         seedHealthText.includes("formula: currentResilienceCacheFormula()") &&
         seedHealthText.includes("educationState: currentResilienceEducationState()"),
-      'api/seed-health.js must mirror the server formula and education-state gates for resilience interval probes',
+      'api/_seed-health.js must mirror the server formula and education-state gates for resilience interval probes',
     );
     assert.ok(
       seedHealthText.includes("kind: 'resilience_interval'") &&
         seedHealthText.includes('isValidResilienceIntervalPayload') &&
         seedHealthText.includes('payload.p05 <= payload.p95'),
-      'api/seed-health.js must validate resilience interval payload shape before reporting healthy',
+      'api/_seed-health.js must validate resilience interval payload shape before reporting healthy',
     );
   });
 
   it('interval publication and both health surfaces share the same coverage floor', () => {
     const seedScriptText = readFileSync(join(repoRoot, 'scripts/seed-resilience-scores.mjs'), 'utf-8');
-    const seedHealthText = readFileSync(join(repoRoot, 'api/seed-health.js'), 'utf-8');
+    const seedHealthText = readFileSync(join(repoRoot, 'api/_seed-health.js'), 'utf-8');
     const expectedDeclaration = 'const RESILIENCE_INTERVAL_MIN_RECORD_COUNT = 180;';
 
     assert.ok(seedScriptText.includes(`export ${expectedDeclaration}`));
@@ -197,7 +197,7 @@ describe('resilience cache-key health-registry sync (T1.9)', () => {
     const RANKING_MIRROR_FILES = [
       'scripts/seed-resilience-scores.mjs',
       'scripts/benchmark-resilience-external.mjs',
-      'api/health.js',
+      'api/_health.js',
     ] as const;
 
     it('every score-prefix mirror uses the canonical RESILIENCE_SCORE_CACHE_PREFIX', () => {
@@ -255,43 +255,43 @@ describe('resilience cache-key health-registry sync (T1.9)', () => {
     });
   });
 
-  // Plan 2026-04-24-003 dual-registry drift guard. `api/health.js` and
-  // `api/seed-health.js` maintain INDEPENDENT registries (see
+  // Plan 2026-04-24-003 dual-registry drift guard. `api/_health.js` and
+  // `api/_seed-health.js` maintain INDEPENDENT registries (see
   // `feedback_two_health_endpoints_must_match`). They are NOT globally
   // identical — health.js watches keys seed-health.js doesn't, and vice
   // versa. Only the keys explicitly added by this PR are required in
   // BOTH registries; pre-existing recovery entries (fiscal-space,
   // reserve-adequacy, external-debt, import-hhi, fuel-stocks) live only
-  // in api/health.js by design and are NOT asserted here.
+  // in api/_health.js by design and are NOT asserted here.
   describe('resilience-recovery dual-registry parity (this PR only)', () => {
     const SHARED_RESILIENCE_KEYS = [
       'resilience:recovery:reexport-share',
       'resilience:recovery:sovereign-wealth',
     ] as const;
 
-    const healthJsText = readFileSync(join(repoRoot, 'api/health.js'), 'utf-8');
-    const seedHealthJsText = readFileSync(join(repoRoot, 'api/seed-health.js'), 'utf-8');
+    const healthJsText = readFileSync(join(repoRoot, 'api/_health.js'), 'utf-8');
+    const seedHealthJsText = readFileSync(join(repoRoot, 'api/_seed-health.js'), 'utf-8');
 
     for (const key of SHARED_RESILIENCE_KEYS) {
-      it(`'${key}' is registered in api/health.js SEED_META`, () => {
+      it(`'${key}' is registered in api/_health.js SEED_META`, () => {
         const metaKey = `seed-meta:${key}`;
         assert.ok(
           healthJsText.includes(`'${metaKey}'`) || healthJsText.includes(`"${metaKey}"`),
-          `api/health.js must register '${metaKey}' in SEED_META`,
+          `api/_health.js must register '${metaKey}' in SEED_META`,
         );
       });
 
-      it(`'${key}' is registered in api/seed-health.js SEED_DOMAINS`, () => {
+      it(`'${key}' is registered in api/_seed-health.js SEED_DOMAINS`, () => {
         assert.ok(
           seedHealthJsText.includes(`'${key}'`) || seedHealthJsText.includes(`"${key}"`),
-          `api/seed-health.js must register '${key}' in SEED_DOMAINS`,
+          `api/_seed-health.js must register '${key}' in SEED_DOMAINS`,
         );
       });
     }
   });
 
   describe('import-HHI health freshness guard', () => {
-    const healthJsText = readFileSync(join(repoRoot, 'api/health.js'), 'utf-8');
+    const healthJsText = readFileSync(join(repoRoot, 'api/_health.js'), 'utf-8');
     const onDemandBlock = healthJsText.slice(
       healthJsText.indexOf('const ON_DEMAND_KEYS'),
       healthJsText.indexOf('const EMPTY_DATA_OK_KEYS'),
@@ -305,7 +305,7 @@ describe('resilience cache-key health-registry sync (T1.9)', () => {
       assert.match(
         healthJsText,
         /recoveryImportHhi:\s*\{ key: 'seed-meta:resilience:recovery:import-hhi',\s*maxStaleMin: 50400 \}/,
-        'api/health.js must keep recoveryImportHhi maxStaleMin at 35d so missed monthly runs surface before day 46',
+        'api/_health.js must keep recoveryImportHhi maxStaleMin at 35d so missed monthly runs surface before day 46',
       );
     });
 
@@ -356,7 +356,7 @@ describe('resilience cache-key health-registry sync (T1.9)', () => {
     //   840   (14h, 2.33× cadence) — current; tolerates 1 missed tick +
     //                               ~2h jitter for in-flight deploys;
     //                               alerts at 2 missed ticks (18h gap).
-    const healthSrc = readFileSync(join(repoRoot, 'api/health.js'), 'utf-8');
+    const healthSrc = readFileSync(join(repoRoot, 'api/_health.js'), 'utf-8');
     const bundleSrc = readFileSync(join(repoRoot, 'scripts/seed-bundle-resilience.mjs'), 'utf-8');
 
     function extractMaxStaleMin(name: string): number {
@@ -404,7 +404,7 @@ describe('resilience cache-key health-registry sync (T1.9)', () => {
       // preempted tick flipped UptimeRobot WARNING for ~1min until the
       // next scheduled run caught up. Bumping to 840 keeps the
       // 2-missed-tick alert intact while absorbing the deploy-window
-      // false-positives. See api/health.js:381 comment for full
+      // false-positives. See api/_health.js:381 comment for full
       // prior-values trail.
       assert.equal(extractMaxStaleMin('resilienceIntervals'), 840);
     });
@@ -431,7 +431,7 @@ describe('resilience cache-key health-registry sync (T1.9)', () => {
     });
 
     // Greptile PR #3652 review P2 — value-pin parity for resilienceRanking.
-    // api/health.js:380-381 explicitly notes both keys must stay in sync
+    // api/_health.js:380-381 explicitly notes both keys must stay in sync
     // ("written by the SAME Resilience-Scores section"). Without this
     // assertion, a future one-off edit to resilienceRanking would silently
     // diverge from resilienceIntervals and bypass the test contract.
@@ -446,7 +446,7 @@ describe('resilience cache-key health-registry sync (T1.9)', () => {
         `written by the SAME seed-resilience-scores cron section ` +
         `(refreshRankingAggregate runs alongside the interval write), so a ` +
         `divergence would mean one alerts while the other stays green on ` +
-        `the same underlying signal — see api/health.js:380 comment.`,
+        `the same underlying signal — see api/_health.js:380 comment.`,
       );
     });
   });

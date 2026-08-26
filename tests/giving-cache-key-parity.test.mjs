@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { __testing__ as healthTesting } from '../api/health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 import { BOOTSTRAP_CACHE_KEYS as edgeBootstrapKeys } from '../api/_bootstrap-tier-keys.js';
 import { BOOTSTRAP_CACHE_KEYS as sharedBootstrapKeys } from '../shared/bootstrap-tier-keys.js';
 

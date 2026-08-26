@@ -1,14 +1,14 @@
 // #6263 item 3: `intelligence:market-implications` was absent from
-// api/seed-health.js while its sibling `news:insights` was registered, so the
+// api/_seed-health.js while its sibling `news:insights` was registered, so the
 // operator endpoint could not report the key at all.
 //
 // Not to be confused with tests/market-implications-seed-health.test.mjs,
 // which covers the PRODUCER side — scripts/seed-forecasts.mjs's failure-meta
-// contract as read by api/health.js. This file covers only the /api/seed-health
+// contract as read by api/_health.js. This file covers only the /api/seed-health
 // registration and the freshness budget that endpoint applies to the key.
 //
 // Registered on the same terms as that sibling: a coarse age view whose
-// intervalMin*2 budget must equal the api/health.js `marketImplications`
+// intervalMin*2 budget must equal the api/_health.js `marketImplications`
 // budget. Asserted BEHAVIORALLY — the endpoint is driven at the boundary and
 // one minute past it — rather than by reading the literal out of the source,
 // so a change to either side that breaks the mirror fails here.
@@ -27,8 +27,8 @@ process.env.UPSTASH_REDIS_REST_URL = 'https://redis.example.test';
 process.env.UPSTASH_REDIS_REST_TOKEN = 'token';
 process.env.WORLDMONITOR_VALID_KEYS = 'test-key';
 
-const { handleSeedHealth } = await import('../api/seed-health.js');
-const { __testing__ } = await import('../api/health.js');
+const { handleSeedHealth } = await import('../api/_seed-health.js');
+const { __testing__ } = await import('../api/_health.js');
 
 const DOMAIN = 'intelligence:market-implications';
 const META_KEY = 'seed-meta:intelligence:market-implications';
@@ -126,7 +126,7 @@ test('seed-health reports the market-implications key at all', async () => {
   assert.equal(entry.recordCount, 5, 'the count describes the cards actually being served');
 });
 
-test('seed-health holds market-implications healthy right up to the api/health.js budget', async () => {
+test('seed-health holds market-implications healthy right up to the api/_health.js budget', async () => {
   installPipelineMock(servedMeta(MAX_STALE_MIN));
   const entry = await readSeedHealth();
 
@@ -134,7 +134,7 @@ test('seed-health holds market-implications healthy right up to the api/health.j
   assert.equal(entry.ageMinutes, MAX_STALE_MIN);
 });
 
-test('seed-health stales market-implications one minute past the api/health.js budget', async () => {
+test('seed-health stales market-implications one minute past the api/_health.js budget', async () => {
   // The mirror that matters: intervalMin*2 here must equal maxStaleMin there,
   // or the two surfaces disagree about when an operator should act. Because
   // the producer holds `fetchedAt` at the served vintage rather than advancing

@@ -79,7 +79,7 @@ test('wm-session request-body read must terminate for a body that never ends', a
   })) as typeof fetch;
 
   try {
-    const { default: handler } = await import('../api/wm-session.js');
+    const { default: handler } = await import('../api/_wm-session.js');
     const body = new ReadableStream<Uint8Array>({
       start(controller) {
         controller.enqueue(new TextEncoder().encode('{"widgetKey":"'));
@@ -115,7 +115,7 @@ test('widget-agent request-body read must terminate for a body that never ends',
   const originalFetch = globalThis.fetch;
   globalThis.fetch = (() => never<Response>()) as typeof fetch;
   try {
-    const { default: handler } = await import('../api/widget-agent.ts?resource-repro=1');
+    const { default: handler } = await import('../api/_widget-agent.ts?resource-repro=1');
     const body = new ReadableStream<Uint8Array>({
       start(controller) {
         controller.enqueue(new TextEncoder().encode('{"prompt":"'));

@@ -10,7 +10,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { __testing__ } from '../api/health.js';
+import { __testing__ } from '../api/_health.js';
 import { jsonResponse } from '../api/_json-response.js';
 import { buildContentFreshnessAssessment } from '../api/_content-freshness.js';
 
@@ -420,7 +420,7 @@ describe('portwatchPortActivity classification', () => {
     assert.equal(entry.status, 'STALE_CONTENT');
   });
 
-  // api/health.js is a Vercel edge function that redeploys in minutes; the
+  // api/_health.js is a Vercel edge function that redeploys in minutes; the
   // producer is a Railway cron on a 12h cadence. Failing closed unconditionally
   // would light a warning on a key that is genuinely fine for up to a full
   // cron interval after every deploy — alarm noise that erodes the alarm.

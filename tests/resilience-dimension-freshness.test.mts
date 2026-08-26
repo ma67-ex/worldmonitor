@@ -521,15 +521,15 @@ describe('resolveSeedMetaKey (T1.5 propagation pass, P1 fix)', () => {
 
 // Registry-coverage assertion: every sourceKey in INDICATOR_REGISTRY must
 // resolve to a seed-meta key that is actually written by some seeder,
-// verified against the literal seed-meta:<...> strings in api/health.js
-// and api/seed-health.js. This locks the drift down so a future registry
+// verified against the literal seed-meta:<...> strings in api/_health.js
+// and api/_seed-health.js. This locks the drift down so a future registry
 // entry with a bad sourceKey fails CI loudly instead of silently
 // returning stale. To add a sourceKey that is intentionally untracked
 // by the health files, allowlist it in KNOWN_SEEDS_NOT_IN_HEALTH with a
 // one-line justification.
 describe('INDICATOR_REGISTRY seed-meta coverage (T1.5 P1 regression lock)', () => {
   // Seeds that are legitimately written by some seeder but do not appear
-  // in api/health.js or api/seed-health.js (e.g. because they are
+  // in api/_health.js or api/_seed-health.js (e.g. because they are
   // extra-key writes via writeExtraKeyWithMeta that no health monitor
   // tracks yet). Each entry must be verified against scripts/seed-*.mjs
   // before being added.
@@ -548,7 +548,7 @@ describe('INDICATOR_REGISTRY seed-meta coverage (T1.5 P1 regression lock)', () =
     // not strip to this shape, so SOURCE_KEY_META_OVERRIDES maps it.
     'seed-meta:economic:energy-prices',
     // PR 2 §3.4: seed-sovereign-wealth.mjs writes this via runSeed. Not
-    // yet registered in api/health.js SEED_META — per project memory
+    // yet registered in api/_health.js SEED_META — per project memory
     // feedback_health_required_key_needs_railway_cron_first.md, new
     // seed keys go through ON_DEMAND_KEYS for ~7 days of clean Railway
     // cron runs before promotion to SEED_META. A follow-up PR wires
@@ -582,7 +582,7 @@ describe('INDICATOR_REGISTRY seed-meta coverage (T1.5 P1 regression lock)', () =
     const here = dirname(fileURLToPath(import.meta.url));
     const repoRoot = resolve(here, '..');
     const known = new Set<string>(KNOWN_SEEDS_NOT_IN_HEALTH);
-    for (const path of ['api/health.js', 'api/seed-health.js']) {
+    for (const path of ['api/_health.js', 'api/_seed-health.js']) {
       for (const key of extractSeedMetaKeys(resolve(repoRoot, path))) {
         known.add(key);
       }
@@ -600,7 +600,7 @@ describe('INDICATOR_REGISTRY seed-meta coverage (T1.5 P1 regression lock)', () =
     assert.deepEqual(
       unknownResolutions,
       [],
-      `INDICATOR_REGISTRY sourceKeys resolved to seed-meta keys that do not appear in api/health.js, api/seed-health.js, or KNOWN_SEEDS_NOT_IN_HEALTH. ` +
+      `INDICATOR_REGISTRY sourceKeys resolved to seed-meta keys that do not appear in api/_health.js, api/_seed-health.js, or KNOWN_SEEDS_NOT_IN_HEALTH. ` +
         `Either update SOURCE_KEY_META_OVERRIDES in _dimension-freshness.ts or allowlist the key in KNOWN_SEEDS_NOT_IN_HEALTH with verification against scripts/seed-*.mjs: ` +
         JSON.stringify(unknownResolutions, null, 2),
     );

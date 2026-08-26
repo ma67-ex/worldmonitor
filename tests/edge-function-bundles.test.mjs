@@ -64,7 +64,7 @@ function makeRepo({ withEntries = true } = {}) {
 
   const validHandler = 'export default async function handler() { return new Response("ok"); }\n';
   write(root, '.gitignore', 'api/*/v1/\\[rpc\\].js\n');
-  write(root, 'api/health.js', validHandler);
+  write(root, 'api/_health.js', validHandler);
   write(root, 'api/normal.js', validHandler);
   write(root, 'api/paired.js', validHandler);
   write(root, 'api/paired.ts', validHandler);
@@ -86,7 +86,7 @@ describe('edge function candidate discovery', () => {
   test('selects tracked edge entries without local generated sidecar residue', () => {
     const root = makeRepo();
     assert.deepEqual(listEdgeFunctionEntries(root), [
-      'api/health.js',
+      'api/_health.js',
       'api/mcp.ts',
       'api/normal.js',
       'api/paired.js',
@@ -98,7 +98,7 @@ describe('edge function candidate discovery', () => {
 
   test('pre-push discovery skips tracked edge entries missing only from the worktree', () => {
     const root = makeRepo();
-    rmSync(join(root, 'api/health.js'));
+    rmSync(join(root, 'api/_health.js'));
 
     assert.deepEqual(listEdgeFunctionEntries(root, { caller: 'prepush' }), [
       'api/mcp.ts',
@@ -113,7 +113,7 @@ describe('edge function candidate discovery', () => {
   test('CI keeps the legacy top-level TypeScript allowlist', () => {
     const root = makeRepo();
     assert.deepEqual(listEdgeFunctionEntries(root, { caller: 'ci' }), [
-      'api/health.js',
+      'api/_health.js',
       'api/mcp.ts',
       'api/normal.js',
       'api/paired.js',
@@ -125,16 +125,16 @@ describe('edge function candidate discovery', () => {
   test('the real checker ignores sidecar residue but still bundles tracked entries', async () => {
     const root = makeRepo();
     const entries = await checkEdgeFunctionBundles({ root });
-    assert.ok(entries.includes('api/health.js'));
+    assert.ok(entries.includes('api/_health.js'));
     assert.ok(!entries.includes('api/domain/v1/[rpc].js'));
   });
 
   test('the pre-push checker ignores a tracked entry deleted only locally', async () => {
     const root = makeRepo();
-    rmSync(join(root, 'api/health.js'));
+    rmSync(join(root, 'api/_health.js'));
 
     const entries = await checkEdgeFunctionBundles({ root, caller: 'prepush' });
-    assert.ok(!entries.includes('api/health.js'));
+    assert.ok(!entries.includes('api/_health.js'));
     assert.ok(entries.includes('api/normal.js'));
   });
 
@@ -200,14 +200,14 @@ describe('edge function checker CLI contract', () => {
   test('--list prints the discovered entries as JSON', () => {
     const { status, stdout } = runChecker(makeRepo(), ['--list']);
     assert.equal(status, 0);
-    assert.ok(JSON.parse(stdout).includes('api/health.js'));
+    assert.ok(JSON.parse(stdout).includes('api/_health.js'));
   });
 
   test('--caller=ci preserves the legacy TypeScript entry scope', () => {
     const { status, stdout } = runChecker(makeRepo(), ['--list', '--caller=ci']);
     assert.equal(status, 0);
     assert.deepEqual(JSON.parse(stdout), [
-      'api/health.js',
+      'api/_health.js',
       'api/mcp.ts',
       'api/normal.js',
       'api/paired.js',
@@ -218,7 +218,7 @@ describe('edge function checker CLI contract', () => {
 
   test('--caller=prepush still passes when an unrelated tracked entry is deleted locally', () => {
     const root = makeRepo();
-    rmSync(join(root, 'api/health.js'));
+    rmSync(join(root, 'api/_health.js'));
 
     const { status, stdout, stderr } = runChecker(root, ['--caller=prepush']);
     assert.equal(status, 0, stderr);

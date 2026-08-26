@@ -1,5 +1,5 @@
 // RUN WITH: `npm run test:data` OR `node --import=tsx --test tests/docs-mcp.test.mjs`.
-// The handler under test (api/docs-mcp.ts) imports ENDPOINT_RATE_POLICIES from
+// The handler under test (api/_docs-mcp.ts) imports ENDPOINT_RATE_POLICIES from
 // server/_shared/rate-limit (extensionless TS). Plain `node --test` cannot
 // resolve that import and will fail with ERR_MODULE_NOT_FOUND — this is
 // expected; use tsx (the project's standard test runner).
@@ -10,7 +10,7 @@ import handler, {
   classifyJsonRpcRequest,
   liftProtocolErrorFromToolResult,
   normalizeToolCallResponseBody,
-} from '../api/docs-mcp.ts';
+} from '../api/_docs-mcp.ts';
 
 const originalFetch = globalThis.fetch;
 afterEach(() => {

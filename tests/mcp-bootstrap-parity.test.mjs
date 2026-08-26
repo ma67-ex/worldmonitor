@@ -1,5 +1,5 @@
 // U7 (Tier 3) — MCP parity test. Asserts that every canonical seeded cache key
-// in `api/health.js::BOOTSTRAP_KEYS` ∪ `STANDALONE_KEYS` is either:
+// in `api/_health.js::BOOTSTRAP_KEYS` ∪ `STANDALONE_KEYS` is either:
 //   (a) covered by some `TOOL_REGISTRY[i]._cacheKeys` array (CacheToolDef), OR
 //   (b) covered by some `TOOL_REGISTRY[i]._coverageKeys` array (RpcToolDef hybrid), OR
 //   (c) listed in `EXCLUDED_FROM_MCP` below with a non-empty documented reason.
@@ -13,7 +13,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { __testing__ as healthTesting } from '../api/health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 import { __testing__ as mcpTesting } from '../api/mcp.ts';
 
 const { BOOTSTRAP_KEYS, STANDALONE_KEYS } = healthTesting;
@@ -42,29 +42,29 @@ const EXCLUDED_FROM_MCP = new Map([
   // #4920 completeness-measurement ops keys (pipeline health, not content)
   // ===========================================================================
   ['news:feed-health:v1',
-    'ops surface: per-feed validation status + silent-zero streaks published by the daily feed-validation workflow; consumed by api/health.js + operators, not a queryable news slice (#4920).'],
+    'ops surface: per-feed validation status + silent-zero streaks published by the daily feed-validation workflow; consumed by api/_health.js + operators, not a queryable news slice (#4920).'],
   ['news:recall-benchmark:v1',
-    'ops surface: daily GDELT recall percentage + missed headlines for coverage monitoring; consumed by api/health.js + operators, not a queryable news slice (#4920).'],
+    'ops surface: daily GDELT recall percentage + missed headlines for coverage monitoring; consumed by api/_health.js + operators, not a queryable news slice (#4920).'],
   ['health:china-coverage:v1',
-    'operational: bounded China coverage verdict and reason codes consumed by api/health.js and the read-only operator audit; source content remains available through its domain tools, so this summary is not a queryable MCP slice (#5271).'],
+    'operational: bounded China coverage verdict and reason codes consumed by api/_health.js and the read-only operator audit; source content remains available through its domain tools, so this summary is not a queryable MCP slice (#5271).'],
   ['company-monitoring:worker-health:v1',
-    'operational: bounded Company Monitoring worker control-plane heartbeat, outcome, and counters consumed by api/health.js and operators; durable scan state remains in Convex and provider/product query surfaces are deferred beyond #6007.'],
+    'operational: bounded Company Monitoring worker control-plane heartbeat, outcome, and counters consumed by api/_health.js and operators; durable scan state remains in Convex and provider/product query surfaces are deferred beyond #6007.'],
   ['economic:global-tenders:v1:source:sam',
-    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
+    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/_health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
   ['economic:global-tenders:v1:source:ted',
-    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
+    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/_health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
   ['economic:global-tenders:v1:source:contracts-finder',
-    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
+    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/_health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
   ['economic:global-tenders:v1:source:canada-buys',
-    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
+    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/_health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
   ['economic:global-tenders:v1:source:gets',
-    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
+    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/_health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
   ['economic:global-tenders:v1:source:world-bank',
-    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
+    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/_health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
   ['military:cross-strait-activity:v1:source:taiwan-mnd',
-    'operational: Taiwan MND transport status, errors, and last-success time consumed by api/health.js; #5580 owns final MCP composition for the separately attributed official activity records.'],
+    'operational: Taiwan MND transport status, errors, and last-success time consumed by api/_health.js; #5580 owns final MCP composition for the separately attributed official activity records.'],
   ['military:cross-strait-activity:v1:source:japan-mod',
-    'operational: Japan Joint Staff transport status, errors, and last-success time consumed by api/health.js; #5580 owns final MCP composition for the separately attributed reviewed activity records.'],
+    'operational: Japan Joint Staff transport status, errors, and last-success time consumed by api/_health.js; #5580 owns final MCP composition for the separately attributed reviewed activity records.'],
   ['market:china:stock-connect:v1',
     'seeded and health-monitored only: #6155 delivers the SSE/SZSE Stock Connect turnover and margin data layer with no dashboard or MCP consumer yet. Exposing it now would advertise a slice whose framing still needs product review -- the series is GROSS northbound turnover, never the net flow the name suggests, because both exchanges stopped publishing the buy/sell split on 2024-08-16.'],
   ['economic:fred:batch:v1',
@@ -74,7 +74,7 @@ const EXCLUDED_FROM_MCP = new Map([
   // Intermediate / pipeline keys (data surfaces through a sibling tool)
   // ===========================================================================
   ['supply_chain:corridorrisk:v1',
-    'intermediate: data flows through transit-summaries:v1 (matches api/health.js:461 ON_DEMAND_KEYS rationale; explicitly NOT bundled into get_chokepoint_status to avoid duplicate exposure).'],
+    'intermediate: data flows through transit-summaries:v1 (matches api/_health.js:461 ON_DEMAND_KEYS rationale; explicitly NOT bundled into get_chokepoint_status to avoid duplicate exposure).'],
   ['military:forecast-inputs:stale:v1',
     'intermediate: late-stage seed-to-seed pipeline output, health-monitored with its own freshness budget; no direct MCP slice exists.'],
   ['military:surges:stale:v1',
@@ -94,7 +94,7 @@ const EXCLUDED_FROM_MCP = new Map([
   ['usni-fleet:sebuf:stale:v1',
     'cascade-mirror: stale USNI fleet — deferred to a future military-fleet tool.'],
   ['displacement:summary:v1:' + (new Date().getUTCFullYear() - 1),
-    'cascade-mirror: previous-year displacement snapshot used by the dashboard year-over-year diff. Current-year key is exposed via get_displacement_data; the executeTool label-walk would collide on both years (matches api/health.js:482 + api/mcp.ts:346-350 rationale).'],
+    'cascade-mirror: previous-year displacement snapshot used by the dashboard year-over-year diff. Current-year key is exposed via get_displacement_data; the executeTool label-walk would collide on both years (matches api/_health.js:482 + api/mcp.ts:346-350 rationale).'],
   ['positive-events:geo:v1',
     'cascade-mirror: live counterpart of positive_events:geo-bootstrap:v1 (covered by get_positive_events).'],
   ['aviation:delays:faa:v1',
@@ -122,15 +122,15 @@ const EXCLUDED_FROM_MCP = new Map([
   // On-demand / RPC-populated keys (no dedicated seed cron)
   // ===========================================================================
   ['infra:service-statuses:v1',
-    'on-demand: RPC-populated, seed-meta written on fresh fetch only, goes stale between visits (matches api/health.js:462 ON_DEMAND_KEYS rationale).'],
+    'on-demand: RPC-populated, seed-meta written on fresh fetch only, goes stale between visits (matches api/_health.js:462 ON_DEMAND_KEYS rationale).'],
   ['economic:macro-signals:v1',
     'on-demand: RPC cache for derived macro-signals panel; underlying inputs already exposed via get_economic_data.'],
   ['economic:bis:policy:v1',
-    'on-demand: RPC cache for BIS policy-rates extras (matches api/health.js:456 ON_DEMAND_KEYS rationale).'],
+    'on-demand: RPC cache for BIS policy-rates extras (matches api/_health.js:456 ON_DEMAND_KEYS rationale).'],
   ['economic:bis:eer:v1',
-    'on-demand: RPC cache for BIS effective exchange rates (matches api/health.js:456 ON_DEMAND_KEYS rationale).'],
+    'on-demand: RPC cache for BIS effective exchange rates (matches api/_health.js:456 ON_DEMAND_KEYS rationale).'],
   ['economic:bis:credit:v1',
-    'on-demand: RPC cache for BIS credit-to-GDP (matches api/health.js:456 ON_DEMAND_KEYS rationale).'],
+    'on-demand: RPC cache for BIS credit-to-GDP (matches api/_health.js:456 ON_DEMAND_KEYS rationale).'],
   ['supply_chain:shipping:v2',
     'on-demand: cache populated on first user query; shipping-stress index (supply_chain:shipping_stress:v1) is the canonical seeded key already exposed via get_supply_chain_data.'],
   ['supply_chain:chokepoints:v4',
@@ -142,13 +142,13 @@ const EXCLUDED_FROM_MCP = new Map([
   ['military:bases:active',
     'on-demand: RPC cache for military bases — deferred to a future expanded military tool.'],
   ['news:threat:summary:v1',
-    'on-demand: relay-classify-only, written only when classify produces country matches (matches api/health.js:468 ON_DEMAND_KEYS rationale). Underlying news inputs already exposed via get_news_intelligence.'],
+    'on-demand: relay-classify-only, written only when classify produces country matches (matches api/_health.js:468 ON_DEMAND_KEYS rationale). Underlying news inputs already exposed via get_news_intelligence.'],
   ['resilience:ranking:v28',
-    'on-demand: RPC cache populated after Pro ranking requests (matches api/health.js:469 ON_DEMAND_KEYS rationale). Deferred to a future resilience tool.'],
+    'on-demand: RPC cache populated after Pro ranking requests (matches api/_health.js:469 ON_DEMAND_KEYS rationale). Deferred to a future resilience tool.'],
   ['forecast:simulation-package:latest',
-    'on-demand: written by writeSimulationPackage after deep forecast runs (matches api/health.js:466 ON_DEMAND_KEYS rationale). Internal pipeline artifact, not a queryable slice.'],
+    'on-demand: written by writeSimulationPackage after deep forecast runs (matches api/_health.js:466 ON_DEMAND_KEYS rationale). Internal pipeline artifact, not a queryable slice.'],
   ['forecast:simulation-outcome:latest',
-    'on-demand: written by writeSimulationOutcome after simulation runs (matches api/health.js:467 ON_DEMAND_KEYS rationale). Internal pipeline artifact, not a queryable slice.'],
+    'on-demand: written by writeSimulationOutcome after simulation runs (matches api/_health.js:467 ON_DEMAND_KEYS rationale). Internal pipeline artifact, not a queryable slice.'],
   ['forecast:resolutions:v1',
     'operational: persistent forecast resolution working ledger with raw per-forecast evidence and audit receipt state. Exposed through health and summarized by get_forecast_scorecard; raw ledger MCP access deferred until a filtered/sliced tool exists.'],
   ['forecast:bets:history:v1',
@@ -168,7 +168,7 @@ const EXCLUDED_FROM_MCP = new Map([
   ['resilience:recovery:import-hhi:v1',
     'deferred: strict seeded recovery pillar scorer input. Future resilience tool will expose recovery dimensions.'],
   // resilience:recovery:fuel-stocks:v1 exclusion removed alongside PR #3764
-  // (api/health.js probe removal). The seeder still runs and writes the key
+  // (api/_health.js probe removal). The seeder still runs and writes the key
   // but scoreFuelStockDays does not read it, so the key is no longer in
   // STANDALONE_KEYS and an MCP exclusion would be a dead entry.
   ['resilience:recovery:reexport-share:v1',

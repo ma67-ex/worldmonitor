@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import test from 'node:test';
-import handler from '../api/download.js';
+import handler from '../api/_download.js';
 
 const RELEASES_PAGE = 'https://github.com/koala73/worldmonitor/releases/latest';
 const WORLD_APPIMAGE = 'https://downloads.example/World.Monitor_2.5.7_amd64.AppImage';

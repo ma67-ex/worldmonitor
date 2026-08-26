@@ -506,7 +506,7 @@ describe('extractKeywords', () => {
 
 describe('extractKeywords — retrieval priority (current turn first)', () => {
   it('current-turn pivot appears before prior-turn keywords when combined as query+prior', () => {
-    // Simulates the retrieval query built in api/chat-analyst.ts:
+    // Simulates the retrieval query built in api/_chat-analyst.ts:
     //   `${query} ${prevUserTurn}`
     // "What about Germany?" is the current turn, the prior is a long energy question.
     const currentQuery = 'What about Germany?';
@@ -673,7 +673,7 @@ describe('issue #3724 — prompt injection via headline context', () => {
 // captureSilentError) is defense-in-depth: every pre-stream dependency is
 // individually fail-soft today, so the catch cannot be black-box-triggered in
 // this suite (it has no Redis/Convex/Upstash mock — the same reason the sibling
-// route api/latest-brief.ts ships its boundary without a catch-trigger test).
+// route api/_latest-brief.ts ships its boundary without a catch-trigger test).
 // This block at least guards that the route stays edge-wired and that the
 // boundary's source shape is present so a future refactor can't silently drop
 // it.
@@ -681,13 +681,13 @@ describe('issue #3724 — prompt injection via headline context', () => {
 
 describe('api/chat-analyst handler — edge wiring + pre-auth gates', () => {
   it('declares the edge runtime', async () => {
-    const mod = await import('../api/chat-analyst.ts');
+    const mod = await import('../api/_chat-analyst.ts');
     assert.equal(typeof mod.default, 'function', 'handler must be a function');
     assert.equal(mod.config?.runtime, 'edge', 'route must declare edge runtime');
   });
 
   it('returns 204 with CORS on OPTIONS preflight (no secrets / no Redis)', async () => {
-    const { default: handler } = await import('../api/chat-analyst.ts');
+    const { default: handler } = await import('../api/_chat-analyst.ts');
     const req = new Request('https://api.worldmonitor.app/api/chat-analyst', {
       method: 'OPTIONS',
       headers: { origin: 'https://worldmonitor.app' },
@@ -699,7 +699,7 @@ describe('api/chat-analyst handler — edge wiring + pre-auth gates', () => {
   });
 
   it('returns 405 on disallowed methods', async () => {
-    const { default: handler } = await import('../api/chat-analyst.ts');
+    const { default: handler } = await import('../api/_chat-analyst.ts');
     const req = new Request('https://api.worldmonitor.app/api/chat-analyst', {
       method: 'GET',
       headers: { origin: 'https://worldmonitor.app' },
@@ -715,7 +715,7 @@ describe('api/chat-analyst handler — edge wiring + pre-auth gates', () => {
     // as the browser's `API 500` message. Locks the boundary in against a
     // refactor that re-introduces an unguarded handler body.
     const src = readFileSync(
-      new URL('../api/chat-analyst.ts', import.meta.url),
+      new URL('../api/_chat-analyst.ts', import.meta.url),
       'utf-8',
     );
     assert.match(src, /captureSilentError\(err,\s*\{\s*tags:\s*\{\s*route:\s*'api\/chat-analyst'/,

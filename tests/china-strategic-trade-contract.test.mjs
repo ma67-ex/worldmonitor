@@ -12,7 +12,7 @@ import {
   TRADE_FLOW_MATRIX_SIZE,
   TRADE_FLOW_RATE_LIMIT_RETRY_BUDGET,
 } from '../scripts/seed-trade-flows.mjs';
-import { CACHE_TOOLS } from '../api/mcp/registry/cache-tools.ts';
+import { CACHE_TOOLS } from '../api/mcp/registry/_cache-tools.ts';
 
 const requiredStrategicProducts = [
   'semiconductors',

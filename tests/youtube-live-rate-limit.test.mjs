@@ -1,4 +1,4 @@
-// Rate-limit coverage for api/youtube/live.js (#6234).
+// Rate-limit coverage for api/youtube/_live.js (#6234).
 //
 // The route proxies youtube.com from our egress IPs and, before this suite,
 // had no meter at all: `isDisallowedOrigin` is a CORS check and does nothing
@@ -19,7 +19,7 @@ delete process.env.UPSTASH_REDIS_REST_URL;
 delete process.env.UPSTASH_REDIS_REST_TOKEN;
 delete process.env.WS_RELAY_URL;
 
-const { default: handler } = await import('../api/youtube/live.js');
+const { default: handler } = await import('../api/youtube/_live.js');
 const { __resetRateLimitForTest } = await import('../api/_rate-limit.js');
 
 const ENDPOINT = 'https://api.worldmonitor.app/api/youtube/live';

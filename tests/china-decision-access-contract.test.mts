@@ -3,8 +3,8 @@ import { afterEach, describe, it } from 'node:test';
 import sovereignStatus from '../scripts/shared/sovereign-status.json' with { type: 'json' };
 
 import { issueSessionToken } from '../api/_session.js';
-import seedHealthHandler from '../api/seed-health.js';
-import { __testing__ as healthTesting } from '../api/health.js';
+import seedHealthHandler from '../api/_seed-health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 import {
   createDomainGateway,
   PUBLIC_NO_AUTH_RPC_PATHS,

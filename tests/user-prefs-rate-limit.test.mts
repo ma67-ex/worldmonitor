@@ -6,7 +6,7 @@ import handler, {
   USER_PREFS_WRITE_RATE_LIMIT,
   USER_PREFS_WRITE_RATE_SCOPE,
   USER_PREFS_WRITE_RATE_WINDOW,
-} from '../api/user-prefs.ts';
+} from '../api/_user-prefs.ts';
 import {
   USER_PREFS_WRITE_RATE_LIMIT as CONVEX_USER_PREFS_WRITE_RATE_LIMIT,
   USER_PREFS_WRITE_RATE_WINDOW_MS,

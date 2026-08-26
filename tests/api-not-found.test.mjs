@@ -1,11 +1,11 @@
 import { describe, it } from 'node:test';
 import { strict as assert } from 'node:assert';
 
-import handler from '../api/not-found.ts';
+import handler from '../api/_not-found.ts';
 
 const URL_BASE = 'https://worldmonitor.app';
 
-describe('api/not-found.ts — structured JSON 404 for unmatched /api/* paths', () => {
+describe('api/_not-found.ts — structured JSON 404 for unmatched /api/* paths', () => {
   it('returns a 404 application/json envelope with code, message, and a resolution hint', async () => {
     const res = handler(new Request(`${URL_BASE}/api/does-not-exist`, { method: 'GET' }));
     assert.equal(res.status, 404);

@@ -28,7 +28,7 @@ async function importFreshNotificationChannels() {
   process.env.RELAY_SHARED_SECRET = 'relay-secret';
   process.env.UPSTASH_REDIS_REST_URL = 'https://upstash.test';
   process.env.UPSTASH_REDIS_REST_TOKEN = 'upstash-token';
-  return import(`../api/notification-channels.ts?test=${Date.now()}-${Math.random()}`);
+  return import(`../api/_notification-channels.ts?test=${Date.now()}-${Math.random()}`);
 }
 
 function makeSetChannelRequest(): Request {

@@ -11,7 +11,7 @@ const readSrc = (relPath) => readFileSync(resolve(root, relPath), 'utf-8');
 
 const liveNewsSrc = readSrc('src/components/LiveNewsPanel.ts');
 const liveNewsSvc = readSrc('src/services/live-news.ts');
-const youtubeApi = readSrc('api/youtube/live.js');
+const youtubeApi = readSrc('api/youtube/_live.js');
 const sidecarSrc = readSrc('src-tauri/sidecar/local-api-server.mjs');
 const vercelConfig = JSON.parse(readSrc('vercel.json'));
 const tauriConfig = JSON.parse(readSrc('src-tauri/tauri.conf.json'));

@@ -24,7 +24,7 @@ describe('api/health ?history=1', () => {
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
     process.env.WORLDMONITOR_VALID_KEYS = 'test-health-admin-key';
 
-    const { default: handler } = await import('../api/health.js');
+    const { default: handler } = await import('../api/_health.js');
     const req = new Request('https://api.worldmonitor.app/api/health?history=1', {
       headers: { 'x-worldmonitor-key': 'test-health-admin-key' },
     });
@@ -51,13 +51,13 @@ describe('api/health ?history=1', () => {
     delete process.env.UPSTASH_REDIS_REST_URL;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
 
-    const { default: handler } = await import('../api/health.js?second-import');
+    const { default: handler } = await import('../api/_health.js?second-import');
     const req = new Request('https://api.worldmonitor.app/api/health?compact=1');
     const res = await handler(req);
 
     // With Upstash unconfigured the non-history path short-circuits to
     // REDIS_DOWN, which returns 503 (the one hard-down state that surfaces a
-    // non-200 HTTP code — see api/health.js REDIS_DOWN handler). The point of
+    // non-200 HTTP code — see api/_health.js REDIS_DOWN handler). The point of
     // this test is the shape (no history-specific keys), not the status code.
     assert.equal(res.status, 503);
     const body = await res.json();
@@ -75,7 +75,7 @@ describe('api/health ?history=1', () => {
     delete process.env.UPSTASH_REDIS_REST_URL;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
 
-    const { default: handler } = await import('../api/health.js?third-import');
+    const { default: handler } = await import('../api/_health.js?third-import');
     for (const v of ['0', 'true', 'yes', '01']) {
       const req = new Request(`https://api.worldmonitor.app/api/health?history=${v}`);
       const res = await handler(req);

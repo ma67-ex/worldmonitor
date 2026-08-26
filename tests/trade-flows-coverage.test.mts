@@ -981,7 +981,7 @@ describe('publishTradeFlows', () => {
     const payload = JSON.parse(String(meta[2])) as { recordCount: number; coverage?: unknown };
     assert.equal(payload.recordCount, 1, 'health compares this against its minRecordCount floor');
     assert.equal(payload.coverage, undefined,
-      'api/health.js parses meta.coverage with the consumer-prices page/retailer schema, so a '
+      'api/_health.js parses meta.coverage with the consumer-prices page/retailer schema, so a '
       + 'differently-shaped object would be published as an all-zero completedPages block');
   });
 

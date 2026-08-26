@@ -17,8 +17,8 @@ import { strict as assert } from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 
 import { signGrant, verifyGrant, GrantConfigError } from '../api/_mcp-grant-hmac.ts';
-import { mintGrantHandler } from '../api/internal/mcp-grant-mint.ts';
-import { grantContextHandler } from '../api/internal/mcp-grant-context.ts';
+import { mintGrantHandler } from '../api/internal/_mcp-grant-mint.ts';
+import { grantContextHandler } from '../api/internal/_mcp-grant-context.ts';
 
 const FIXED_NOW = 1_700_000_000_000; // arbitrary, far past Y2K
 

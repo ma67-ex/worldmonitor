@@ -31,7 +31,7 @@ test('a 503 carrying X-Billing-Verification is the retryable branch', () => {
 });
 
 test('a 503 WITHOUT the header is not the billing branch', () => {
-  // api/notification-channels.ts and friends answer a bare 503 for missing env
+  // api/_notification-channels.ts and friends answer a bare 503 for missing env
   // and for relay failures. Those are not retryable billing states and must not
   // borrow the "your subscription is fine" copy.
   assert.equal(isBillingVerificationDenial(503, null), false);

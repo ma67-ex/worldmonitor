@@ -2244,7 +2244,7 @@ describe('agent readiness: api-catalog + openapi build', () => {
 // The MCP endpoint and OAuth protected-resource metadata must be
 // self-consistent per host. The static file that used to live at
 // public/.well-known/oauth-protected-resource was replaced with a
-// dynamic edge function at api/oauth-protected-resource.ts that
+// dynamic edge function at api/_oauth-protected-resource.ts that
 // derives `resource` and `authorization_servers` from the request
 // Host header, so every origin (apex / www / api) sees same-origin
 // metadata regardless of which host the scanner entered from.
@@ -2256,7 +2256,7 @@ describe('agent readiness: MCP/OAuth origin alignment', () => {
     // Runtime test (not source-regex): dynamically import the edge handler
     // and invoke it against synthetic Host headers to prove the response
     // is actually same-origin per host, with correct Vary + Content-Type.
-    const mod = await import('../api/oauth-protected-resource.ts');
+    const mod = await import('../api/_oauth-protected-resource.ts');
     const handler = mod.default;
     assert.equal(typeof handler, 'function', 'handler must be the default export');
 
@@ -2292,13 +2292,13 @@ describe('agent readiness: MCP/OAuth origin alignment', () => {
   it('api/mcp.ts resource_metadata is host-derived, not hardcoded', () => {
     // After the structural split (refactor PR), the host-derivation
     // (`requestHost = req.headers.get('host') ?? ...`) lives in
-    // api/mcp/handler.ts and the template-literal that emits
-    // `resource_metadata="${url}"` lives in api/mcp/auth.ts (the
+    // api/mcp/_handler.ts and the template-literal that emits
+    // `resource_metadata="${url}"` lives in api/mcp/_auth.ts (the
     // `wwwAuthHeader` helper). Concatenate both so the three sub-greps
     // below still see the same byte surface they did pre-split.
-    const source = readFileSync(resolve(__dirname, '../api/mcp/handler.ts'), 'utf-8')
+    const source = readFileSync(resolve(__dirname, '../api/mcp/_handler.ts'), 'utf-8')
       + '\n'
-      + readFileSync(resolve(__dirname, '../api/mcp/auth.ts'), 'utf-8');
+      + readFileSync(resolve(__dirname, '../api/mcp/_auth.ts'), 'utf-8');
     // Must NOT contain a hardcoded apex or api URL for resource_metadata —
     // that regressed once (PR #3351 review: apex pointer emitted from
     // api.worldmonitor.app/mcp 401s) and the grep-only test didn't catch it.
@@ -2334,7 +2334,7 @@ describe('agent readiness: MCP/OAuth origin alignment', () => {
   // can cross-check that PRM `authorization_servers` resolves to an AS document
   // whose `issuer` matches — while same-origin also satisfies isitagentready.
   it('oauth-authorization-server handler returns host-derived RFC 8414 metadata + WorkOS agent_auth block', async () => {
-    const mod = await import('../api/oauth-authorization-server.ts');
+    const mod = await import('../api/_oauth-authorization-server.ts');
     const handler = mod.default;
     assert.equal(typeof handler, 'function', 'handler must be the default export');
 
@@ -2395,8 +2395,8 @@ describe('agent readiness: MCP/OAuth origin alignment', () => {
   // Host cannot be reflected into issuer/resource/endpoints. They also guard the
   // HTTP method (read-only docs).
   it('discovery handlers reject spoofed Host (apex fallback) and non-GET methods', async () => {
-    const prm = (await import('../api/oauth-protected-resource.ts')).default;
-    const as = (await import('../api/oauth-authorization-server.ts')).default;
+    const prm = (await import('../api/_oauth-protected-resource.ts')).default;
+    const as = (await import('../api/_oauth-authorization-server.ts')).default;
 
     // Spoofed / unrecognized Host → apex fallback, never reflected.
     for (const host of ['evil.com', 'worldmonitor.app.evil.com', 'evilworldmonitor.app', 'x.y.worldmonitor.app']) {
@@ -3276,7 +3276,7 @@ describe('NLWeb schemamap (/schemamap.xml)', () => {
   });
 });
 
-// Docs MCP facade: /docs/mcp must hit api/docs-mcp.ts (which lifts the
+// Docs MCP facade: /docs/mcp must hit api/_docs-mcp.ts (which lifts the
 // upstream's protocol-level tool-call failures into real JSON-RPC errors)
 // BEFORE the catch-all /docs/:match* Mintlify rewrite — rewrites are
 // first-match-wins, so ordering is load-bearing.
@@ -3292,7 +3292,7 @@ describe('docs MCP facade (/docs/mcp)', () => {
     assert.ok(facadeIdx >= 0, 'missing /docs/mcp → /api/docs-mcp rewrite');
     assert.ok(mintlifyIdx >= 0, 'Mintlify /docs rewrite missing');
     assert.ok(facadeIdx < mintlifyIdx, '/docs/mcp rewrite must precede the /docs/:match* Mintlify rewrite');
-    assert.ok(existsSync(resolve(__dirname, '../api/docs-mcp.ts')), 'api/docs-mcp.ts must exist');
+    assert.ok(existsSync(resolve(__dirname, '../api/_docs-mcp.ts')), 'api/_docs-mcp.ts must exist');
   });
 
   it('the first-party docs server card still points at the facade URL', () => {

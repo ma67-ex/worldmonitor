@@ -19,11 +19,11 @@ import {
   CONTENT_FRESHNESS_ROLLOUT,
   PORTWATCH_CONTENT_FRESHNESS_ACTIVATION_KEY,
 } from '../api/_content-freshness.js';
-import { __testing__ } from '../api/health.js';
-import { evaluateFreshness } from '../api/mcp/freshness.ts';
-import { executeTool } from '../api/mcp/dispatch.ts';
-import { CACHE_TOOLS } from '../api/mcp/registry/cache-tools.ts';
-import { TOOL_REGISTRY } from '../api/mcp/registry/index.ts';
+import { __testing__ } from '../api/_health.js';
+import { evaluateFreshness } from '../api/mcp/_freshness.ts';
+import { executeTool } from '../api/mcp/_dispatch.ts';
+import { CACHE_TOOLS } from '../api/mcp/registry/_cache-tools.ts';
+import { TOOL_REGISTRY } from '../api/mcp/registry/_index.ts';
 
 // The seed-health handler is imported dynamically so the env below is set
 // first. Its credential reads are lazy today, so a static import would also
@@ -33,7 +33,7 @@ const SEED_HEALTH_OPERATOR_KEY = 'test-parity-operator-key';
 process.env.UPSTASH_REDIS_REST_URL ??= 'https://redis.test';
 process.env.UPSTASH_REDIS_REST_TOKEN ??= 'token';
 process.env.WORLDMONITOR_VALID_KEYS = SEED_HEALTH_OPERATOR_KEY;
-const { handleSeedHealth } = await import('../api/seed-health.js');
+const { handleSeedHealth } = await import('../api/_seed-health.js');
 
 const { classifyKey, SEED_META, ACTIVATION_MARKERS } = __testing__;
 
@@ -358,7 +358,7 @@ describe('#6080 — the fixture is the shape the producer really publishes', () 
 });
 
 describe('#6080 — the mirror claim in cache-tools.ts is enforced', () => {
-  it('matches api/health.js::SEED_META field for field', () => {
+  it('matches api/_health.js::SEED_META field for field', () => {
     const check = portwatchCheck();
     const health = SEED_META.portwatchPortActivity;
 
@@ -636,7 +636,7 @@ describe('#6080 — executeTool reads the activation marker', () => {
   });
 
   // The deadline is exact to the second, so WHEN the clock is read decides the
-  // verdict for any request straddling it. api/health.js re-samples after its
+  // verdict for any request straddling it. api/_health.js re-samples after its
   // Redis I/O (snapshotNow); MCP must do the same or the two surfaces disagree
   // for the duration of one request. Sampling at function entry — a
   // `now = Date.now()` default parameter — reintroduces exactly that skew.

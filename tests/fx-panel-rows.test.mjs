@@ -144,7 +144,7 @@ test('a record with a usable drawdown but no yoyChange still renders', () => {
 });
 
 test('tolerates a raw {_seed, data} envelope from a non-bootstrap reader', () => {
-  // /api/bootstrap strips the envelope (api/bootstrap.js:300), so the client
+  // /api/bootstrap strips the envelope (api/_bootstrap.js:300), so the client
   // path never sees one. This covers a reader that goes straight to the cache:
   // an enveloped payload has no top-level `rates`, so without the unwrap the
   // mapper would return [] and the panel would show "no data" against a

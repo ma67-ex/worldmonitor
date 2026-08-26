@@ -16,7 +16,7 @@ import {
 import {
   evaluateChinaCoverage,
 } from '../scripts/china-coverage-health.mjs';
-import { __testing__ as healthTesting } from '../api/health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 
 const root = resolve(import.meta.dirname, '..');
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
@@ -92,7 +92,7 @@ describe('China corporate disclosure production registration (#5577)', () => {
       /id:\s*'market\.china-corporate-disclosures'[\s\S]*?ownerIssue:\s*5577[\s\S]*?launchStatus:\s*'launched'/,
     );
     assert.match(
-      read('api/health.js'),
+      read('api/_health.js'),
       /chinaCorporateDisclosures:\s*\{ key: 'seed-meta:market:china-corporate-disclosures'/,
     );
     assert.equal(
@@ -101,11 +101,11 @@ describe('China corporate disclosure production registration (#5577)', () => {
       'a present zero-event disclosure snapshot is a valid quiet window',
     );
     assert.match(
-      read('api/health.js'),
+      read('api/_health.js'),
       /chinaCorporateDisclosures:\s*\{[^}]*maxStaleMin:\s*180/,
     );
     assert.match(
-      read('api/seed-health.js'),
+      read('api/_seed-health.js'),
       /'market:china-corporate-disclosures':\s*\{[^}]*intervalMin:\s*90/,
       'seed-health uses intervalMin * 2, so its 180-minute alarm must match /api/health',
     );

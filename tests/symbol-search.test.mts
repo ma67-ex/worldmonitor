@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 
-import handler, { mapFinnhubResults } from '../api/symbol-search.ts';
+import handler, { mapFinnhubResults } from '../api/_symbol-search.ts';
 
 const originalFetch = globalThis.fetch;
 const originalDateNow = Date.now;

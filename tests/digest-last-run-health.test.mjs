@@ -19,7 +19,7 @@ function sourceBetween(start, end) {
 }
 
 describe('digest-notifications last-run health heartbeat', () => {
-  it('defines keys that match api/health.js digestNotifications', () => {
+  it('defines keys that match api/_health.js digestNotifications', () => {
     assert.match(src, /const DIGEST_LAST_RUN_KEY = 'digest:last-run'/);
     assert.match(src, /const DIGEST_LAST_RUN_META_KEY = 'seed-meta:digest:last-run'/);
     assert.match(src, /const DIGEST_LAST_RUN_TTL_SECONDS = 7 \* 24 \* 60 \* 60/);

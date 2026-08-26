@@ -346,7 +346,7 @@ test('preserves the original non-ok direct response when the relay retry itself 
 // ---------------------------------------------------------------------------
 // Initial-host SSRF allowlist guard (#5378)
 //
-// These lock `isAllowedDomain(parsedUrl.hostname)` in api/rss-proxy.js. The
+// These lock `isAllowedDomain(parsedUrl.hostname)` in api/_rss-proxy.js. The
 // adversarial sweep flagged "hostname/userinfo confusion" as a possible
 // BYPASS; probing WHATWG `new URL()` shows it is not — userinfo is stripped
 // into `username`/`password` and a suffix-confusion host stays intact, so both

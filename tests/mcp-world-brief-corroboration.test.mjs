@@ -228,7 +228,7 @@ describe('get_world_brief story corroboration (#4925 item 3)', () => {
 
   it('stays inside the 64KB output budget with a worst-case snapshot', async () => {
     // 12 stories (the headline cap) each at the 500-char title clip and the
-    // 12-outlet cap. If this ever exceeds the budget, api/mcp/dispatch.ts
+    // 12-outlet cap. If this ever exceeds the budget, api/mcp/_dispatch.ts
     // replaces the entire response with { _budget_exceeded: true } — a
     // user-visible regression, not a silent truncation.
     const longTitle = 'W'.repeat(600);

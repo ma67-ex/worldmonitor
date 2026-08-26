@@ -329,7 +329,7 @@ describe('authFetch honors a retryable billing-verification 503', () => {
   });
 
   it('does not retry the plain pro_required 403 the day-0 marker cohort receives', async () => {
-    // That state is a 403 by design (api/notification-channels.ts): turning it
+    // That state is a 403 by design (api/_notification-channels.ts): turning it
     // into a retry would hand every never-subscribed free user a spinner instead
     // of a clean upsell.
     const { calls } = installTransport([

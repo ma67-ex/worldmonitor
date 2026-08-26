@@ -3,7 +3,7 @@
 //
 // The fetcher emits a SUPERSET hex so BOTH consumer paths keep working with no
 // breaking change:
-//   - web UI  (api/gpsjam.js → gps-interference.ts → map): the honest gpsjam.org
+//   - web UI  (api/_gpsjam.js → gps-interference.ts → map): the honest gpsjam.org
 //     metric — pct + affected/total aircraft.
 //   - public API (list-gps-interference.ts + gps_jamming.proto): the stable
 //     np_avg/sample_count/aircraft_count contract (no proto regen).
@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { toWebHex } from '../api/gpsjam.js';
+import { toWebHex } from '../api/_gpsjam.js';
 import { processHexes } from '../scripts/_gpsjam-parse.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -22,7 +22,7 @@ const read = (p) => readFileSync(resolve(repoRoot, p), 'utf8');
 const CSV_HEADER = 'hex,count_good_aircraft,count_bad_aircraft';
 const VALID_H3 = '841f41dffffffff'; // res-4 cell (from live gpsjam.org data)
 
-describe('api/gpsjam.js toWebHex — normalizes every stored shape to the web-UI shape', () => {
+describe('api/_gpsjam.js toWebHex — normalizes every stored shape to the web-UI shape', () => {
   test('new gpsjam.org v2 hex passes pct/affected/total through', () => {
     const h = toWebHex({ h3: 'a', lat: 1, lon: 2, level: 'high', region: 'levant', pct: 15.3, affectedAircraft: 5, totalAircraft: 30, npAvg: 0.3, sampleCount: 5, aircraftCount: 30 });
     assert.deepEqual(h, { h3: 'a', lat: 1, lon: 2, level: 'high', region: 'levant', pct: 15.3, affectedAircraft: 5, totalAircraft: 30 });

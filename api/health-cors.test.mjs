@@ -45,7 +45,7 @@ test('health GET response is compatible with credentialed browser fetches', asyn
 
   // Redis credentials are cleared at module load (see top of file), so the
   // handler deterministically short-circuits to REDIS_DOWN → HTTP 503 (the one
-  // hard-down state with a non-200 code — see api/health.js). The point of this
+  // hard-down state with a non-200 code — see api/_health.js). The point of this
   // test is that the CORS headers a credentialed browser fetch needs are present
   // on the outage path too, not just the healthy 200 path.
   assert.equal(resp.status, 503);

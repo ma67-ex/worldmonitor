@@ -1,4 +1,4 @@
-// Unit tests for api/seed-contract-probe.ts — covers every branch of
+// Unit tests for api/_seed-contract-probe.ts — covers every branch of
 // checkProbe() (envelope, bare, missing, malformed, expected-bare-got-envelope,
 // expected-envelope-got-bare, minRecords floor, missing-field detection) and
 // checkPublicBoundary() (seed leak detection, bad status).
@@ -13,7 +13,7 @@ process.env.UPSTASH_REDIS_REST_TOKEN = 'fake-token';
 process.env.RELAY_SHARED_SECRET = 'test-secret';
 
 // tsx resolves .ts imports for node:test.
-const { checkProbe, checkPublicBoundary, DEFAULT_PROBES, withRetry } = await import('../api/seed-contract-probe.ts');
+const { checkProbe, checkPublicBoundary, DEFAULT_PROBES, withRetry } = await import('../api/_seed-contract-probe.ts');
 
 const originalFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = originalFetch; });

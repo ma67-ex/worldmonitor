@@ -23,7 +23,7 @@ import {
   SEC_CIK_MAP_KEY as SERVER_CIK_KEY,
   SEC_CIK_MAP_MAX_STALE_MIN as SERVER_CIK_MAX_STALE_MIN,
 } from '../server/_shared/sec-edgar';
-import { __testing__ as healthTesting } from '../api/health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 
 const root = resolve(import.meta.dirname, '..');
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
@@ -46,7 +46,7 @@ describe('SEC corporate-intelligence production registration (#5695)', () => {
     assert.equal(healthTesting.STANDALONE_KEYS.secCikMap, SEC_CIK_MAP_KEY);
     assert.equal(healthTesting.STANDALONE_KEYS.sec8kStream, SEC_8K_STREAM_KEY);
 
-    const health = read('api/health.js');
+    const health = read('api/_health.js');
     assert.match(
       health,
       /secCikMap:\s*\{ key: 'seed-meta:intelligence:sec-cik-map',\s*maxStaleMin: 2880, minRecordCount: 5000 \}/,
@@ -73,7 +73,7 @@ describe('SEC corporate-intelligence production registration (#5695)', () => {
   });
 
   it('keeps the seed-health sibling classifier in agreement (intervalMin = maxStaleMin / 2)', () => {
-    const seedHealth = read('api/seed-health.js');
+    const seedHealth = read('api/_seed-health.js');
     assert.match(
       seedHealth,
       /'intelligence:sec-cik-map':\s*\{ key: 'seed-meta:intelligence:sec-cik-map', intervalMin: 1440, minRecordCount: 5000 \}/,

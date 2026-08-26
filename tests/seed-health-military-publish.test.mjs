@@ -14,7 +14,7 @@ process.env.UPSTASH_REDIS_REST_URL = 'https://redis.example.test';
 process.env.UPSTASH_REDIS_REST_TOKEN = 'token';
 process.env.WORLDMONITOR_VALID_KEYS = 'test-key';
 
-const { default: handler } = await import('../api/seed-health.js');
+const { default: handler } = await import('../api/_seed-health.js');
 
 const STALE_META_KEYS = new Set([
   'seed-meta:military-forecast-inputs',
@@ -22,8 +22,8 @@ const STALE_META_KEYS = new Set([
 ]);
 const MISSING_META_KEYS = new Set();
 const RESILIENCE_INTERVAL_PROBE_KEY = 'resilience:intervals:v11:US';
-const seedHealthSource = readFileSync(resolve(import.meta.dirname, '../api/seed-health.js'), 'utf8');
-const healthSource = readFileSync(resolve(import.meta.dirname, '../api/health.js'), 'utf8');
+const seedHealthSource = readFileSync(resolve(import.meta.dirname, '../api/_seed-health.js'), 'utf8');
+const healthSource = readFileSync(resolve(import.meta.dirname, '../api/_health.js'), 'utf8');
 
 before(() => {
   process.env.UPSTASH_REDIS_REST_URL = 'https://redis.example.test';
@@ -102,13 +102,13 @@ test('military health registries keep early seed-health warning coverage', () =>
     const seedHealthMatch = seedHealthSource.match(
       new RegExp(`'${domain}':\\s*\\{\\s*key:\\s*'([^']+)',\\s*intervalMin:\\s*([0-9_]+)`),
     );
-    assert.ok(seedHealthMatch, `api/seed-health.js must register ${domain}`);
+    assert.ok(seedHealthMatch, `api/_seed-health.js must register ${domain}`);
     assert.equal(seedHealthMatch[1], metaKey, `${domain} meta key`);
 
     const healthMatch = healthSource.match(
       new RegExp(`${healthName}:\\s*\\{\\s*key:\\s*'([^']+)',\\s*maxStaleMin:\\s*([0-9_]+)`),
     );
-    assert.ok(healthMatch, `api/health.js must register ${healthName}`);
+    assert.ok(healthMatch, `api/_health.js must register ${healthName}`);
     assert.equal(healthMatch[1], metaKey, `${healthName} meta key`);
 
     const seedHealthBudget = Number(seedHealthMatch[2].replaceAll('_', '')) * 2;

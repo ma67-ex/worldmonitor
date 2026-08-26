@@ -6,7 +6,7 @@ import {
   fetchMarketCorrelationSeries,
   normalizeYahooSeries,
 } from '../scripts/seed-market-correlation-series.mjs';
-import { __testing__ as healthTesting } from '../api/health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 
 function yahooFixture() {
   return {

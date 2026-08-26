@@ -103,7 +103,7 @@ test('dual wm-pro-key cookies use the first value sent by the browser', async ()
 test('dual wm-session cookies use the first value sent by the browser', async () => {
   // getCookie() is first-match. An invalid host-only wm-session listed first
   // shadows a later valid Domain cookie — the production tombstone in
-  // api/wm-session.js exists so the browser should not send both after a mint.
+  // api/_wm-session.js exists so the browser should not send both after a mint.
   const { token } = await issueSessionToken();
   const shadowed = await validateApiKey(makeReq({
     cookie: `wm-session=wms_invalid; wm-session=${encodeURIComponent(token)}`,

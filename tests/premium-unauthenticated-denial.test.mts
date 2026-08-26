@@ -2,7 +2,7 @@
  * #5619 — a signed-out caller is not a free-plan caller.
  *
  * `resolvePremiumCallerIdentity` answered every denial with the same
- * `{ isPremium: false, userId: null, kind: null }`, so `api/chat-analyst.ts`
+ * `{ isPremium: false, userId: null, kind: null }`, so `api/_chat-analyst.ts`
  * told a signed-out visitor to buy a Pro subscription instead of to sign in.
  * The client classifier has carried a `sign_in_required` verdict since #5608,
  * but nothing on this route could ever produce it: the verdict is keyed on a
@@ -294,7 +294,7 @@ describe('resolvePremiumCallerIdentity separates a missing credential from a fre
 describe('api/chat-analyst answers a missing credential with 401 (#5619)', () => {
   it('a signed-out caller is told to sign in, not to subscribe', async () => {
     installFetchStub(FREE_ROW);
-    const { default: handler } = await import('../api/chat-analyst.ts');
+    const { default: handler } = await import('../api/_chat-analyst.ts');
 
     const res = await handler(anonymousRequest());
 
@@ -307,7 +307,7 @@ describe('api/chat-analyst answers a missing credential with 401 (#5619)', () =>
 
   it('an invalid bearer token gets the same 401', async () => {
     installFetchStub(FREE_ROW);
-    const { default: handler } = await import('../api/chat-analyst.ts');
+    const { default: handler } = await import('../api/_chat-analyst.ts');
 
     const res = await handler(badCredentialRequest({ Authorization: 'Bearer not-a-real-jwt' }));
 
@@ -317,7 +317,7 @@ describe('api/chat-analyst answers a missing credential with 401 (#5619)', () =>
 
   it('a CONFIRMED free caller still gets the honest 403 upsell', async () => {
     installFetchStub(FREE_ROW);
-    const { default: handler } = await import('../api/chat-analyst.ts');
+    const { default: handler } = await import('../api/_chat-analyst.ts');
 
     const res = await handler(confirmedFreeRequest('user_free_route'));
 
@@ -327,7 +327,7 @@ describe('api/chat-analyst answers a missing credential with 401 (#5619)', () =>
 
   it("the client's sign_in_required verdict is reachable on this route at last", async () => {
     installFetchStub(FREE_ROW);
-    const { default: handler } = await import('../api/chat-analyst.ts');
+    const { default: handler } = await import('../api/_chat-analyst.ts');
 
     const res = await handler(anonymousRequest());
     const verdict = await classifyDenialResponse(res, NO_BELIEF);

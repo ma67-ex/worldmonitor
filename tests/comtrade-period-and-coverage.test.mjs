@@ -201,8 +201,8 @@ test('the coverage floor is the same number in the seeder and both health regist
     /'comtrade:bilateral-hs4':\s*\{[^}]*minRecordCount:\s*(\d+)/,
   );
 
-  assert.ok(healthFloor, 'api/health.js must declare minRecordCount for comtradeBilateralHs4');
-  assert.ok(seedFloor, 'api/seed-health.js must declare minRecordCount for comtrade:bilateral-hs4');
+  assert.ok(healthFloor, 'api/_health.js must declare minRecordCount for comtradeBilateralHs4');
+  assert.ok(seedFloor, 'api/_seed-health.js must declare minRecordCount for comtrade:bilateral-hs4');
   assert.equal(Number(healthFloor[1]), MIN_COUNTRY_COVERAGE);
   assert.equal(Number(seedFloor[1]), MIN_COUNTRY_COVERAGE);
 });

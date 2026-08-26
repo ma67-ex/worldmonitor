@@ -19,7 +19,7 @@ process.env.RESILIENCE_PILLAR_COMBINE_ENABLED = 'true';
 process.env.RESILIENCE_SCHEMA_V2_ENABLED = 'true';
 process.env.RESILIENCE_EDUCATION_ENABLED = 'true';
 
-const { default: handler } = await import('../api/seed-health.js');
+const { default: handler } = await import('../api/_seed-health.js');
 
 const META_KEY = 'seed-meta:resilience:intervals';
 const PROBE_KEY = 'resilience:intervals:v11:US';

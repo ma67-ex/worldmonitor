@@ -13,7 +13,7 @@ import { renderLayerExplanationCard } from '../src/utils/layer-explanation-card'
 
 const root = resolve(import.meta.dirname, '..');
 const relaySource = readFileSync(resolve(root, 'scripts/ais-relay.cjs'), 'utf8');
-const healthSource = readFileSync(resolve(root, 'api/health.js'), 'utf8');
+const healthSource = readFileSync(resolve(root, 'api/_health.js'), 'utf8');
 
 function evalNumberExpression(expression: string): number {
   const cleaned = expression.replace(/_/g, '');
@@ -77,7 +77,7 @@ function maxStaleMin(path: string, seedDomain: string): number {
 
 function healthMaxStale(entry: string): number {
   const match = healthSource.match(new RegExp(`${entry}:\\s*\\{[^}]*maxStaleMin:\\s*([^,}\\n]+)`));
-  assert.ok(match, `api/health.js must declare SEED_META.${entry}.maxStaleMin`);
+  assert.ok(match, `api/_health.js must declare SEED_META.${entry}.maxStaleMin`);
   return evalNumberExpression(match[1]);
 }
 
@@ -242,7 +242,7 @@ describe('layer explanation metadata', () => {
     // Require the citations this card's claims actually rest on, without pinning the array
     // exactly — the v1 loop above already asserts every evidence path exists on disk, so a
     // later addition stays covered instead of reddening this assertion.
-    for (const path of ['scripts/ais-relay.cjs', 'api/health.js', 'src/services/weather.ts']) {
+    for (const path of ['scripts/ais-relay.cjs', 'api/_health.js', 'src/services/weather.ts']) {
       assert.ok(weather.evidence.includes(path), `weather evidence must cite ${path}`);
     }
   });

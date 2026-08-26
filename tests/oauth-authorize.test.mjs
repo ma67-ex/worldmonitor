@@ -7,7 +7,7 @@
  * the HTML invariants the apex bridge (U3) and the legacy form path (U6+)
  * both depend on.
  *
- * `consentPage` is exported from api/oauth/authorize.js solely for these
+ * `consentPage` is exported from api/oauth/_authorize.js solely for these
  * tests — handler logic uses it via the module-internal call sites at lines
  * 215 and 302.
  */
@@ -15,7 +15,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { consentPage } from '../api/oauth/authorize.js';
+import { consentPage } from '../api/oauth/_authorize.js';
 
 const BASE_PARAMS = {
   client_name: 'Claude Desktop',

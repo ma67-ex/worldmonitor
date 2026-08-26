@@ -3,7 +3,7 @@ import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';
 
 import catchAll, { config } from '../api/[...notfound].ts';
-import notFound from '../api/not-found.ts';
+import notFound from '../api/_not-found.ts';
 
 function isShadowingApiNotFoundRewrite(rewrite) {
   if (rewrite?.destination !== '/api/not-found') return false;
@@ -16,7 +16,7 @@ function isShadowingApiNotFoundRewrite(rewrite) {
 // the JSON-404 handler to a filesystem catch-all (`api/[...notfound].ts`), which
 // has the lowest dynamic-route precedence and so cannot shadow real endpoints.
 describe('api/[...notfound].ts — filesystem catch-all replaces the shadowing rewrite (#4724)', () => {
-  it('delegates to the shared api/not-found.ts handler', () => {
+  it('delegates to the shared api/_not-found.ts handler', () => {
     assert.equal(catchAll, notFound, 'catch-all must re-export the shared not-found handler (single source of truth)');
   });
 

@@ -747,7 +747,7 @@ describe('CI workflow coverage', () => {
       'src-tauri/tauri.conf.json',
       'src-tauri/tauri.tech.conf.json',
       'src-tauri/profiles/commodity.json',
-      'api/download.js',
+      'api/_download.js',
       'src/config/variant.ts',
       'scripts/desktop-package.mjs',
       'package.json',

@@ -5,7 +5,7 @@
  * `"total": 194` while production reported 256. Nothing pinned the figure, so
  * it was copied forward until three agreeing sources read as corroboration.
  *
- * `parseHealthProbedKeys` derives the number from api/health.js source text —
+ * `parseHealthProbedKeys` derives the number from api/_health.js source text —
  * the docs-stats CI job runs on bare Node with no `npm install`, and the
  * runtime size depends on process.env.IRAN_EVENTS_ENABLED, so it must not be
  * imported. That makes the parser itself the thing that can silently drift, so
@@ -31,12 +31,12 @@ import {
   DOC_VALIDATORS,
   HEALTH_SUMMARY_DOC_FILES,
 } from '../scripts/docs-stats.mjs';
-import { __testing__ as healthTesting } from '../api/health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 
 const root = resolve(import.meta.dirname, '..');
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
 
-const REAL_SOURCE = read('api/health.js');
+const REAL_SOURCE = read('api/_health.js');
 
 const DOC_PAGES = [
   'docs/health-endpoints.mdx',
@@ -46,7 +46,7 @@ const DOC_PAGES = [
 ];
 
 /**
- * Mutate the real api/health.js text. Throws when the anchor it targets is
+ * Mutate the real api/_health.js text. Throws when the anchor it targets is
  * gone: a fixture that silently stops mutating anything turns every "this
  * drift is caught" assertion below into a test of nothing.
  */
@@ -54,7 +54,7 @@ function mutate(from: string | RegExp, to: string): string {
   const occurrences = typeof from === 'string'
     ? REAL_SOURCE.split(from).length - 1
     : [...REAL_SOURCE.matchAll(new RegExp(from, 'g'))].length;
-  assert.equal(occurrences, 1, `fixture drift: api/health.js must contain exactly one \`${from}\``);
+  assert.equal(occurrences, 1, `fixture drift: api/_health.js must contain exactly one \`${from}\``);
   return REAL_SOURCE.replace(from, to);
 }
 
@@ -72,7 +72,7 @@ function docWithSummary(fields: Record<string, number>): string {
 
 describe('/api/health probed-key count doc gate (#6300)', () => {
   it('derives the same total the runtime registry actually walks', () => {
-    // api/health.js counts one check per BOOTSTRAP_KEYS + STANDALONE_KEYS entry
+    // api/_health.js counts one check per BOOTSTRAP_KEYS + STANDALONE_KEYS entry
     // (the `sources` loop that increments totalChecks). Importing it here is
     // safe — only the always-on docs-stats CI job runs without node_modules.
     const runtimeBootstrap = Object.keys(healthTesting.BOOTSTRAP_KEYS).length;
@@ -301,7 +301,7 @@ describe('/api/health probed-key count doc gate (#6300)', () => {
   });
 
   it('blanks line comments before looking for block comments', () => {
-    // api/health.js carries `.../configs/retailers/*.yaml.` inside a LINE
+    // api/_health.js carries `.../configs/retailers/*.yaml.` inside a LINE
     // comment. Blanking block comments first lets that `/*` open a comment that
     // runs 1098 lines to the next `*/`, erasing the consumer-price loop, the
     // iranEvents delete, and most of STANDALONE_KEYS.

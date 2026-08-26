@@ -653,7 +653,7 @@ describe('climate-anomalies CACHE_TTL + maxStaleMin co-pinned to 3h cron cadence
   const __dirname = dirname(fileURLToPath(import.meta.url));
   const root = resolve(__dirname, '..');
   const seedSrc = readFileSync(resolve(root, 'scripts/seed-climate-anomalies.mjs'), 'utf-8');
-  const healthSrc = readFileSync(resolve(root, 'api/health.js'), 'utf-8');
+  const healthSrc = readFileSync(resolve(root, 'api/_health.js'), 'utf-8');
   const bundleSrc = readFileSync(resolve(root, 'scripts/seed-bundle-climate.mjs'), 'utf-8');
 
   function extractCacheTtlSec() {

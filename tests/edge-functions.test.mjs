@@ -187,7 +187,7 @@ describe('oauth/authorize.js consent page safety', () => {
   });
 });
 
-describe('api/slack/oauth/start.ts safety', () => {
+describe('api/slack/oauth/_start.ts safety', () => {
   const startPath = join(root, 'api', 'slack', 'oauth', 'start.ts');
 
   it('uses crypto.getRandomValues for CSRF state (not Math.random)', () => {
@@ -236,8 +236,8 @@ describe('api/slack/oauth/start.ts safety', () => {
   });
 });
 
-describe('api/slack/oauth/callback.ts safety', () => {
-  const callbackPath = join(root, 'api', 'slack', 'oauth', 'callback.ts');
+describe('api/slack/oauth/_callback.ts safety', () => {
+  const callbackPath = join(root, 'api', 'slack', 'oauth', '_callback.ts');
 
   it("uses '*' as postMessage targetOrigin (works on all WM subdomains and previews)", () => {
     const src = readFileSync(callbackPath, 'utf-8');

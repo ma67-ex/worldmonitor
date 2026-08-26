@@ -67,17 +67,17 @@ describe('iran-events sunset — frontend map layer (default OFF)', () => {
 
 describe('iran-events sunset — backend gates (source guards)', () => {
   it('health.js drops iranEvents from SEED_META + BOOTSTRAP_KEYS when disabled', () => {
-    const src = read('api/health.js');
+    const src = read('api/_health.js');
     assert.match(src, /IRAN_EVENTS_ENABLED = \(process\.env\.IRAN_EVENTS_ENABLED/);
     assert.match(src, /if \(!IRAN_EVENTS_ENABLED\) \{[\s\S]*?delete BOOTSTRAP_KEYS\.iranEvents;[\s\S]*?delete SEED_META\.iranEvents;/);
   });
 
   it('seed-health.js drops the conflict:iran-events domain when disabled', () => {
-    assert.match(read('api/seed-health.js'), /IRAN_EVENTS_ENABLED[\s\S]*?delete SEED_DOMAINS\['conflict:iran-events'\]/);
+    assert.match(read('api/_seed-health.js'), /IRAN_EVENTS_ENABLED[\s\S]*?delete SEED_DOMAINS\['conflict:iran-events'\]/);
   });
 
   it('bootstrap.js omits iranEvents from the payload + fast tier when disabled', () => {
-    const src = read('api/bootstrap.js');
+    const src = read('api/_bootstrap.js');
     assert.match(src, /resolveBootstrapRegistry\(\{\s*iranEventsEnabled:\s*IRAN_EVENTS_ENABLED/);
     const disabled = resolveBootstrapRegistry({ iranEventsEnabled: false });
     assert.equal(disabled.cacheKeys.iranEvents, undefined);
@@ -100,7 +100,7 @@ describe('iran-events sunset — backend gates (source guards)', () => {
   });
 
   // ce-code-review #4982 follow-ups — parallel API/MCP surfaces that also read
-  // the shared cache key must be gated, not just api/bootstrap.js.
+  // the shared cache key must be gated, not just api/_bootstrap.js.
 
   it('get-bootstrap-data RPC drops iranEvents from the shared bootstrap registry', () => {
     assert.match(read('server/worldmonitor/infrastructure/v1/get-bootstrap-data.ts'), /if \(!IRAN_EVENTS_ENABLED\) delete registry\.iranEvents/);
@@ -111,7 +111,7 @@ describe('iran-events sunset — backend gates (source guards)', () => {
   });
 
   it('MCP get_conflict_events drops the iran-events cache key when disabled', () => {
-    assert.match(read('api/mcp/registry/cache-tools.ts'), /\.\.\.\(IRAN_EVENTS_ENABLED \? \['conflict:iran-events:v1'\] : \[\]\)/);
+    assert.match(read('api/mcp/registry/_cache-tools.ts'), /\.\.\.\(IRAN_EVENTS_ENABLED \? \['conflict:iran-events:v1'\] : \[\]\)/);
   });
 
   it('seed-forecasts.mjs skips fetching the iran key into the pipeline batch when disabled', () => {

@@ -604,7 +604,7 @@ describe('classifyInputs metaKey fallback (PR #2976 P2 #2)', () => {
   });
 
   // PR #4987: gpsjam restored to the DAILY gpsjam.org source. Its freshness
-  // budget must match the daily cadence / api/health.js (1440min), not the old
+  // budget must match the daily cadence / api/_health.js (1440min), not the old
   // 240min (4h) that marked a healthy daily seed stale hours after it ran.
   it('gpsjam seed ~5h old stays fresh under the daily-source budget', () => {
     const meta = { fetchedAt: Date.now() - 5 * 60 * 60_000 }; // 5h old — was > 240min, now < 1440min
@@ -616,7 +616,7 @@ describe('classifyInputs metaKey fallback (PR #2976 P2 #2)', () => {
     assert.ok(!result.stale.includes('intelligence:gpsjam:v2'));
   });
 
-  it('gpsjam freshness budget matches the daily cadence / api/health.js (1440min)', () => {
+  it('gpsjam freshness budget matches the daily cadence / api/_health.js (1440min)', () => {
     const spec = FRESHNESS_REGISTRY.find((s) => s.key === 'intelligence:gpsjam:v2');
     assert.ok(spec);
     assert.equal(spec.maxAgeMin, 1440);

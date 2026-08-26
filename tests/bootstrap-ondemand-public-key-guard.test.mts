@@ -2,7 +2,7 @@
 // `/api/bootstrap?keys=<name>&public=1`, sent with `credentials: 'omit'`.
 //
 // The server serves that URL publicly for ONE key drawn from the on-demand
-// tier (isPublicOnDemandBootstrapRequest, api/bootstrap.js) — plus weatherAlerts,
+// tier (isPublicOnDemandBootstrapRequest, api/_bootstrap.js) — plus weatherAlerts,
 // which has its own public URL (#5386) but is read by src/services/weather.ts
 // rather than through ensureHydrated. For any other key it falls through to
 // validateApiKey, sees no credential — the request omitted them — and answers

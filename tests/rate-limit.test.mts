@@ -552,7 +552,7 @@ describe('rate-limit fail-closed call-site policy (#3531)', () => {
   // so a future caller reverting to bare `checkRateLimit(req, cors)` is caught
   // in CI rather than during a Redis incident.
   const FAIL_CLOSED_REQUIRED = [
-    'api/chat-analyst.ts', // streaming LLM analyst, Pro-only
+    'api/_chat-analyst.ts', // streaming LLM analyst, Pro-only
   ];
 
   for (const path of FAIL_CLOSED_REQUIRED) {
@@ -579,32 +579,32 @@ describe('scoped rate-limit degraded call-site policy (#3531)', () => {
       reason: 'desktop lead capture bypasses Turnstile, so Redis degradation must fail closed locally',
     },
     {
-      path: 'api/a2a.ts',
+      path: 'api/_a2a.ts',
       expected: /Redis-degraded scoped limits intentionally stay availability-first/,
       reason: 'A2A concierge serves only anonymous, quota-free, cheap catalog matching — degradation is logged and stays availability-first',
     },
     {
-      path: 'api/ask.ts',
+      path: 'api/_ask.ts',
       expected: /Redis-degraded scoped limits intentionally stay availability-first/,
       reason: 'NLWeb /ask serves only anonymous, quota-free, cheap catalog matching — degradation is logged and stays availability-first',
     },
     {
-      path: 'api/docs-mcp.ts',
+      path: 'api/_docs-mcp.ts',
       expected: /Redis-degraded scoped limits intentionally stay availability-first/,
       reason: 'docs MCP facade proxies a fully public, cheap upstream — degradation is logged and stays availability-first',
     },
     {
-      path: 'api/mcp-proxy.ts',
+      path: 'api/_mcp-proxy.ts',
       expected: /Redis-degraded scoped limits intentionally stay availability-first/,
       reason: 'MCP proxy is already premium-auth gated; scoped limit degradation is logged and remains availability-first',
     },
     {
-      path: 'api/skills/fetch-agentskills.ts',
+      path: 'api/skills/_fetch-agentskills.ts',
       expected: /Redis-degraded scoped limits intentionally stay availability-first/,
       reason: 'agent-skills import proxy fetches one public host behind a fixed allowlist and is called by the settings importer - degradation is logged and stays availability-first',
     },
     {
-      path: 'api/user-prefs.ts',
+      path: 'api/_user-prefs.ts',
       expected: /Redis-degraded scoped limits intentionally fail open for prefs writes/,
       reason: 'cloud prefs writes are low-stakes, so Redis degradation should not block legitimate settings sync',
     },
@@ -722,7 +722,7 @@ describe('slow-Redis timeout is degraded, not a silent allow (#6412 review)', ()
 describe('legacy edge-function rate-limit policy mirrors (#6234)', () => {
   // `api/*.js` edge functions are self-contained JS and cannot import
   // `../server/` (AGENTS.md, enforced by scripts/lint-boundaries.mjs and the
-  // pre-push esbuild check). So unlike api/mcp-proxy.ts, which reads
+  // pre-push esbuild check). So unlike api/_mcp-proxy.ts, which reads
   // ENDPOINT_RATE_POLICIES at module load, these handlers duplicate their
   // budget as a literal constant and enforce it via api/_rate-limit.js.
   //
@@ -731,8 +731,8 @@ describe('legacy edge-function rate-limit policy mirrors (#6234)', () => {
   // would advertise a number no handler enforces, which is exactly the
   // declare-vs-serve divergence the repo treats as a defect class.
   const MIRRORED_JS_POLICIES = [
-    { path: 'api/youtube/live.js', route: '/api/youtube/live', scope: 'youtube-live' },
-    { path: 'api/reverse-geocode.js', route: '/api/reverse-geocode', scope: 'reverse-geocode' },
+    { path: 'api/youtube/_live.js', route: '/api/youtube/live', scope: 'youtube-live' },
+    { path: 'api/_reverse-geocode.js', route: '/api/reverse-geocode', scope: 'reverse-geocode' },
   ];
 
   for (const { path, route, scope } of MIRRORED_JS_POLICIES) {

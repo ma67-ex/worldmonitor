@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
-import { TOOL_REGISTRY } from '../api/mcp/registry/index.ts';
+import { TOOL_REGISTRY } from '../api/mcp/registry/_index.ts';
 
 const findTool = (name) => TOOL_REGISTRY.find((tool) => tool.name === name);
 // ---------------------------------------------------------------------------
@@ -52,7 +52,7 @@ describe('wave-2a analysis tools registry contract', () => {
   }
 
   it('first sentences stay inside the tools/list compression budget', () => {
-    // Same extraction compressDescription() uses (api/mcp/utils.ts) — asserting
+    // Same extraction compressDescription() uses (api/mcp/_utils.ts) — asserting
     // on a hand-rolled split would let a description pass here and still be
     // byte-truncated mid-word on the wire.
     for (const name of Object.keys(expected)) {

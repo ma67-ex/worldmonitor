@@ -6,7 +6,7 @@ import { coverageForSeedMeta, emptyCoverage } from '../scripts/seed-consumer-pri
 // importable directly and the vocabulary can be compared value-to-value rather
 // than scraped out of the source with a regex that could false-pass on a typo.
 import { COVERAGE_FAILURE_REASONS as CORE_FAILURE_REASONS } from '../consumer-prices-core/src/jobs/scrape-coverage.ts';
-import { COVERAGE_FAILURE_REASONS as HEALTH_FAILURE_REASONS } from '../api/health.js';
+import { COVERAGE_FAILURE_REASONS as HEALTH_FAILURE_REASONS } from '../api/_health.js';
 
 const migration = readFileSync(
   new URL('../consumer-prices-core/migrations/010_scrape_run_coverage.sql', import.meta.url),
@@ -33,7 +33,7 @@ test('failure-reason migration defaults to an empty object and rejects non-objec
   assert.match(failureReasonsMigration, /CHECK \(jsonb_typeof\(failure_reasons\) = 'object'\)/);
 });
 
-// The vocabulary is duplicated because api/health.js is an Edge module that
+// The vocabulary is duplicated because api/_health.js is an Edge module that
 // cannot import the core package's TypeScript. Health DROPS anything outside
 // its own list, so a code added only to the producer would be silently deleted
 // on the way to operators — a diagnostic that vanishes exactly when a new
@@ -44,7 +44,7 @@ test('the failure-reason vocabulary is identical in the producer and in health',
     [...HEALTH_FAILURE_REASONS],
     [...CORE_FAILURE_REASONS],
     'Add the new code to BOTH consumer-prices-core/src/jobs/scrape-coverage.ts '
-    + '(COVERAGE_FAILURE_REASONS) and api/health.js (COVERAGE_FAILURE_REASONS), '
+    + '(COVERAGE_FAILURE_REASONS) and api/_health.js (COVERAGE_FAILURE_REASONS), '
     + 'or health will drop it.',
   );
 });

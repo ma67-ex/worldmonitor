@@ -63,17 +63,17 @@ describe('cross-Strait activity production registration (#5575)', () => {
       /id:\s*'military\.cross-strait-activity'[\s\S]*?ownerIssue:\s*5575[\s\S]*?launchStatus:\s*'launched'/,
     );
     assert.match(
-      read('api/health.js'),
+      read('api/_health.js'),
       /crossStraitActivity:\s*\{ key: 'seed-meta:military:cross-strait-activity'/,
     );
     assert.match(
-      read('api/health.js'),
+      read('api/_health.js'),
       /crossStraitActivityBootstrap:\s*\{ key: 'seed-meta:military:cross-strait-activity-bootstrap'/,
     );
-    assert.match(read('api/health.js'), /crossStraitActivityTaiwanMnd:\s*'military:cross-strait-activity:v1:source:taiwan-mnd'/);
-    assert.match(read('api/health.js'), /crossStraitActivityJapanMod:\s*'military:cross-strait-activity:v1:source:japan-mod'/);
-    assert.match(read('api/seed-health.js'), /'military:cross-strait-activity'/);
-    assert.match(read('api/seed-health.js'), /'military:cross-strait-activity:complete'/);
+    assert.match(read('api/_health.js'), /crossStraitActivityTaiwanMnd:\s*'military:cross-strait-activity:v1:source:taiwan-mnd'/);
+    assert.match(read('api/_health.js'), /crossStraitActivityJapanMod:\s*'military:cross-strait-activity:v1:source:japan-mod'/);
+    assert.match(read('api/_seed-health.js'), /'military:cross-strait-activity'/);
+    assert.match(read('api/_seed-health.js'), /'military:cross-strait-activity:complete'/);
     assert.match(
       read('scripts/seed-bundle-derived-signals.mjs'),
       /seedMetaKey:\s*'military:cross-strait-activity:complete'/,

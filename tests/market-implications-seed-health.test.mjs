@@ -5,7 +5,7 @@
 // timeouts — a ~60% hit rate against a panel whose cards stay useful for
 // hours. The original failure writer treated EVERY miss as a producer outage:
 // it wrote `{recordCount: 0, status: 'error', fetchedAt: now}`, which
-// api/health.js promotes straight to SEED_ERROR. So a single transient
+// api/_health.js promotes straight to SEED_ERROR. So a single transient
 // timeout turned health red while the canonical key still served five valid
 // cards, and — because the error write also RESET the freshness clock — a
 // chronic outage could never age past that same warn into STALE_SEED.
@@ -32,7 +32,7 @@ import {
   __setForecastLlmRunDeadlineForTests,
   __setForecastLlmCallOverrideForTests,
 } from '../scripts/seed-forecasts.mjs';
-import { __testing__ as healthTesting } from '../api/health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const seederSource = readFileSync(resolve(here, '../scripts/seed-forecasts.mjs'), 'utf8');

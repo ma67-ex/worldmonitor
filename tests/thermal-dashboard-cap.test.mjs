@@ -8,7 +8,7 @@ import {
   THERMAL_DASHBOARD_CLUSTER_LIMIT,
   compactThermalDashboardPayload,
 } from '../scripts/_thermal-dashboard.mjs';
-import { __testing__ as healthTesting } from '../api/health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 import { BOOTSTRAP_CACHE_KEYS } from '../shared/bootstrap-tier-keys.js';
 
 const root = join(fileURLToPath(new URL('.', import.meta.url)), '..');

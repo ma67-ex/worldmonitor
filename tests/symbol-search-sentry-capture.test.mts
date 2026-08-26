@@ -3,7 +3,7 @@ import { after, describe, it } from 'node:test';
 
 // ─── WORLDMONITOR-RE: symbol-search Sentry-capture policy ──────────────────
 //
-// PR #4233 made `api/symbol-search.ts` SKIP the `captureSilentError` call for
+// PR #4233 made `api/_symbol-search.ts` SKIP the `captureSilentError` call for
 // upstream gateway transients (502/503/504) — Finnhub-side infra blips that
 // were paging at `warning` on an unactionable transient — while STILL
 // capturing genuinely actionable failures (401/403 auth, 429 quota, other
@@ -40,7 +40,7 @@ process.env.FINNHUB_API_KEY = 'test-key';
 // DSN above → this prefix.
 const ENVELOPE_URL_PREFIX = 'https://sentry.test/api/12345/envelope';
 
-const { default: handler } = await import('../api/symbol-search.ts');
+const { default: handler } = await import('../api/_symbol-search.ts');
 
 const originalFetch = globalThis.fetch;
 after(() => {

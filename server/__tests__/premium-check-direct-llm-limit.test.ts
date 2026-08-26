@@ -1,6 +1,6 @@
 // @vitest-environment node
 //
-// #6105 review: `api/chat-analyst.ts` forwards `premiumIdentity.directLlmDailyLimit`
+// #6105 review: `api/_chat-analyst.ts` forwards `premiumIdentity.directLlmDailyLimit`
 // straight into `reserveDirectLlmQuota`, and it INCRs the SAME
 // `llm:direct-usage:<userId>:<date>` key the gateway does. Nothing covered that
 // forwarding, so an arm could be added without a limit — and an absent field
@@ -122,7 +122,7 @@ describe("premium identity carries a direct-LLM limit for every arm", () => {
     expect(identity).toMatchObject({
       directLlmDailyLimit: DIRECT_LLM_UNVERIFIED_DAILY_QUOTA_LIMIT,
     });
-    // A null here would make api/chat-analyst.ts skip reserveDirectLlmQuota
+    // A null here would make api/_chat-analyst.ts skip reserveDirectLlmQuota
     // entirely -- no counter, and no fail-closed-on-Redis-outage path.
     expect((identity as { directLlmDailyLimit?: number | null }).directLlmDailyLimit).not.toBeNull();
   });

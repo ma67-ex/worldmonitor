@@ -17,7 +17,7 @@ import {
   readChinaCoverageInputs,
 } from '../scripts/china-coverage-health.mjs';
 import { chinaCoverageActivationCommand } from '../scripts/seed-china-coverage-health.mjs';
-import { __testing__ as healthTesting } from '../api/health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 
 const NOW = Date.parse('2026-07-13T12:00:00.000Z');
 

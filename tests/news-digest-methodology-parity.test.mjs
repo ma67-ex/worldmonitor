@@ -87,7 +87,7 @@ const seedDigestSrc = readFileSync(
   'utf8',
 );
 const latestBriefApiSrc = readFileSync(
-  resolve(repoRoot, 'api/latest-brief.ts'),
+  resolve(repoRoot, 'api/_latest-brief.ts'),
   'utf8',
 );
 const apiRouteExceptionsText = readFileSync(
@@ -95,7 +95,7 @@ const apiRouteExceptionsText = readFileSync(
   'utf8',
 );
 const briefShareUrlApiSrc = readFileSync(
-  resolve(repoRoot, 'api/brief/share-url.ts'),
+  resolve(repoRoot, 'api/brief/_share-url.ts'),
   'utf8',
 );
 const publicBriefApiSrc = readFileSync(

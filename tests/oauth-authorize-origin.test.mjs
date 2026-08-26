@@ -23,7 +23,7 @@ before(() => {
   delete process.env.UPSTASH_REDIS_REST_TOKEN;
 });
 
-const { default: handler } = await import('../api/oauth/authorize.js');
+const { default: handler } = await import('../api/oauth/_authorize.js');
 
 const postWithOrigin = (origin) => {
   const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };

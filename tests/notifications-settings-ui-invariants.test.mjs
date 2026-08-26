@@ -257,7 +257,7 @@ describe('watchlist tickers — client save + re-sync plumbing (#4922 U3)', () =
 
   /**
    * #5622/#5646: the server requires a BILLED entitlement row for notification
-   * writes (api/notification-channels.ts), and the reason that is a coherent
+   * writes (api/_notification-channels.ts), and the reason that is a coherent
    * product decision rather than a dead end is that the client draws the same
    * line — it gates this panel on the Convex entitlement snapshot, not on the
    * Clerk role.
@@ -278,7 +278,7 @@ describe('watchlist tickers — client save + re-sync plumbing (#4922 U3)', () =
       src,
       /isProUser\(/,
       'isProUser() accepts the Clerk role alone; using it here would unlock the UI '
-      + 'for accounts whose writes api/notification-channels.ts answers with 403',
+      + 'for accounts whose writes api/_notification-channels.ts answers with 403',
     );
   });
 });

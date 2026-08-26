@@ -15,7 +15,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { __testing__ } from '../api/health.js';
+import { __testing__ } from '../api/_health.js';
 import { jsonResponse } from '../api/_json-response.js';
 import {
   chinaDecisionSignalGroupDiagnostics,

@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { isInternalNotifyEventType } from '../api/notify.ts';
+import { isInternalNotifyEventType } from '../api/_notify.ts';
 
 describe('/api/notify reserved event types', () => {
   it('reserves relay-control and digest-produced watchlist event types', () => {

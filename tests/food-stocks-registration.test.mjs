@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
-import { __testing__ } from '../api/health.js';
+import { __testing__ } from '../api/_health.js';
 import { PREMIUM_RPC_PATHS } from '../src/shared/premium-paths.ts';
 import { PSD_COMMODITIES, normalizePsdCountryCode } from '../scripts/_food-stocks-helpers.mjs';
 import { normalizeFoodStocksCountry } from '../server/worldmonitor/resilience/v1/_food-stocks-query.ts';
@@ -16,7 +16,7 @@ describe('food stocks production registration (#6440)', () => {
     assert.equal(__testing__.SEED_META.foodStocks.maxStaleMin, 86400);
     assert.equal(__testing__.SEED_META.foodStocks.cutover?.mode, 'expiring-ack');
     assert.equal(__testing__.SEED_META.foodStocks.cutover?.issue, 6440);
-    assert.match(read('api/seed-health.js'), /'resilience:food-stocks':\s*\{ key: 'seed-meta:resilience:food-stocks',\s*intervalMin: 43200/);
+    assert.match(read('api/_seed-health.js'), /'resilience:food-stocks':\s*\{ key: 'seed-meta:resilience:food-stocks',\s*intervalMin: 43200/);
   });
 
   it('schedules the seeder in the resilience bundle and watches its files', () => {

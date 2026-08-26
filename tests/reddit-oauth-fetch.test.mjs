@@ -113,19 +113,19 @@ test('cadence is 3h and data-key TTL STRICTLY exceeds health maxStaleMin (real S
   assert.ok(43200 / 60 > 540, 'data-key TTL minutes must exceed maxStaleMin=540');
 });
 
-// Staleness budget is mirrored across THREE surfaces — api/health.js SEED_META,
-// the resilience _standalone-source-thresholds.ts, and api/seed-health.js (which
+// Staleness budget is mirrored across THREE surfaces — api/_health.js SEED_META,
+// the resilience _standalone-source-thresholds.ts, and api/_seed-health.js (which
 // marks stale at intervalMin * 2). This pins all three to the same 540min budget
 // for the Reddit keys so a future cadence edit can't drift one surface silently.
-test('seed-health.js Reddit budget (intervalMin*2) matches api/health.js maxStaleMin=540', () => {
-  const seedHealth = readFileSync(resolve(here, '../api/seed-health.js'), 'utf8');
-  const health = readFileSync(resolve(here, '../api/health.js'), 'utf8');
+test('seed-health.js Reddit budget (intervalMin*2) matches api/_health.js maxStaleMin=540', () => {
+  const seedHealth = readFileSync(resolve(here, '../api/_seed-health.js'), 'utf8');
+  const health = readFileSync(resolve(here, '../api/_health.js'), 'utf8');
   for (const key of ['social-reddit', 'wsb-tickers']) {
     const m = seedHealth.match(new RegExp(`intelligence:${key}'[^}]*intervalMin:\\s*(\\d+)`));
     assert.ok(m, `seed-health.js must define intelligence:${key} intervalMin`);
     assert.equal(Number(m[1]) * 2, 540, `seed-health ${key} intervalMin*2 must equal 540`);
   }
-  // api/health.js side of the mirror
+  // api/_health.js side of the mirror
   assert.match(health, /socialVelocity:.*maxStaleMin: 540/);
   assert.match(health, /wsbTickers:.*maxStaleMin: 540/);
 });

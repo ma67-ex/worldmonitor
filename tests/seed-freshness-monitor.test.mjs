@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 
 import YAML from 'yaml';
 
-import { __testing__ as healthTesting } from '../api/health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 import {
   applyAcceptanceBaseline,
   findOperationalProblems,
@@ -79,7 +79,7 @@ describe('scheduled seed freshness monitor', () => {
   it('exempts on-demand sources only for the states being on-demand explains', () => {
     // The marker means "RPC-populated, or awaiting its first producer run", so
     // it excuses ABSENCE and nothing more. EMPTY_ON_DEMAND is the only
-    // *_ON_DEMAND status api/health.js emits and it covers exactly those
+    // *_ON_DEMAND status api/_health.js emits and it covers exactly those
     // branches; the marker path must not be broader than the suffix path.
     assert.equal(isOnDemandProblem({ status: 'EMPTY_ON_DEMAND' }), true);
     assert.equal(isOnDemandProblem({ status: 'EMPTY', onDemand: true }), true);
@@ -93,7 +93,7 @@ describe('scheduled seed freshness monitor', () => {
   });
 
   it('never softens a fault status on an on-demand source', () => {
-    // api/health.js's ON_DEMAND_KEYS policy block records the incident: a
+    // api/_health.js's ON_DEMAND_KEYS policy block records the incident: a
     // homepage panel sat at 8.2x its staleness budget for 16+ hours undetected
     // because on-demand softening hid a chronic provider failure. `shippingRates`
     // has no ACTIVATION_MARKERS entry, so its marker is permanent -- softening

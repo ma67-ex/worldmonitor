@@ -1,4 +1,4 @@
-// Unit tests for api/mcp/billing-denial.ts — the typed propagation layer that
+// Unit tests for api/mcp/_billing-denial.ts — the typed propagation layer that
 // keeps gateway billing denials from flattening into generic -32603 errors.
 // Locks the allowlist boundary (unknown marker values must NOT become typed
 // denials) and the structural-Response tolerances the module documents.
@@ -8,7 +8,7 @@ import {
   assertToolFetchOk,
   BillingDenialError,
   throwIfBillingDenial,
-} from '../api/mcp/billing-denial.ts';
+} from '../api/mcp/_billing-denial.ts';
 
 function response(status, headerMap = {}) {
   return {
@@ -51,7 +51,7 @@ describe('billing-denial propagation helpers', () => {
   });
 
   it('entitlement_verification_unavailable throws a typed retryable denial', () => {
-    // env_key/user_key tool fetches sign with X-WorldMonitor-Key (api/mcp/auth.ts
+    // env_key/user_key tool fetches sign with X-WorldMonitor-Key (api/mcp/_auth.ts
     // buildAuthHeaders), so the gateway's backend-unreachable 503 reaches this
     // layer and must keep its billing contract instead of flattening into the
     // generic -32603 at HTTP 200.

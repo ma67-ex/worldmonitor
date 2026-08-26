@@ -16,7 +16,7 @@ import {
   patchPublishedForecastsWithSimDecorations,
   __setRedisStoreForTests,
 } from '../scripts/seed-forecasts.mjs';
-import { __testing__ as healthTesting } from '../api/health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 import { isPublicSharedRpcRequest } from '../src/shared/public-rpc-cache.ts';
 import { mergeCachedCaseFiles, needsCaseFileRefetch, shouldFetchCaseFile } from '../src/components/forecast-case-files.ts';
 import { BOOTSTRAP_CACHE_KEYS } from '../shared/bootstrap-tier-keys.js';

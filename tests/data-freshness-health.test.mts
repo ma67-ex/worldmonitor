@@ -103,13 +103,13 @@ describe('health freshness ingestion', () => {
   });
 
   it('keeps the frontend mapping pinned to registered api/health checks', () => {
-    const healthSrc = readFileSync(resolve(repoRoot, 'api/health.js'), 'utf8');
+    const healthSrc = readFileSync(resolve(repoRoot, 'api/_health.js'), 'utf8');
 
     for (const checkName of Object.keys(HEALTH_CHECK_SOURCE_MAP)) {
       assert.match(
         healthSrc,
         new RegExp(`\\b${checkName}:\\s*(?:\\{|['"\`])`),
-        `HEALTH_CHECK_SOURCE_MAP references ${checkName}, but api/health.js does not register that check`,
+        `HEALTH_CHECK_SOURCE_MAP references ${checkName}, but api/_health.js does not register that check`,
       );
     }
   });
@@ -190,7 +190,7 @@ describe('health freshness ingestion', () => {
     const applied = await refreshDataFreshnessFromHealth({
       endpoint: '/api/health',
       urlResolver: (path) => path,
-      // REDIS_DOWN returns HTTP 503 (api/health.js). The consumer must parse the
+      // REDIS_DOWN returns HTTP 503 (api/_health.js). The consumer must parse the
       // body before bailing on !resp.ok, or this outage branch never runs and
       // mapped sources keep stale freshness. Mocking 503 (not 200) makes this a
       // real guard for that regression.

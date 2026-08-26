@@ -780,22 +780,22 @@ describe('gdelt materializer freshness constants stay in lockstep (#5864)', () =
       `maxStaleMin ${maxStaleMin} must allow at least one missed tick (2x ${cronMin}min)`,
     );
 
-    const healthSrc = read('../api/health.js');
+    const healthSrc = read('../api/_health.js');
     const healthEntry = healthSrc.match(
       /gdeltIntel:\s*\{\s*key:\s*'seed-meta:intelligence:gdelt-intel',\s*maxStaleMin:\s*(\d+)/,
     );
-    assert.ok(healthEntry, 'api/health.js must gate gdeltIntel on the seed-meta key');
+    assert.ok(healthEntry, 'api/_health.js must gate gdeltIntel on the seed-meta key');
     assert.equal(
       Number(healthEntry[1]),
       maxStaleMin,
-      'api/health.js and RUN_SEED_OPTS must use the same staleness budget',
+      'api/_health.js and RUN_SEED_OPTS must use the same staleness budget',
     );
 
-    const seedHealthSrc = read('../api/seed-health.js');
+    const seedHealthSrc = read('../api/_seed-health.js');
     const seedHealthEntry = seedHealthSrc.match(
       /'intelligence:gdelt-intel':\s*\{[^}]*intervalMin:\s*(\d+)/,
     );
-    assert.ok(seedHealthEntry, 'api/seed-health.js must track the materializer');
+    assert.ok(seedHealthEntry, 'api/_seed-health.js must track the materializer');
     const intervalMin = Number(seedHealthEntry[1]);
     assert.ok(
       intervalMin * 2 >= maxStaleMin && intervalMin * 2 <= maxStaleMin + cronMin,
@@ -812,9 +812,9 @@ describe('gdelt materializer freshness constants stay in lockstep (#5864)', () =
     );
     const positiveTtl = ttlByKey.get(POSITIVE_EVENTS_BOOTSTRAP_KEY);
     assert.ok(positiveTtl, 'the bootstrap key must carry a preserved TTL');
-    const healthSrc = read('../api/health.js');
+    const healthSrc = read('../api/_health.js');
     const gate = healthSrc.match(/positiveGeoEvents:\s*\{[^}]*maxStaleMin:\s*(\d+)/);
-    assert.ok(gate, 'api/health.js must gate positiveGeoEvents');
+    assert.ok(gate, 'api/_health.js must gate positiveGeoEvents');
     assert.ok(
       positiveTtl > Number(gate[1]) * 60,
       `positive-events TTL ${positiveTtl}s must outlive its ${gate[1]}min health gate`,

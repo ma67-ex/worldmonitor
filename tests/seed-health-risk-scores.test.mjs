@@ -25,34 +25,34 @@ function extractSourceRange(source, startNeedle, endNeedle) {
 }
 
 test('seed-health CII risk score freshness mirrors api/health riskScores', () => {
-  const seedHealth = readRepoFile('api/seed-health.js');
-  const health = readRepoFile('api/health.js');
+  const seedHealth = readRepoFile('api/_seed-health.js');
+  const health = readRepoFile('api/_health.js');
 
   const healthRiskScores = extractObjectEntry(health, 'riskScores');
   const seedHealthMatch = seedHealth.match(
     /'intelligence:risk-scores':\s*\{\s*key:\s*'([^']+)',\s*intervalMin:\s*([0-9_]+)/,
   );
 
-  assert.ok(seedHealthMatch, 'api/seed-health.js must register intelligence:risk-scores');
+  assert.ok(seedHealthMatch, 'api/_seed-health.js must register intelligence:risk-scores');
   assert.equal(seedHealthMatch[1], 'seed-meta:intelligence:risk-scores');
   assert.equal(healthRiskScores.key, seedHealthMatch[1]);
   assert.equal(
     Number(seedHealthMatch[2].replaceAll('_', '')) * 2,
     healthRiskScores.minutes,
-    'seed-health intervalMin*2 must match api/health.js riskScores maxStaleMin',
+    'seed-health intervalMin*2 must match api/_health.js riskScores maxStaleMin',
   );
   assert.match(
     health,
     /riskScores:\s*\{\s*key:\s*'seed-meta:intelligence:risk-scores',\s*maxStaleMin:\s*30,\s*minRecordCount:\s*3\s*\}/,
-    'api/health.js riskScores must degrade partial realtime signal-density coverage via minRecordCount=3',
+    'api/_health.js riskScores must degrade partial realtime signal-density coverage via minRecordCount=3',
   );
   assert.match(
     health,
     /signal-density coverage/i,
-    'api/health.js riskScores comment must document that recordCount is not raw feed availability',
+    'api/_health.js riskScores comment must document that recordCount is not raw feed availability',
   );
   assert.ok(
-    seedHealth.includes('api/health.js riskScores'),
+    seedHealth.includes('api/_health.js riskScores'),
     'seed-health CII comment should keep the alignment target explicit',
   );
   assert.doesNotMatch(

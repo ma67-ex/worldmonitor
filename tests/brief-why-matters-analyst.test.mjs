@@ -91,7 +91,7 @@ async function invokeHandlerWithCachedEnvelope(
   };
 
   try {
-    const { default: handler } = await import('../api/internal/brief-why-matters.ts');
+    const { default: handler } = await import('../api/internal/_brief-why-matters.ts');
     const request = new Request('https://worldmonitor.test/api/internal/brief-why-matters', {
       method: 'POST',
       headers: {
@@ -685,7 +685,7 @@ describe('endpoint validation contract', () => {
   // test regression on the endpoint flow (see "endpoint end-to-end" below).
   const VALID_THREAT = new Set(['critical', 'high', 'medium', 'low']);
   const CAPS = { headline: 400, source: 120, category: 80, country: 80 };
-  // Must match `api/internal/brief-why-matters.ts:116` — bumped to 8192 in
+  // Must match `api/internal/_brief-why-matters.ts:116` — bumped to 8192 in
   // PR #3269 to accommodate v2 output + description. If this ever drifts
   // again, the bloated-fixture assertion below silently passes for
   // payloads in the (OLD_VALUE, NEW_VALUE] range that the real endpoint
@@ -1266,7 +1266,7 @@ describe('endpoint env flag parsing', () => {
     // the wrong semantics (that is exactly how default-on shipped in
     // the first place — #4893).
     const { readFile } = await import('node:fs/promises');
-    const src = await readFile(new URL('../api/internal/brief-why-matters.ts', import.meta.url), 'utf8');
+    const src = await readFile(new URL('../api/internal/_brief-why-matters.ts', import.meta.url), 'utf8');
     assert.ok(
       src.includes("env.BRIEF_WHY_MATTERS_SHADOW === '1'"),
       'brief-why-matters.ts must gate shadow with the opt-in expression mirrored in readConfig()',

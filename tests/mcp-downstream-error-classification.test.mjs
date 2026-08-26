@@ -1,4 +1,4 @@
-// Unit tests for api/mcp/downstream.ts error-classification helpers
+// Unit tests for api/mcp/_downstream.ts error-classification helpers
 // — classifyFailureReason, formatErrorDetail, BothSourcesFailedError,
 // and downstreamErrorTags BothSourcesFailedError handling.
 import { describe, it } from 'node:test';
@@ -7,7 +7,7 @@ import {
   classifyFailureReason,
   BothSourcesFailedError,
   downstreamErrorTags,
-} from '../api/mcp/downstream.ts';
+} from '../api/mcp/_downstream.ts';
 
 describe('classifyFailureReason', () => {
   it('returns "timeout" for AbortError', () => {

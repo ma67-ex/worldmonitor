@@ -19,8 +19,8 @@ describe('ACLED resolution-feed seed contract (#5076)', () => {
   const conflictSeed = source('scripts/seed-conflict-intel.mjs');
   const unrestSeed = source('scripts/seed-unrest-events.mjs');
   const resolutionSpec = source('scripts/_forecast-resolution.mjs');
-  const healthApi = source('api/health.js');
-  const seedHealthApi = source('api/seed-health.js');
+  const healthApi = source('api/_health.js');
+  const seedHealthApi = source('api/_seed-health.js');
 
   it('routes conflict hard counts to a long-window resolution key, not the map display key', () => {
     assert.match(resolutionSpec, /CONFLICT_COUNT_SOURCE_FEED\s*=\s*'conflict:acled-resolution:v1:all:0:0'/);

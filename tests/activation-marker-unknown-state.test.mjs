@@ -26,8 +26,8 @@ process.env.UPSTASH_REDIS_REST_URL = 'https://mock-upstash.test';
 process.env.UPSTASH_REDIS_REST_TOKEN = 'mock-token';
 process.env.WORLDMONITOR_VALID_KEYS = 'test-health-admin-key';
 
-const { handleHealth, __testing__ } = await import('../api/health.js');
-const { handleSeedHealth } = await import('../api/seed-health.js');
+const { handleHealth, __testing__ } = await import('../api/_health.js');
+const { handleSeedHealth } = await import('../api/_seed-health.js');
 const { readExistsFlags, redisPipeline } = await import('../api/_upstash-json.js');
 
 const {

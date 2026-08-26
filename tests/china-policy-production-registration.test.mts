@@ -21,9 +21,9 @@ describe('China policy production registration (#5576)', () => {
 
   it('registers bootstrap, independent seed health, and China coverage surfaces', () => {
     assert.equal(BOOTSTRAP_CACHE_KEYS.chinaPolicyEvents, 'china:policy-events:v1');
-    assert.match(read('api/health.js'), /chinaPolicyEvents:\s*\{\s*key:\s*'seed-meta:china:policy-events'/);
+    assert.match(read('api/_health.js'), /chinaPolicyEvents:\s*\{\s*key:\s*'seed-meta:china:policy-events'/);
     assert.match(
-      read('api/seed-health.js'),
+      read('api/_seed-health.js'),
       /'china:policy-events':\s*\{\s*key:\s*'seed-meta:china:policy-events',\s*intervalMin:\s*360\s*\}/,
     );
     assert.match(

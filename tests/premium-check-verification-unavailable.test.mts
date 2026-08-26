@@ -4,7 +4,7 @@
  *
  * The gap: `resolvePremiumCallerIdentity` returned the same
  * `{ isPremium: false }` for a CONFIRMED free row and for the transient marker
- * `getEntitlements` synthesizes when the Convex lookup fails. `api/chat-analyst.ts`
+ * `getEntitlements` synthesizes when the Convex lookup fails. `api/_chat-analyst.ts`
  * turned that into `403 Pro subscription required` — directly contradicting the
  * comment sitting above it, which had already committed to "503 (not 403) so a
  * transient dependency blip never misclassifies a paying Pro user as
@@ -260,7 +260,7 @@ describe('resolvePremiumCallerIdentity marks an unverifiable entitlement (#5622)
 });
 
 /**
- * The marker is only worth adding if a caller acts on it. `api/chat-analyst.ts`
+ * The marker is only worth adding if a caller acts on it. `api/_chat-analyst.ts`
  * is the adopting caller, driven here as the real handler so the assertion covers
  * the wiring and not just the predicate — a source-level check on this branch
  * would pass with the 403 restored.
@@ -280,7 +280,7 @@ describe('api/chat-analyst adopts the retryable posture (#5622)', () => {
 
   it('answers an unverifiable entitlement with the shared retryable 503, not the upsell 403', async () => {
     installFetchStub(async () => new Response('upstream error', { status: 503 }));
-    const { default: handler } = await import('../api/chat-analyst.ts');
+    const { default: handler } = await import('../api/_chat-analyst.ts');
 
     const res = await handler(analystRequest('user_analyst_unavailable'));
 
@@ -299,7 +299,7 @@ describe('api/chat-analyst adopts the retryable posture (#5622)', () => {
 
   it('a CONFIRMED free caller still gets the honest 403 upsell', async () => {
     installFetchStub(okRow(FREE_ROW));
-    const { default: handler } = await import('../api/chat-analyst.ts');
+    const { default: handler } = await import('../api/_chat-analyst.ts');
 
     const res = await handler(analystRequest('user_analyst_free'));
 
@@ -322,7 +322,7 @@ describe('api/chat-analyst adopts the retryable posture (#5622)', () => {
       billingStatus: 'renewal_verification_pending',
       retryAfterSeconds: 3,
     }));
-    const { default: handler } = await import('../api/chat-analyst.ts');
+    const { default: handler } = await import('../api/_chat-analyst.ts');
 
     const res = await handler(analystRequest('user_analyst_renewal'));
 
@@ -337,7 +337,7 @@ describe('api/chat-analyst adopts the retryable posture (#5622)', () => {
 
   it('keeps a provider-confirmed lapse a terminal 403 with no Retry-After', async () => {
     installFetchStub(okRow({ ...FREE_ROW, billingStatus: 'subscription_lapsed' }));
-    const { default: handler } = await import('../api/chat-analyst.ts');
+    const { default: handler } = await import('../api/_chat-analyst.ts');
 
     const res = await handler(analystRequest('user_analyst_lapsed'));
 

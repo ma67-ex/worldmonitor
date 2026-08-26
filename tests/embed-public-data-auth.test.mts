@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import bootstrapHandler, {
   isAnonymousWeatherBootstrapRequest,
   isPublicWeatherBootstrapRequest,
-} from '../api/bootstrap.js';
+} from '../api/_bootstrap.js';
 import { createDomainGateway, PUBLIC_NO_AUTH_RPC_PATHS } from '../server/gateway.ts';
 
 const EMBED_PUBLIC_RPC_PATHS = [

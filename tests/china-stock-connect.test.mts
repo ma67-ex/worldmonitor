@@ -321,7 +321,7 @@ describe('China Stock Connect northbound + margin (#6155)', () => {
     it('rejects every malformed snapshot shape, arm by arm', async () => {
       // validateChinaStockConnectSnapshot is the publish gate: if it wrongly
       // returns true, a malformed payload reaches the canonical key that
-      // api/health.js and the coverage manifest trust. Testing one arm leaves
+      // api/_health.js and the coverage manifest trust. Testing one arm leaves
       // the other seven free to rot.
       const { snapshot } = await fetchWithFixtures();
       assert.equal(validateChinaStockConnectSnapshot(snapshot), true);

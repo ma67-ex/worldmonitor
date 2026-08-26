@@ -22,7 +22,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 import crypto from 'node:crypto';
 
-import { tokenHandler } from '../api/oauth/token.ts';
+import { tokenHandler } from '../api/oauth/_token.ts';
 import {
   resolveBearerToContext,
   resolveApiKeyFromBearer,
@@ -764,7 +764,7 @@ describe('resolveBearerToContext (U6 resolver)', () => {
   // Stub fetch() so tests don't hit Upstash. The resolver percent-encodes
   // `oauth:token:<uuid>` so the pathname is `/get/oauth%3Atoken%3A<uuid>`.
   // Restores fetch + env on cleanup (env restoration prevents the
-  // module-cached Ratelimit in api/oauth/token.ts from initialising
+  // module-cached Ratelimit in api/oauth/_token.ts from initialising
   // against this test URL on subsequent describe blocks).
   function withRedisGet(value) {
     const realFetch = globalThis.fetch;

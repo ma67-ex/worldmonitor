@@ -184,7 +184,7 @@ describe('notification webhook SSRF guard', () => {
   });
 
   test('notification channel registration validates every persisted webhook envelope', () => {
-    const source = readFileSync(resolve(process.cwd(), 'api/notification-channels.ts'), 'utf8');
+    const source = readFileSync(resolve(process.cwd(), 'api/_notification-channels.ts'), 'utf8');
     assert.doesNotMatch(source, /channelType === 'webhook' && webhookEnvelope/);
     assert.match(
       source,

@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { __testing__ } from '../api/health.js';
+import { __testing__ } from '../api/_health.js';
 
 describe('forecast resolution health registration', () => {
   it('classifies the resolution ledger and scorecard as standalone health checks', () => {

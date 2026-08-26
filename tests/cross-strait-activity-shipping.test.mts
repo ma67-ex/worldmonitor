@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
-import { __testing__ } from '../api/health.js';
-import seedHealthHandler from '../api/seed-health.js';
+import { __testing__ } from '../api/_health.js';
+import seedHealthHandler from '../api/_seed-health.js';
 import { atomicPublish, runSeed } from '../scripts/_seed-utils.mjs';
 import { CROSS_STRAIT_ACTIVITY_KEY } from '../scripts/cross-strait-activity/adapters.mjs';
 import {

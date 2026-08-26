@@ -84,7 +84,7 @@ const DOCUMENTATION_PATH = resolve(here, '../docs/documentation.mdx');
 const FEATURES_PATH = resolve(here, '../docs/features.mdx');
 const SEED_SCORE_SCRIPT_PATH = resolve(here, '../scripts/seed-resilience-scores.mjs');
 const STATIC_SEED_SCRIPT_PATH = resolve(here, '../scripts/seed-resilience-static.mjs');
-const HEALTH_API_PATH = resolve(here, '../api/health.js');
+const HEALTH_API_PATH = resolve(here, '../api/_health.js');
 const RESILIENCE_SCORE_PROTO_PATH = resolve(here, '../proto/worldmonitor/resilience/v1/get_resilience_score.proto');
 const RESILIENCE_PROTO_PATH = resolve(here, '../proto/worldmonitor/resilience/v1/resilience.proto');
 const RESILIENCE_OPENAPI_YAML_PATH = resolve(here, '../docs/api/ResilienceService.openapi.yaml');
@@ -1336,7 +1336,7 @@ describe('methodology doc parity (Plan 2026-04-26-002 §U8)', () => {
     assert.equal(
       healthMaxStaleMinutes,
       ttlMinutes,
-      `api/health.js maxStaleMin for seed-meta:resilience:static should match RESILIENCE_STATIC_TTL_SECONDS (${ttlMinutes} minutes / ${ttlDays} days).`,
+      `api/_health.js maxStaleMin for seed-meta:resilience:static should match RESILIENCE_STATIC_TTL_SECONDS (${ttlMinutes} minutes / ${ttlDays} days).`,
     );
     assert.equal(
       docTtl,
@@ -1544,7 +1544,7 @@ function extractStaticSeedTtlDays(text: string): number {
 
 function extractStaticSeedHealthMaxStaleMinutes(text: string): number {
   const match = /resilienceStaticIndex:\s*\{\s*key:\s*'seed-meta:resilience:static',\s*maxStaleMin:\s*(\d+)/.exec(text);
-  assert.ok(match, 'resilienceStaticIndex maxStaleMin not found in api/health.js.');
+  assert.ok(match, 'resilienceStaticIndex maxStaleMin not found in api/_health.js.');
   return Number(match[1]);
 }
 

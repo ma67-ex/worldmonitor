@@ -8,7 +8,7 @@ import test from 'node:test';
 // country caches expired and the RPC silently reverted to per-request Yahoo.
 
 const seedSource = readFileSync(new URL('../scripts/seed-market-quotes.mjs', import.meta.url), 'utf8');
-const healthSource = readFileSync(new URL('../api/health.js', import.meta.url), 'utf8');
+const healthSource = readFileSync(new URL('../api/_health.js', import.meta.url), 'utf8');
 
 test('the country-index pass publishes its own freshness metadata', () => {
   assert.match(

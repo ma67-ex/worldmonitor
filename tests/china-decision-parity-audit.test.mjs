@@ -46,7 +46,7 @@ describe('China decision-signal static and staging audit (#5580)', () => {
     );
     assert.deepEqual(result.structuralCheckIds, [
       'edge-seed-health-group-ids',
-      // #6060 added api/health.js as a third literal mirror of the group
+      // #6060 added api/_health.js as a third literal mirror of the group
       // manifest, plus the healthy-quiet cause string in both Edge copies.
       'edge-health-group-ids',
       'edge-health-quiet-cause',

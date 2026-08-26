@@ -1,6 +1,6 @@
 // Static guard: every bundle-driven seeder's canonical-key TTL must be
 // AT LEAST 3× its bundle's `intervalMs` (the gold-standard from
-// api/health.js:268-281 and memory `seed-meta-populated-canonical-missing-
+// api/_health.js:268-281 and memory `seed-meta-populated-canonical-missing-
 // ttl-cron-match`).
 //
 // Why: when canonical TTL ≈ cron interval, ANY drift (cron queue delay,

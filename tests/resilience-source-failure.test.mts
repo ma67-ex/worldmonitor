@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { parse } from 'acorn';
-import { __testing__ as healthTesting } from '../api/health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 
 import {
   DATASET_TO_DIMENSIONS,
@@ -75,13 +75,13 @@ const SEED_ADAPTER_KEYS = [
 
 const INTENTIONALLY_UNTRACKED_STANDALONE_META_KEYS = new Set([
   // scoreFuelStockDays is retired and always returns coverage=0 +
-  // imputationClass=null. api/health.js intentionally removed this probe
+  // imputationClass=null. api/_health.js intentionally removed this probe
   // because it reported "cron ran" for data that the score no longer reads.
   'seed-meta:resilience:recovery:fuel-stocks',
 ]);
 
 const TRACKED_STANDALONE_META_KEYS_NOT_IN_HEALTH = new Set([
-  // api/seed-health.js tracks this seed with intervalMin=360; /api/health
+  // api/_seed-health.js tracks this seed with intervalMin=360; /api/health
   // does not include a direct SEED_META entry because its data key is
   // parameterized by year.
   'seed-meta:displacement:summary',
@@ -245,14 +245,14 @@ function evaluateNumericExpression(node: any): number | null {
 }
 
 function readHealthSeedMetaThresholds(): Map<string, number> {
-  const source = readFileSync(new URL('../api/health.js', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../api/_health.js', import.meta.url), 'utf8');
   const ast = parse(source, { ecmaVersion: 'latest', sourceType: 'module' }) as any;
   const declaration = ast.body
     .filter((node: any) => node.type === 'VariableDeclaration')
     .flatMap((node: any) => node.declarations)
     .find((node: any) => node.id?.type === 'Identifier' && node.id.name === 'SEED_META');
 
-  assert.ok(declaration, 'api/health.js must declare SEED_META');
+  assert.ok(declaration, 'api/_health.js must declare SEED_META');
   assert.equal(declaration.init?.type, 'ObjectExpression', 'SEED_META must be an object literal');
 
   const out = new Map<string, number>();
@@ -516,19 +516,19 @@ describe('resilience source-failure module', () => {
       assert.deepEqual(result.failedMetaKeys, []);
     });
 
-    it('keeps health-owned standalone source-failure thresholds in sync with api/health.js SEED_META', () => {
+    it('keeps health-owned standalone source-failure thresholds in sync with api/_health.js SEED_META', () => {
       const healthThresholds = readHealthSeedMetaThresholds();
       for (const [key, maxStaleMin] of Object.entries(STANDALONE_SOURCE_META_MAX_STALE_MIN)) {
         if (TRACKED_STANDALONE_META_KEYS_NOT_IN_HEALTH.has(key)) continue;
         assert.equal(
           healthThresholds.get(key),
           maxStaleMin,
-          `${key} must match api/health.js SEED_META maxStaleMin`,
+          `${key} must match api/_health.js SEED_META maxStaleMin`,
         );
       }
     });
 
-    it('requires explicit documentation for source-failure thresholds not owned by api/health.js', () => {
+    it('requires explicit documentation for source-failure thresholds not owned by api/_health.js', () => {
       const healthThresholds = readHealthSeedMetaThresholds();
       const trackedKeys = Object.keys(STANDALONE_SOURCE_META_MAX_STALE_MIN);
       const unownedKeys = trackedKeys.filter((key) => !healthThresholds.has(key)).sort();
@@ -554,7 +554,7 @@ describe('resilience source-failure module', () => {
         assert.equal(
           healthThresholds.has(key),
           false,
-          `${key} should be removed from the allowlist if api/health.js starts tracking it again`,
+          `${key} should be removed from the allowlist if api/_health.js starts tracking it again`,
         );
         assert.equal(
           key in STANDALONE_SOURCE_META_MAX_STALE_MIN,

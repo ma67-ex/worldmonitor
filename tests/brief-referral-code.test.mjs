@@ -119,7 +119,7 @@ describe('referral attribution resolves Clerk codes (waitlist path)', () => {
     const { fileURLToPath } = await import('node:url');
     const { dirname, resolve } = await import('node:path');
     const __d = dirname(fileURLToPath(import.meta.url));
-    const src = readFileSync(resolve(__d, '../api/referral/me.ts'), 'utf-8');
+    const src = readFileSync(resolve(__d, '../api/referral/_me.ts'), 'utf-8');
     assert.match(src, /registerReferralCodeInConvex/, 'helper must exist');
     // CURRENT CONTRACT: binding is fire-and-forget via ctx.waitUntil.
     //

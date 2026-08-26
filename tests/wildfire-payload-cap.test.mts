@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 
-import { compactWildfireBootstrapPayload } from '../api/bootstrap.js';
+import { compactWildfireBootstrapPayload } from '../api/_bootstrap.js';
 import { resolveBootstrapRegistry } from '../api/_bootstrap-tier-keys.js';
 import {
   WILDFIRE_DASHBOARD_DETECTION_LIMIT,

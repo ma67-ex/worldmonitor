@@ -26,7 +26,7 @@ describe('widget-agent unified tester key auth', () => {
     process.env.WORLDMONITOR_VALID_KEYS = 'browser-test-key';
 
     fetchMock = mock.method(globalThis, 'fetch', () => Promise.resolve(fakeRelayResponse()));
-    ({ default: handler } = await import('../api/widget-agent.ts'));
+    ({ default: handler } = await import('../api/_widget-agent.ts'));
   });
 
   beforeEach(() => {

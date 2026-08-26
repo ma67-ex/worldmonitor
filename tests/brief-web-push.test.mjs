@@ -257,7 +257,7 @@ describe('set-web-push SSRF allow-list', () => {
     const { dirname, resolve } = await import('node:path');
     const __d = dirname(fileURLToPath(import.meta.url));
     const src = readFileSync(
-      resolve(__d, '../api/notification-channels.ts'),
+      resolve(__d, '../api/_notification-channels.ts'),
       'utf-8',
     );
     assert.match(src, /isAllowedPushEndpointHost/, 'allow-list helper must be defined');
@@ -278,7 +278,7 @@ describe('set-web-push SSRF allow-list', () => {
     const { dirname, resolve } = await import('node:path');
     const __d = dirname(fileURLToPath(import.meta.url));
     const src = readFileSync(
-      resolve(__d, '../api/notification-channels.ts'),
+      resolve(__d, '../api/_notification-channels.ts'),
       'utf-8',
     );
     // The guard must fire BEFORE convexRelay() — once the row lands

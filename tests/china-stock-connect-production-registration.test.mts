@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
 import { BOOTSTRAP_CACHE_KEYS } from '../shared/bootstrap-tier-keys.js';
-import { __testing__ as healthTesting } from '../api/health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 import { CHINA_COVERAGE_ENTRIES } from '../scripts/china-coverage-manifest.mjs';
 import {
   CHINA_STOCK_CONNECT_KEY,
@@ -73,11 +73,11 @@ describe('China Stock Connect production registration (#6155)', () => {
 
   it('registers health, seed-health and the coverage manifest on one freshness budget', () => {
     assert.match(
-      read('api/health.js'),
+      read('api/_health.js'),
       /chinaStockConnect:\s*\{ key: 'seed-meta:market:china-stock-connect',\s*maxStaleMin:\s*180/,
     );
     assert.match(
-      read('api/seed-health.js'),
+      read('api/_seed-health.js'),
       /'market:china-stock-connect':\s*\{[^}]*intervalMin:\s*90/,
       'seed-health classifies at intervalMin * 2, so 90 must mirror /api/health\'s 180',
     );
@@ -133,7 +133,7 @@ describe('China Stock Connect production registration (#6155)', () => {
       Object.values(BOOTSTRAP_CACHE_KEYS).includes(CHINA_STOCK_CONNECT_KEY),
       false,
     );
-    assert.match(read('api/health.js'), /chinaStockConnect:\s*'market:china:stock-connect:v1'/);
+    assert.match(read('api/_health.js'), /chinaStockConnect:\s*'market:china:stock-connect:v1'/);
   });
 
   it('records terms for every new endpoint, as the existing exchange entries do', () => {

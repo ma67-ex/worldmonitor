@@ -15,7 +15,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { __testing__ } from '../api/health.js';
+import { __testing__ } from '../api/_health.js';
 
 import {
   buildContentFreshnessReport,
@@ -487,7 +487,7 @@ describe('decision-critical cache-hit refresh deadline', () => {
 });
 
 // These constants claim equality with sources they cannot import: the seeder is
-// a Railway script, api/health.js is an Edge function limited to api/_*.js, and
+// a Railway script, api/_health.js is an Edge function limited to api/_*.js, and
 // the corridor adapter is server-side TypeScript. Comments asserting "this
 // mirrors X" are exactly the kind of claim that rots silently — the same class
 // as the parity-audit gap this PR already closed for the group manifest.
@@ -608,7 +608,7 @@ describe('content-freshness activation marker', () => {
     'utf8',
   );
 
-  it('matches the key api/health.js registers', () => {
+  it('matches the key api/_health.js registers', () => {
     assert.equal(
       PORTWATCH_CONTENT_FRESHNESS_ACTIVATION_KEY,
       'seed-activated:supply_chain:portwatch-ports:content-freshness',

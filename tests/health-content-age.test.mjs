@@ -1,6 +1,6 @@
 // Sprint 1 — Health classifier content-age tests (2026-05-04 health-readiness plan).
 //
-// Tests the STALE_CONTENT branch added to api/health.js's classifyKey().
+// Tests the STALE_CONTENT branch added to api/_health.js's classifyKey().
 // Verifies:
 //   - STALE_CONTENT fires only when seeder opted in (presence of
 //     meta.maxContentAgeMin) AND content is stale.
@@ -15,7 +15,7 @@
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { __testing__ } from '../api/health.js';
+import { __testing__ } from '../api/_health.js';
 
 const { readSeedMeta, classifyKey, STATUS_COUNTS } = __testing__;
 

@@ -58,7 +58,7 @@ describe('api/telegram-feed contract normalization', () => {
       });
     };
 
-    const handler = (await import(`../api/telegram-feed.js?t=${Date.now()}`)).default;
+    const handler = (await import(`../api/_telegram-feed.js?t=${Date.now()}`)).default;
     const res = await handler(makeRequest());
     assert.equal(res.status, 200);
     assert.match(res.headers.get('cache-control') || '', /s-maxage=120/);
@@ -90,7 +90,7 @@ describe('api/telegram-feed contract normalization', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const handler = (await import(`../api/telegram-feed.js?t=${Date.now()}`)).default;
+    const handler = (await import(`../api/_telegram-feed.js?t=${Date.now()}`)).default;
     const res = await handler(makeRequest());
     const data = await res.json();
     assert.equal(data.count, 1);
@@ -112,7 +112,7 @@ describe('api/telegram-feed contract normalization', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const handler = (await import(`../api/telegram-feed.js?t=${Date.now()}`)).default;
+    const handler = (await import(`../api/_telegram-feed.js?t=${Date.now()}`)).default;
     const res = await handler(makeRequest());
     const data = await res.json();
     assert.equal(data.items[0].ts, new Date(1_000_000_000_000).toISOString());
@@ -127,7 +127,7 @@ describe('api/telegram-feed contract normalization', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const handler = (await import(`../api/telegram-feed.js?t=${Date.now()}`)).default;
+    const handler = (await import(`../api/_telegram-feed.js?t=${Date.now()}`)).default;
     const res = await handler(makeRequest());
     assert.equal(res.status, 429);
     assert.equal(res.headers.get('cache-control'), 'no-store');
@@ -145,7 +145,7 @@ describe('api/telegram-feed contract normalization', () => {
       headers: { 'Content-Type': 'text/plain' },
     });
 
-    const handler = (await import(`../api/telegram-feed.js?t=${Date.now()}`)).default;
+    const handler = (await import(`../api/_telegram-feed.js?t=${Date.now()}`)).default;
     const res = await handler(makeRequest());
     assert.equal(res.status, 503);
     assert.equal(res.headers.get('cache-control'), 'no-store');

@@ -17,7 +17,7 @@ process.env.WORLDMONITOR_VALID_KEYS = 'test-key';
 process.env.RESILIENCE_PILLAR_COMBINE_ENABLED = 'true';
 process.env.RESILIENCE_SCHEMA_V2_ENABLED = 'true';
 
-const { handleSeedHealth } = await import('../api/seed-health.js');
+const { handleSeedHealth } = await import('../api/_seed-health.js');
 
 const PORTWATCH_META_KEY = 'seed-meta:supply_chain:portwatch-ports';
 const PORTWATCH_CONTENT_BUDGET_MINUTES = 2 * 72 * 60;

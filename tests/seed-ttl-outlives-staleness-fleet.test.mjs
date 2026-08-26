@@ -193,7 +193,7 @@ function auditSeeders() {
 
     // (b) each health-monitored extraKey (side-write). These carry their OWN ttl and
     // their OWN metaKey, and several are a dashboard panel's PRIMARY source
-    // (api/bootstrap.js) — so an expired projection blanks the panel even while the
+    // (api/_bootstrap.js) — so an expired projection blanks the panel even while the
     // canonical key is alive. runSeed resolves an extraKey's TTL as `ek.ttl || ttlSeconds`
     // (scripts/_seed-utils.mjs), so one that declares no ttl INHERITS the canonical's.
     for (const m of src.matchAll(/^\s*metaKey:\s*'(seed-meta:[^']+)'/gm)) {

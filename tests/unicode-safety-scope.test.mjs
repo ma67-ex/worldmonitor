@@ -61,7 +61,7 @@ describe('unicode safety scan scope', () => {
     for (const path of [
       'src/services/i18n.ts',
       'server/handler.js',
-      'api/product-catalog.js',
+      'api/_product-catalog.js',
       'scripts/translate-locales.mjs',
       'tests/locale-staleness.test.mjs',
       'e2e/pricing.spec.ts',

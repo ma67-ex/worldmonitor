@@ -12,7 +12,7 @@ import {
   callBody,
 } from './helpers/mcp-pro-deps.mjs';
 import { buildOfficialChinaMacroFixture } from './helpers/china-macro-fixture.mjs';
-import { TOOL_REGISTRY } from '../api/mcp/registry/index.ts';
+import { TOOL_REGISTRY } from '../api/mcp/registry/_index.ts';
 
 const originalFetch = globalThis.fetch;
 const originalEnv = { ...process.env };
@@ -553,7 +553,7 @@ describe('api/mcp.ts — PRO MCP Server', () => {
   });
 
   it('get_chokepoint_status declares the PortWatch 174-country freshness floor', async () => {
-    const { CACHE_TOOLS } = await import(`../api/mcp/registry/cache-tools.ts?t=${Date.now()}`);
+    const { CACHE_TOOLS } = await import(`../api/mcp/registry/_cache-tools.ts?t=${Date.now()}`);
     const tool = CACHE_TOOLS.find((candidate) => candidate.name === 'get_chokepoint_status');
     const portwatchFreshness = tool?._freshnessChecks?.find(
       (check) => check.key === 'seed-meta:supply_chain:portwatch-ports',
@@ -3357,7 +3357,7 @@ describe('api/mcp.ts — U7 Pro-path', () => {
   });
 
   it('classifies billing-verification denials distinctly in usage telemetry', async () => {
-    const { mcpReasonFor } = await import('../api/mcp/usage.ts');
+    const { mcpReasonFor } = await import('../api/mcp/_usage.ts');
     assert.equal(mcpReasonFor('billing', 503), 'billing_verification_503');
     assert.equal(mcpReasonFor('billing', 403), 'tier_403');
     assert.equal(mcpReasonFor('precheck', 503), 'auth_unavailable');

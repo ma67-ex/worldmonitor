@@ -86,7 +86,7 @@ describe('weather bootstrap read targets the public CDN-shielded URL (#5386)', (
   });
 
   it('stays out of the on-demand tier, which would silently steal its cache profile', () => {
-    // api/bootstrap.js checks isPublicOnDemandBootstrapRequest BEFORE
+    // api/_bootstrap.js checks isPublicOnDemandBootstrapRequest BEFORE
     // isPublicWeatherBootstrapRequest, and both match the same URL shape. If
     // weatherAlerts were ever moved into ON_DEMAND_KEY_NAMES, the on-demand
     // predicate would win and the response would silently inherit the slow-tier

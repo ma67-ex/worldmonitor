@@ -1,5 +1,5 @@
 /**
- * Tests for `api/user/mcp-revoke.ts` — Clerk-authenticated revoke endpoint
+ * Tests for `api/user/_mcp-revoke.ts` — Clerk-authenticated revoke endpoint
  * for Pro MCP tokens (plan 2026-05-10-001 U9).
  *
  * Tested invariants:
@@ -18,7 +18,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { revokeHandler } from '../api/user/mcp-revoke.ts';
+import { revokeHandler } from '../api/user/_mcp-revoke.ts';
 
 function makeReq({ method = 'POST', body = { tokenId: 'tok_abc' }, auth = true, raw = null } = {}) {
   const headers = { 'Content-Type': 'application/json' };

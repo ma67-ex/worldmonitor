@@ -193,10 +193,10 @@ describe('coverage-ledger and provenance wiring (source-textual)', () => {
   });
 
   it('both completeness keys are registered in health surfaces', () => {
-    const seedHealth = readSrc('api/seed-health.js');
+    const seedHealth = readSrc('api/_seed-health.js');
     assert.match(seedHealth, /'news:feed-health'/);
     assert.match(seedHealth, /'news:recall-benchmark'/);
-    const health = readSrc('api/health.js');
+    const health = readSrc('api/_health.js');
     assert.match(health, /news:feed-health:v1/);
     assert.match(health, /seed-meta:news:recall-benchmark/);
   });
@@ -448,7 +448,7 @@ describe('selection attribution: same-source overflow (#4927 re-review)', () => 
 
 describe('durable activation lifecycle (#4927 re-review P1)', () => {
   it('classifyKey: on-demand softening is revoked once the activation marker exists', async () => {
-    const { __testing__ } = await import('../api/health.js');
+    const { __testing__ } = await import('../api/_health.js');
     const { classifyKey, ACTIVATION_MARKERS } = __testing__;
     assert.ok(ACTIVATION_MARKERS.newsFeedHealth.startsWith('seed-activated:'), 'marker namespace pinned');
 
@@ -477,19 +477,19 @@ describe('durable activation lifecycle (#4927 re-review P1)', () => {
       'marker must be durable — no TTL');
     const recallSrc = readSrc('scripts/seed-recall-benchmark.mjs');
     assert.match(recallSrc, /\['SET', 'seed-activated:news:recall-benchmark', '1'\]/);
-    const seedHealthSrc = readSrc('api/seed-health.js');
+    const seedHealthSrc = readSrc('api/_seed-health.js');
     assert.match(seedHealthSrc, /activationKey: 'seed-activated:news:feed-health'/,
       'seed-health gates pending-activation on the marker');
   });
 
   // The claim above ("missing meta with the marker present must fall through to
   // missing") used to be a regex over the exact gate expression in
-  // api/seed-health.js. That guard passed for the shape of the line rather than
+  // api/_seed-health.js. That guard passed for the shape of the line rather than
   // for its behaviour: it went red when #6095 rewrote the same gate to a
   // three-valued read, and it would have stayed green if the gate had been
   // inverted while keeping the expression's spelling. Drive the handler instead.
   it('seed-health: the durable marker, not the missing meta, decides pending vs missing', async () => {
-    const { default: seedHealthHandler } = await import('../api/seed-health.js');
+    const { default: seedHealthHandler } = await import('../api/_seed-health.js');
     const FEED_HEALTH_MARKER = 'seed-activated:news:feed-health';
     const FEED_HEALTH_META_KEY = 'seed-meta:news:feed-health';
     const realFetch = globalThis.fetch;

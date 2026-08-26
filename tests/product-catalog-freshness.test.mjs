@@ -305,7 +305,7 @@ describe('Product catalog freshness', () => {
       ['free', 'pro', 'pro_business', 'api_starter', 'api_business', 'enterprise'],
     );
 
-    const edgeSrc = readFileSync(join(ROOT, 'api/product-catalog.js'), 'utf8');
+    const edgeSrc = readFileSync(join(ROOT, 'api/_product-catalog.js'), 'utf8');
     const relaySrc = readFileSync(join(ROOT, 'scripts/ais-relay.cjs'), 'utf8');
     assert.match(edgeSrc, /from '\.\/_product-catalog\.generated\.js'/);
     assert.match(relaySrc, /requireShared\('product-catalog\.generated\.json'\)/);

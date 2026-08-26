@@ -4,8 +4,8 @@ import { readFileSync } from 'node:fs';
 
 const handlerSrc = readFileSync('server/worldmonitor/sanctions/v1/list-sanctions-pressure.ts', 'utf8');
 const seedSrc = readFileSync('scripts/seed-sanctions-pressure.mjs', 'utf8');
-const healthSrc = readFileSync('api/health.js', 'utf8');
-const seedHealthSrc = readFileSync('api/seed-health.js', 'utf8');
+const healthSrc = readFileSync('api/_health.js', 'utf8');
+const seedHealthSrc = readFileSync('api/_seed-health.js', 'utf8');
 
 // ---------------------------------------------------------------------------
 // Gold standard: handler must be Redis-read-only (no XML parsing, no live fetch)

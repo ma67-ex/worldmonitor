@@ -106,7 +106,7 @@ describe('parseBootstrapCacheContract', () => {
     });
   });
 
-  it('parses the real api/bootstrap.js into a complete contract', () => {
+  it('parses the real api/_bootstrap.js into a complete contract', () => {
     for (const tier of ['fast', 'slow']) {
       assert.match(REAL_CACHE.tierCache[tier], /^max-age=\d+,/);
       assert.match(REAL_CACHE.tierCdnCache[tier], /\bs-maxage=\d+\b/);
@@ -464,7 +464,7 @@ describe('validateBootstrapCacheDocs', () => {
     assert.ok(hit(failures, '?tier=slow&public=1 browser Cache-Control documented as `max-age=600`'));
   });
 
-  // Drift from the code side: the docs stand still while api/bootstrap.js moves.
+  // Drift from the code side: the docs stand still while api/_bootstrap.js moves.
   it('catches a handler-side tier change the docs never followed', () => {
     const drifted = parseBootstrapCacheContract(
       SYNTHETIC_BOOTSTRAP.replace("fast: 'max-age=60,", "fast: 'max-age=120,"),
@@ -476,7 +476,7 @@ describe('validateBootstrapCacheDocs', () => {
     );
     assert.equal(failures.length, BOOTSTRAP_CACHE_DOC_FILES.length);
     for (const file of BOOTSTRAP_CACHE_DOC_FILES) {
-      assert.ok(hit(failures, `${file}: ?tier=fast&public=1 browser Cache-Control documented as \`max-age=60\`, api/bootstrap.js emits \`max-age=120\``));
+      assert.ok(hit(failures, `${file}: ?tier=fast&public=1 browser Cache-Control documented as \`max-age=60\`, api/_bootstrap.js emits \`max-age=120\``));
     }
   });
 
@@ -498,11 +498,11 @@ describe('validateBootstrapCacheDocs', () => {
   // The reverse direction. Iterating only the code's profiles left this open:
   // remove the profile and every page still naming the key as having its own
   // headers passes, publishing a profile that no longer exists.
-  it('catches a page publishing an own-profile that api/bootstrap.js no longer declares', () => {
+  it('catches a page publishing an own-profile that api/_bootstrap.js no longer declares', () => {
     const cache = { ...REAL_CACHE, onDemandProfiles: {} };
     const failures = validateBootstrapCacheDocs({ bootstrapCache: cache }, REAL_DOCS, REAL_TIERS);
     assert.equal(failures.length, BOOTSTRAP_CACHE_DOC_FILES.length);
-    assert.ok(hit(failures, 'publishes an own cache profile for `chinaDecisionSignals`, but api/bootstrap.js declares none'));
+    assert.ok(hit(failures, 'publishes an own cache profile for `chinaDecisionSignals`, but api/_bootstrap.js declares none'));
   });
 
   // Every other doc fixture swaps a captured VALUE, so the "anchor present but

@@ -17,7 +17,7 @@ import {
   resolveInsightsSynthesis,
 } from '../scripts/_insights-synthesis-diagnostics.mjs';
 import { BRIEF_REJECTIONS } from '../scripts/_insights-brief.mjs';
-import { __testing__ as healthTesting } from '../api/health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 
 const OLD_GENERATED_AT = '2026-08-01T06:30:39.268Z';
 const NEW_GENERATED_AT = '2026-08-01T08:30:39.268Z';

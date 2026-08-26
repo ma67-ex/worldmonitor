@@ -1,4 +1,4 @@
-// Rate-limit coverage for api/reverse-geocode.js (#6234).
+// Rate-limit coverage for api/_reverse-geocode.js (#6234).
 //
 // The route reaches Nominatim, whose usage policy is the strictest in our
 // stack and whose enforcement is an egress-IP ban. It shares an Upstash-backed
@@ -15,7 +15,7 @@ const originalFetch = globalThis.fetch;
 delete process.env.UPSTASH_REDIS_REST_URL;
 delete process.env.UPSTASH_REDIS_REST_TOKEN;
 
-const { default: handler } = await import('../api/reverse-geocode.js');
+const { default: handler } = await import('../api/_reverse-geocode.js');
 const { __resetRateLimitForTest } = await import('../api/_rate-limit.js');
 
 const ENDPOINT = 'https://api.worldmonitor.app/api/reverse-geocode';

@@ -14,7 +14,7 @@ import {
   fetchCorrelationRuntimeMode,
 } from '../src/services/correlation-runtime-mode';
 import { readCorrelationRuntimeMode } from '../scripts/seed-correlation.mjs';
-import correlationRuntimeModeHandler, { __testing__ as apiTesting } from '../api/correlation-runtime-mode.js';
+import correlationRuntimeModeHandler, { __testing__ as apiTesting } from '../api/_correlation-runtime-mode.js';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 

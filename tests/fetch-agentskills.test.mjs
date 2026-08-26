@@ -1,4 +1,4 @@
-// Rate-limit and cache coverage for api/skills/fetch-agentskills.ts (#6234).
+// Rate-limit and cache coverage for api/skills/_fetch-agentskills.ts (#6234).
 //
 // The route is an anonymous POST that makes our edge fetch arbitrary paths on
 // agentskills.io. Its SSRF defences (a fixed three-host allowlist and
@@ -16,7 +16,7 @@ const originalFetch = globalThis.fetch;
 delete process.env.UPSTASH_REDIS_REST_URL;
 delete process.env.UPSTASH_REDIS_REST_TOKEN;
 
-const { default: handler } = await import('../api/skills/fetch-agentskills.ts');
+const { default: handler } = await import('../api/skills/_fetch-agentskills.ts');
 const { __resetRateLimitForTest } = await import('../server/_shared/rate-limit.ts');
 
 const ENDPOINT = 'https://worldmonitor.app/api/skills/fetch-agentskills';

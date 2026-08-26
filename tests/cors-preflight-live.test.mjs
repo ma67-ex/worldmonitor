@@ -123,7 +123,7 @@ for (const url of ENDPOINTS) {
     }
 
     // Worker's Allow-Methods MUST be a superset of every method any api/*
-    // route advertises. api/product-catalog.js advertises 'GET, DELETE,
+    // route advertises. api/_product-catalog.js advertises 'GET, DELETE,
     // OPTIONS' on its preflight, so DELETE belongs in the global Worker list.
     // Missing it silently breaks browser-origin product-catalog purges in
     // prod — exactly the regression that PR review caught locally.

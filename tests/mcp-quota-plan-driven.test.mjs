@@ -93,12 +93,12 @@ function userKeyReq(body) {
 // reserveQuota — the limit contract at the unit boundary
 // ---------------------------------------------------------------------------
 
-describe('api/mcp/quota.ts — reserveQuota honours the resolved plan limit', () => {
+describe('api/mcp/_quota.ts — reserveQuota honours the resolved plan limit', () => {
   let reserveQuota;
   let PRO_DAILY_QUOTA_LIMIT;
 
   beforeEach(async () => {
-    ({ reserveQuota } = await import(`../api/mcp/quota.ts?t=${Date.now()}-${Math.random()}`));
+    ({ reserveQuota } = await import(`../api/mcp/_quota.ts?t=${Date.now()}-${Math.random()}`));
     ({ PRO_DAILY_QUOTA_LIMIT } = await import('../server/_shared/pro-mcp-token.ts'));
   });
 

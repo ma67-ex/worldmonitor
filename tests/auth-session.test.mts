@@ -243,7 +243,7 @@ describe('validateBearerToken (with JWKS)', () => {
     const result = await validateBearerToken(token);
     assert.equal(result.valid, true);
     assert.equal(result.userId, 'user_aud_within_tolerance');
-    // Downstream consumers (api/user-prefs.ts) branch on this to classify a
+    // Downstream consumers (api/_user-prefs.ts) branch on this to classify a
     // Convex re-verification 401 as expected near-expiry, not auth drift.
     assert.equal(result.acceptedWithinClockTolerance, true);
   });

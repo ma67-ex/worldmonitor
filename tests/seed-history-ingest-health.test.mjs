@@ -64,8 +64,8 @@ const {
   recordHistoryIngestHealth,
 } = await import('../scripts/_seed-history.mjs');
 
-const { __testing__: healthTesting } = await import('../api/health.js');
-const { default: seedHealthHandler } = await import('../api/seed-health.js');
+const { __testing__: healthTesting } = await import('../api/_health.js');
+const { default: seedHealthHandler } = await import('../api/_seed-health.js');
 
 after(() => {
   globalThis.fetch = originalFetch;
@@ -809,18 +809,18 @@ describe('registration parity', () => {
     it(`${collector.domain}/${collector.resource} budgets agree across both health surfaces`, async () => {
       const { SEED_META } = healthTesting;
       const source = await import('node:fs/promises')
-        .then((fs) => fs.readFile(new URL('../api/seed-health.js', import.meta.url), 'utf8'));
+        .then((fs) => fs.readFile(new URL('../api/_seed-health.js', import.meta.url), 'utf8'));
 
       const metaKey = historyIngestMetaKey(collector.domain, collector.resource);
       const entry = new RegExp(
         `'${collector.seedHealthDomain}':\\s*\\{[^}]*key:\\s*'${metaKey}'[^}]*intervalMin:\\s*(\\d+)[^}]*activationKey:\\s*'${historyIngestActivationKey(collector.domain, collector.resource)}'`,
       ).exec(source);
 
-      assert.ok(entry, `api/seed-health.js must register ${collector.seedHealthDomain}`);
+      assert.ok(entry, `api/_seed-health.js must register ${collector.seedHealthDomain}`);
       assert.equal(
         Number(entry[1]) * 2,
         SEED_META[collector.healthName].maxStaleMin,
-        'intervalMin*2 must equal api/health.js maxStaleMin so both surfaces alarm together',
+        'intervalMin*2 must equal api/_health.js maxStaleMin so both surfaces alarm together',
       );
     });
   }

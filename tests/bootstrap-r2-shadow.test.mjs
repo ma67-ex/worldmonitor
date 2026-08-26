@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, test } from 'node:test';
 
-import handler, { __testing__ } from '../api/bootstrap.js';
+import handler, { __testing__ } from '../api/_bootstrap.js';
 import { BOOTSTRAP_R2_PROBE_CEILING_MS } from '../api/_bootstrap-r2.js';
 
 const originalEnv = { ...process.env };
@@ -281,7 +281,7 @@ test('shadow ignores on-demand requests but uses the Vercel scheduler without ha
 });
 
 test('shadow source pins the uncensored probe ceiling and cannot consume serving timeouts', () => {
-  const source = readFileSync(new URL('../api/bootstrap.js', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../api/_bootstrap.js', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /bootstrapR2ServingTimeoutMs|BOOTSTRAP_R2_TIMEOUT_MS_FAST|BOOTSTRAP_R2_TIMEOUT_MS_SLOW/);
 
   const timerStop = source.indexOf('const redisDurationMs = measureR2Shadow');

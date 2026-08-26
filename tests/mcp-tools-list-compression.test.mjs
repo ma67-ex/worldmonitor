@@ -2,7 +2,7 @@ import { describe, it, beforeEach, afterEach } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';
 
-import { TOOL_REGISTRY } from '../api/mcp/registry/index.ts';
+import { TOOL_REGISTRY } from '../api/mcp/registry/_index.ts';
 
 const originalEnv = { ...process.env };
 
@@ -450,7 +450,7 @@ describe('api/mcp.ts — tools/list description compression (v1.7.0)', () => {
     // static file; this guard fails loudly if the registry adds/removes/renames
     // a tool or edits a description without regenerating the card, so scanners
     // never preview a stale tool inventory. Regenerate with:
-    //   npx tsx -e "import('./api/mcp/registry/index.ts').then(m=>console.log(JSON.stringify(m.TOOL_REGISTRY.map(t=>({name:t.name,description:t.description})),null,2)))"
+    //   npx tsx -e "import('./api/mcp/registry/_index.ts').then(m=>console.log(JSON.stringify(m.TOOL_REGISTRY.map(t=>({name:t.name,description:t.description})),null,2)))"
     it('server-card.json exposes the orank-required top-level fields AND tools[] mirrors the registry', () => {
       const card = JSON.parse(readFileSync(new URL('../public/.well-known/mcp/server-card.json', import.meta.url), 'utf8'));
 

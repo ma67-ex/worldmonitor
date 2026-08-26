@@ -16,7 +16,7 @@
  *         wildcard behaviour for broadcast event types (rss_alert etc.).
  *
  * Also locks the tickers forwarding contract through the API layers
- * (api/notification-channels.ts + convex/http.ts), mirroring
+ * (api/_notification-channels.ts + convex/http.ts), mirroring
  * tests/notification-channels-countries-contract.test.mjs.
  *
  * Run: node --test tests/notification-relay-ticker-filter.test.mjs
@@ -33,7 +33,7 @@ const relaySrc = readFileSync(
   resolve(__dirname, '..', 'scripts', 'notification-relay.cjs'),
   'utf-8',
 );
-const edgeSrc = readFileSync(resolve(__dirname, '..', 'api', 'notification-channels.ts'), 'utf-8');
+const edgeSrc = readFileSync(resolve(__dirname, '..', 'api', '_notification-channels.ts'), 'utf-8');
 const convexHttpSrc = readFileSync(resolve(__dirname, '..', 'convex', 'http.ts'), 'utf-8');
 const convexRulesSrc = readFileSync(resolve(__dirname, '..', 'convex', 'alertRules.ts'), 'utf-8');
 

@@ -1338,7 +1338,7 @@ describe('scoreFinancialSystemExposure — component-read contract', () => {
     //
     // Reference: scripts/_seed-utils.mjs runSeed → seed-meta is written
     // at `seed-meta:${dataKey.replace(/:v\d+$/, '')}`. Same as
-    // api/health.js + api/seed-health.js entries.
+    // api/_health.js + api/_seed-health.js entries.
     const seedMetaReads = new Set<string>();
     const reader: ResilienceSeedReader = async (key) => {
       if (key.startsWith('seed-meta:')) seedMetaReads.add(key);

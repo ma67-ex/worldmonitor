@@ -1078,7 +1078,7 @@ describe('api/mcp.ts — resources capability + stability + auth-symmetry', () =
     assert.deepEqual(actualSorted, expected, 'CHOKEPOINT_SLUGS contents must match the snapshot byte-for-byte');
   });
 
-  it('api/mcp/resources/slugs.ts file-on-disk parses to the same CHOKEPOINT_SLUGS export', () => {
+  it('api/mcp/resources/_slugs.ts file-on-disk parses to the same CHOKEPOINT_SLUGS export', () => {
     // Defense-in-depth: the snapshot test above runs against the
     // already-loaded module; this one re-reads the source file from disk
     // so a sabotage that edits ONLY the in-memory const (test bypass)

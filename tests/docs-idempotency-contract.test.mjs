@@ -13,39 +13,39 @@ const notificationsDocs = read('docs/api-notifications.mdx');
 const platformDocs = read('docs/api-platform.mdx');
 const routeExceptions = JSON.parse(read('api/api-route-exceptions.json'));
 const scenarioOpenApi = JSON.parse(read('docs/api/ScenarioService.openapi.json'));
-const createCheckoutSource = read('api/create-checkout.ts');
-const notifySource = read('api/notify.ts');
+const createCheckoutSource = read('api/_create-checkout.ts');
+const notifySource = read('api/_notify.ts');
 
 const standaloneWrites = [
   {
     doc: commerceDocs,
     heading: 'POST /api/create-checkout',
     path: '/api/create-checkout',
-    file: 'api/create-checkout.ts',
+    file: 'api/_create-checkout.ts',
   },
   {
     doc: commerceDocs,
     heading: 'POST /api/customer-portal',
     path: '/api/customer-portal',
-    file: 'api/customer-portal.ts',
+    file: 'api/_customer-portal.ts',
   },
   {
     doc: notificationsDocs,
     heading: 'POST /api/notification-channels',
     path: '/api/notification-channels',
-    file: 'api/notification-channels.ts',
+    file: 'api/_notification-channels.ts',
   },
   {
     doc: notificationsDocs,
     heading: 'POST /api/notify',
     path: '/api/notify',
-    file: 'api/notify.ts',
+    file: 'api/_notify.ts',
   },
   {
     doc: platformDocs,
     heading: 'POST /api/user-prefs',
     path: '/api/user-prefs',
-    file: 'api/user-prefs.ts',
+    file: 'api/_user-prefs.ts',
   },
 ];
 
@@ -163,7 +163,7 @@ describe('docs Idempotency-Key prose contract', () => {
 
   it('notify docs match the standalone handler auth contract', () => {
     const notifyDocs = sectionForEndpoint(notificationsDocs, 'POST /api/notify');
-    const notifyException = routeExceptions.exceptions.find((entry) => entry.path === 'api/notify.ts');
+    const notifyException = routeExceptions.exceptions.find((entry) => entry.path === 'api/_notify.ts');
     assert.match(notifySource, /validateBearerToken/, 'notify handler validates Clerk bearer tokens');
     assert.match(
       notifySource,

@@ -18,7 +18,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { __testing__ } from '../api/health.js';
+import { __testing__ } from '../api/_health.js';
 
 const { classifyKey, LIST_DATA_KEYS, dataLenCommand, STANDALONE_KEYS, SEED_META } = __testing__;
 

@@ -24,7 +24,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { ACLED_TTL } from '../scripts/seed-conflict-intel.mjs';
-import { __testing__ } from '../api/health.js';
+import { __testing__ } from '../api/_health.js';
 
 test('the ACLED conflict key outlives its own health staleness threshold', () => {
   const { SEED_META } = __testing__;

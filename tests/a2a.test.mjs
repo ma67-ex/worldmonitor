@@ -73,7 +73,7 @@ describe('a2a: JSON-RPC endpoint', () => {
   let suggestTools;
 
   before(async () => {
-    const mod = await import(`../api/a2a.ts?t=${Date.now()}`);
+    const mod = await import(`../api/_a2a.ts?t=${Date.now()}`);
     handler = mod.default;
     suggestTools = mod.suggestTools;
   });

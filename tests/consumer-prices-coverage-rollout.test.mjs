@@ -10,7 +10,7 @@
 //   ACTIVATION — the producer SETs a durable, versioned, no-TTL marker only
 //   after publishing real per-market coverage. One-way: strict forever after.
 //   DEADLINE   — softening also stops at a wall-clock timestamp compiled into
-//   api/health.js, so a missed or failed first tick escalates on its own.
+//   api/_health.js, so a missed or failed first tick escalates on its own.
 //
 // Runs under the repo's data-test runner (`tsx --test tests/*.test.mjs`), which
 // is why the consumer-prices-core TypeScript module can be imported directly.
@@ -19,7 +19,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { __testing__ } from '../api/health.js';
+import { __testing__ } from '../api/_health.js';
 import {
   COVERAGE_ACTIVATION_SCHEMA_VERSION as CORE_SCHEMA_VERSION,
   coverageActivationKey as coreCoverageActivationKey,
@@ -62,7 +62,7 @@ const BEFORE_DEADLINE = US_UNTIL - 60_000;
 const AT_DEADLINE = US_UNTIL;
 const AFTER_DEADLINE = US_UNTIL + 60_000;
 
-// Same ctx shape the handler builds (api/health.js), plus `activationStates`.
+// Same ctx shape the handler builds (api/_health.js), plus `activationStates`.
 // That map is three-valued (#6095): every registered marker gets an entry here
 // because a clean sweep reads them all, and only a marker whose EXISTS command
 // FAILED is absent from the map. Modelling it as "listed = true, everything
@@ -202,7 +202,7 @@ test('expired rollout deadlines must be pruned from the registry', () => {
     rotted,
     [],
     'These rollout windows closed more than 14 days ago and are now dead config. '
-    + 'Delete their entries from CONSUMER_PRICE_COVERAGE_ROLLOUT_UNTIL in api/health.js. '
+    + 'Delete their entries from CONSUMER_PRICE_COVERAGE_ROLLOUT_UNTIL in api/_health.js. '
     + 'If that empties the map, also remove ROLLOUT_PENDING_UNTIL_MS, the ROLLOUT_PENDING '
     + 'branch in classifyKey, its STATUS_COUNTS entry and summary.rolloutPending counter, '
     + 'isRolloutPendingProblem in scripts/check-seed-freshness.mjs, the ROLLOUT_PENDING rows '

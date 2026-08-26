@@ -18,7 +18,7 @@ for (const k of [
 ]) delete process.env[k];
 process.env.WORLDMONITOR_VALID_KEYS = 'test-health-admin-key';
 
-const { default: handler } = await import('../api/health.js');
+const { default: handler } = await import('../api/_health.js');
 
 test('detailed health requires an operator API key before Redis is queried', async () => {
   // Real Request (no Origin header) — the handler reads req.headers.get('origin')

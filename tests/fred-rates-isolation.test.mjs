@@ -80,7 +80,7 @@ describe('FRED/rates seeder isolation', () => {
     assert.match(source, /\['SET',\s*FRED_RATES_ACTIVATION_KEY,\s*'1',\s*'NX'\]/);
   });
   it('is visible in operator seed health on the same one-hour cadence', () => {
-    const source = fs.readFileSync(new URL('../api/seed-health.js', import.meta.url), 'utf8');
+    const source = fs.readFileSync(new URL('../api/_seed-health.js', import.meta.url), 'utf8');
     assert.match(source, /'economic:fred-rates':\s*\{\s*key:\s*'seed-meta:economic:fred-rates',\s*intervalMin:\s*60/);
   });
 });

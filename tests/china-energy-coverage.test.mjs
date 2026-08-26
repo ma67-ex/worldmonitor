@@ -10,7 +10,7 @@ import {
   jodiDatasetContentMeta,
 } from '../scripts/shared/jodi-content-age.mjs';
 import { monthPeriodEnd } from '../scripts/shared/jodi-demand-change.mjs';
-import { __testing__ as healthTesting } from '../api/health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 import {
   buildResponseFromSpine,
   getObservedJodiGasMeasurements,

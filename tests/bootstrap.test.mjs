@@ -13,7 +13,7 @@ import {
   BOOTSTRAP_TIERS as EDGE_BOOTSTRAP_TIERS,
 } from '../api/_bootstrap-tier-keys.js';
 import { CII_RISK_SCORE_CACHE_KEYS } from '../api/_cii-risk-cache-keys.js';
-import { __testing__ as healthTesting } from '../api/health.js';
+import { __testing__ as healthTesting } from '../api/_health.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..');
@@ -143,7 +143,7 @@ describe('Bootstrap cache key registry', () => {
   });
 });
 
-describe('Bootstrap endpoint (api/bootstrap.js)', () => {
+describe('Bootstrap endpoint (api/_bootstrap.js)', () => {
   const bootstrapPath = join(root, 'api', 'bootstrap.js');
   const src = readFileSync(bootstrapPath, 'utf-8');
 
@@ -177,7 +177,7 @@ describe('Bootstrap endpoint (api/bootstrap.js)', () => {
   });
 
   it('keeps bootstrap and transitive api helpers inside the Edge-safe API boundary', () => {
-    const checked = [...collectBootstrapApiHelperImports('api/bootstrap.js')];
+    const checked = [...collectBootstrapApiHelperImports('api/_bootstrap.js')];
     const forbiddenImport = /from\s+['"](?:\.\.\/(?:server|src)\/|node:)/;
     const forbiddenDynamicImport = /import\s*\(\s*['"](?:\.\.\/(?:server|src)\/|node:)/;
     for (const relPath of checked) {

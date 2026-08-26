@@ -1,5 +1,5 @@
 /**
- * Tests for `api/user/mcp-quota.ts` — Clerk-authenticated read of the
+ * Tests for `api/user/_mcp-quota.ts` — Clerk-authenticated read of the
  * Pro MCP daily-quota counter (plan 2026-05-10-001 U9).
  *
  * Tested invariants:
@@ -21,7 +21,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { quotaHandler } from '../api/user/mcp-quota.ts';
+import { quotaHandler } from '../api/user/_mcp-quota.ts';
 
 function makeReq({ method = 'GET', auth = true } = {}) {
   const headers = {};
@@ -387,10 +387,10 @@ describe('mcp-quota handler — plan-resolved limit (U3b)', () => {
     assert.equal(normalizeQuotaLimit(Number.NaN), 50);
   });
 
-  it('reuses api/mcp/quota.ts resolveDailyLimit — no second copy of the normalisation', async () => {
+  it('reuses api/mcp/_quota.ts resolveDailyLimit — no second copy of the normalisation', async () => {
     // Drift guard: if the reader ever grows its own copy of the three-way
     // contract, this import breaks or the pairing below diverges.
-    const { resolveDailyLimit } = await import('../api/mcp/quota.ts');
+    const { resolveDailyLimit } = await import('../api/mcp/_quota.ts');
     for (const [planLimit, expected] of [
       [250, 250],
       [null, null],
