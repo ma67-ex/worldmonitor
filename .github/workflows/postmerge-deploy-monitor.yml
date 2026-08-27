@@ -14,10 +14,14 @@ name: Post-merge Deploy Monitor
 # and the incidents it exists to catch had green main while the deploy failed —
 # gating on main would silence exactly the alarms we want (#5565, the same
 # reasoning analytics-collector-monitor.yml documents).
+#
+# Cut from 10min to 30min (docs/tasks/abdullah/22): GitHub's 1-minute-per-run
+# billing floor on 6 cron workflows blew this private repo's Actions minutes
+# out 10-15x.
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 permissions:

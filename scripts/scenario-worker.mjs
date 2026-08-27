@@ -24,7 +24,7 @@ const RESULT_TTL_SECONDS = 86_400; // 24 h
 const BLMOVE_TIMEOUT_SECONDS = 30;  // block for up to 30s waiting for a job
 // Scheduled-drain safety net: exit before the next cron tick would overlap
 // this run, even if the queue never empties (e.g. a persistent Redis error).
-// scenario-worker-drain.yml fires every 5 minutes — 4 leaves real headroom.
+// scenario-worker-drain.yml fires every 15 minutes — 4 leaves real headroom.
 const MAX_RUN_MS = 4 * 60 * 1_000;
 
 /** @typedef {{ jobId: string; scenarioId: string; iso2: string | null; enqueuedAt: number }} ScenarioJob */

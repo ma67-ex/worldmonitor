@@ -3,11 +3,13 @@ name: Scenario Worker Drain
 # Replaces the always-on Railway worker scripts/scenario-worker.mjs was
 # originally written for (docs/tasks/abdullah/15-scenario-modeling-unlock.md
 # — real recurring cost, not worth it for this fork's traffic). Runs the same
-# script on a 5-minute schedule; it drains scenario-queue:pending until empty
-# (or its own 4-minute time budget) and exits, so idle time between jobs
-# costs nothing.
+# script on a 15-minute schedule (cut from 5min, docs/tasks/abdullah/22 --
+# GitHub's 1-minute-per-run billing floor on 6 cron workflows blew this
+# private repo's Actions minutes out 10-15x); it drains scenario-queue:pending
+# until empty (or its own 4-minute time budget) and exits, so idle time
+# between jobs costs nothing.
 #
-# Trade-off vs the always-on worker: up to ~5 minutes of latency between a
+# Trade-off vs the always-on worker: up to ~15 minutes of latency between a
 # client's "run scenario" click and the job being picked up, instead of
 # ~30s. The client already polls get-scenario-status asynchronously
 # (server/worldmonitor/scenario/v1/run-scenario.ts returns 202 + a status
@@ -18,7 +20,7 @@ name: Scenario Worker Drain
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 # Never run two drains at once — the queue's idempotency check (result

@@ -4,10 +4,14 @@ name: Analytics Collector Monitor
 # green main (unlike seed-freshness-monitor.yml): the collector's health is
 # independent of repo state, and a gate is one more way for this to go quiet —
 # which is exactly how a 4-day analytics blackout went unnoticed (#5565).
+#
+# Cut from 5min to 30min (docs/tasks/abdullah/22): GitHub's 1-minute-per-run
+# billing floor on 6 cron workflows blew this private repo's Actions minutes
+# out 10-15x.
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 permissions:

@@ -1,8 +1,12 @@
 name: Umami Storage Monitor
 
+# Cut from 15min to hourly (docs/tasks/abdullah/22): GitHub's 1-minute-per-run
+# billing floor on 6 cron workflows blew this private repo's Actions minutes
+# out 10-15x.
+
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 concurrency:
