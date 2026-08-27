@@ -237,6 +237,25 @@ function kebabToSnake(s) {
 const seenGatewayDomains = new Set();
 const seenGeneratedServices = new Set();
 
+// Vercel Hobby's 12-function cap forced ~34 formerly-standalone
+// api/<domain>/v<N>/[rpc].ts gateways into one consolidated dispatcher
+// (api/domain-gateway/[domain]/v1/[...rest].ts's REGISTRY) — see that
+// file's header comment. GATEWAY_RE alone can no longer see these domains
+// have a live gateway, since the standalone file per domain doesn't exist
+// anymore. A domain routed through any dispatcher still imports its
+// generated service_server directly, so scan every candidate file's source
+// for that import and count it the same as a standalone gateway file.
+const SERVICE_SERVER_IMPORT_RE =
+  /src\/generated\/server\/worldmonitor\/([a-z_]+)\/v(\d+)\/service_server/g;
+for (const absolute of candidateFiles) {
+  const rel = relative(ROOT, absolute).split(sep).join('/');
+  if (rel === 'api/api-route-exceptions.json') continue;
+  const source = readFileSync(absolute, 'utf8');
+  for (const match of source.matchAll(SERVICE_SERVER_IMPORT_RE)) {
+    seenGatewayDomains.add(`${match[1]}/v${match[2]}`);
+  }
+}
+
 for (const absolute of candidateFiles) {
   const rel = relative(ROOT, absolute).split(sep).join('/');
 
