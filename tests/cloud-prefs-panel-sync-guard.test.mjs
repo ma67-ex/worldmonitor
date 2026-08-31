@@ -210,7 +210,7 @@ describe('cloud prefs panel sync guardrails', () => {
     );
     assert.match(
       panelLayoutSrc,
-      /const capped = this\.isProTierResolvedOrFallback\(\)\s*\n\s*\?\s*enforceFreePanelLimit\(next, isProUser\(\)\)\s*\n\s*:\s*next;/,
+      /const capped = this\.isProTierResolvedOrFallback\(\)\s*\n\s*\?\s*enforceFreePanelLimit\(next\)\s*\n\s*:\s*next;/,
       'applyTabPanelState must not clamp before the entitlement is known unless the fallback has settled free-tier enforcement',
     );
 

@@ -2736,7 +2736,7 @@ export class App {
     } catch {
       // Persistence-only migration; blocked storage already uses defaults.
     }
-    const clampedPanels = enforceFreePanelLimit(panelSettings, false);
+    const clampedPanels = enforceFreePanelLimit(panelSettings);
     for (const key of Object.keys(panelSettings)) {
       if (panelSettings[key]?.enabled !== clampedPanels[key]?.enabled) {
         panelsChanged = true;

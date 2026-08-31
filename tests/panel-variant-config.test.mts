@@ -10,7 +10,6 @@ import {
   countFreePanelCapUsage,
   enforceFreePanelLimit,
   getEffectivePanelConfig,
-  isFreePanelCapCounted,
   restoreFreeMapPanelAccess,
   restoreProGatedPanels,
   shouldDeferFreeTierEnforcement,
@@ -74,42 +73,46 @@ describe('variant panel config resolution', () => {
     assert.equal(financeMap.priority, 1);
   });
 
-  it('keeps the global map available when free-tier defaults are clamped', () => {
+  it('no longer clamps the map or panel count on this no-paywall fork', () => {
     const fullDefaults = Object.fromEntries(
       VARIANT_DEFAULTS.full.map((key) => [key, { ...getEffectivePanelConfig(key, 'full') }]),
     );
 
-    const clamped = enforceFreePanelLimit(fullDefaults, false);
+    const result = enforceFreePanelLimit(fullDefaults);
 
-    assert.equal(clamped.map?.enabled, true);
-    assert.equal(countFreePanelCapUsage(clamped), FREE_MAX_PANELS);
+    // This fork has no paid tier to gate against — enforceFreePanelLimit no
+    // longer disables anything itself, it only heals proGated leftovers from
+    // a stale pre-this-change persisted state (see the legacy-heal tests
+    // below). Every panel enabled going in stays enabled coming out.
+    assert.equal(result.map?.enabled, true);
+    assert.equal(countFreePanelCapUsage(result), countFreePanelCapUsage(fullDefaults));
   });
 
-  it('restores stale over-cap free layouts where the cap disabled the map', () => {
-    const fullDefaults = Object.fromEntries(
-      VARIANT_DEFAULTS.full.map((key) => [key, { ...getEffectivePanelConfig(key, 'full') }]),
-    );
-    const stale = enforceFreePanelLimit(fullDefaults, false);
-    stale.map = { ...stale.map!, enabled: false };
-    const disabledCapPanel = Object.entries(fullDefaults).find(([key, panel]) =>
-      isFreePanelCapCounted(key) && panel.enabled && !stale[key]?.enabled
-    );
-    assert.ok(disabledCapPanel, 'fixture should include a disabled over-cap panel');
-    stale[disabledCapPanel[0]] = { ...disabledCapPanel[1], enabled: true };
+  it('restoreFreeMapPanelAccess restores a hidden map when over FREE_MAX_PANELS', () => {
+    // restoreFreeMapPanelAccess is a separate, still-live safety net
+    // (unrelated to this fork's removal of the count-cap) — built the
+    // over-cap fixture directly instead of deriving it from
+    // enforceFreePanelLimit, which no longer produces one.
+    const stale: Record<string, { name: string; enabled: boolean; priority: number }> = {};
+    for (let i = 0; i < FREE_MAX_PANELS + 1; i += 1) {
+      const key = `p${String(i).padStart(2, '0')}`;
+      stale[key] = { name: key, enabled: true, priority: 1 };
+    }
+    stale.map = { name: 'Map', enabled: false, priority: 0 };
 
     const restored = restoreFreeMapPanelAccess(stale);
 
     assert.equal(stale.map.enabled, false);
     assert.equal(restored.map?.enabled, true);
-    assert.equal(countFreePanelCapUsage(restored), FREE_MAX_PANELS + 1);
   });
 
-  it('does not force-enable a manually hidden map when the free layout is exactly at cap', () => {
-    const fullDefaults = Object.fromEntries(
-      VARIANT_DEFAULTS.full.map((key) => [key, { ...getEffectivePanelConfig(key, 'full') }]),
-    );
-    const atCap = enforceFreePanelLimit(fullDefaults, false);
-    atCap.map = { ...atCap.map!, enabled: false };
+  it('does not force-enable a manually hidden map when the free layout is exactly at FREE_MAX_PANELS', () => {
+    const atCap: Record<string, { name: string; enabled: boolean; priority: number }> = {};
+    for (let i = 0; i < FREE_MAX_PANELS; i += 1) {
+      const key = `p${String(i).padStart(2, '0')}`;
+      atCap[key] = { name: key, enabled: true, priority: 1 };
+    }
+    atCap.map = { name: 'Map', enabled: false, priority: 0 };
 
     const restored = restoreFreeMapPanelAccess(atCap);
 
@@ -128,103 +131,51 @@ describe('variant panel config resolution', () => {
     assert.equal(restored.map?.enabled, false);
   });
 
-  it('marks free-tier custom widgets and restores only gate-disabled panels for Pro', () => {
+  it('no longer force-disables cw-* custom widgets on this no-paywall fork', () => {
     const original = {
-      'cw-gated': { name: 'Gated widget', enabled: true, priority: 3 },
+      'cw-widget': { name: 'My widget', enabled: true, priority: 3 },
       'cw-hidden': { name: 'Hidden widget', enabled: false, priority: 3 },
       news: { name: 'News', enabled: true, priority: 1 },
     };
 
-    const clamped = enforceFreePanelLimit(original, false);
-    assert.deepEqual(clamped['cw-gated'], {
-      name: 'Gated widget',
-      enabled: false,
-      priority: 3,
-      proGated: true,
-    });
-    assert.deepEqual(clamped['cw-hidden'], original['cw-hidden']);
+    const result = enforceFreePanelLimit(original);
 
-    const restored = restoreProGatedPanels(clamped);
-    assert.deepEqual(restored['cw-gated'], original['cw-gated']);
-    assert.deepEqual(restored['cw-hidden'], original['cw-hidden']);
-    assert.deepEqual(restored.news, original.news);
-    assert.deepEqual(original['cw-gated'], {
-      name: 'Gated widget',
-      enabled: true,
-      priority: 3,
-    });
+    assert.deepEqual(result['cw-widget'], original['cw-widget']);
+    assert.deepEqual(result['cw-hidden'], original['cw-hidden']);
+    assert.deepEqual(result.news, original.news);
   });
 
-  it('restores COUNT-CAP-disabled panels for Pro, not just custom widgets', () => {
-    // The free-tier gate disables panels two ways: cw-* widgets (stamped
-    // proGated, restored by the test above) and everything past
-    // FREE_MAX_PANELS by the count cap. Only the first is stamped, and
-    // restoreProGatedPanels restores only what is stamped — so the count cap
-    // is a ONE-WAY DOOR.
-    //
-    // Concretely: a user over the cap while free (or during any window where
-    // the tier read as free) gets `enabled: false` PERSISTED into
-    // STORAGE_KEYS.panels for their lowest-priority panels. Going Pro never
-    // puts them back. The panel stays listed in Cmd+K and checkable in
-    // settings while being absent from the dashboard — a ghost.
-    //
-    // The sort is (priority asc, key asc), so at a flat priority the
-    // alphabetically-last keys go over the cliff first — which is why
-    // late-alphabet panels are the ones that vanish.
-    const original: Record<string, { name: string; enabled: boolean; priority: number }> = {};
-    for (let i = 0; i < FREE_MAX_PANELS + 5; i += 1) {
-      const key = `p${String(i).padStart(2, '0')}`;
-      original[key] = { name: key, enabled: true, priority: 1 };
-    }
-    const overCapKeys = Object.keys(original).slice(FREE_MAX_PANELS);
-    assert.equal(overCapKeys.length, 5, 'fixture must actually exceed the cap');
+  it('heals a panel a stale pre-fork clamp left proGated', () => {
+    // Anyone who used this fork before the count-cap and cw-* gate were
+    // removed may still have `proGated: true, enabled: false` persisted in
+    // STORAGE_KEYS.panels from the old clamp. enforceFreePanelLimit's only
+    // remaining job is undoing that leftover damage, same as it always did
+    // for a user going Pro — there's just no free/Pro branch left to reach it
+    // from.
+    const legacy = {
+      'cw-widget': { name: 'My widget', enabled: false, priority: 3, proGated: true },
+      p40: { name: 'p40', enabled: false, priority: 1, proGated: true },
+      news: { name: 'News', enabled: true, priority: 1 },
+    };
 
-    const clamped = enforceFreePanelLimit(original, false);
-    for (const key of overCapKeys) {
-      assert.equal(clamped[key]?.enabled, false, `${key} should be clamped off on the free tier`);
-    }
-    assert.equal(
-      countFreePanelCapUsage(clamped), FREE_MAX_PANELS,
-      'the clamp must leave exactly the cap enabled',
-    );
+    const result = enforceFreePanelLimit(legacy);
 
-    const restored = restoreProGatedPanels(clamped);
-    for (const key of overCapKeys) {
-      assert.equal(
-        restored[key]?.enabled, true,
-        `${key} was disabled by the free-tier cap, not by the user — going Pro must put it back`,
-      );
-    }
-
-    // The restore must not become a blanket enable-everything: a panel the
-    // USER turned off has to stay off.
-    const userHidden = enforceFreePanelLimit(
-      { ...original, p00: { name: 'p00', enabled: false, priority: 1 } },
-      false,
-    );
-    assert.equal(restoreProGatedPanels(userHidden).p00?.enabled, false,
-      'a deliberately hidden panel must stay hidden');
+    assert.deepEqual(result['cw-widget'], { name: 'My widget', enabled: true, priority: 3 });
+    assert.deepEqual(result.p40, { name: 'p40', enabled: true, priority: 1 });
+    assert.deepEqual(result.news, legacy.news);
   });
 
-  it('a user toggle takes ownership: a later deliberate hide survives going Pro', () => {
+  it('a user toggle takes ownership: a later deliberate hide survives a legacy-clamp heal', () => {
     // The marker means "the GATE owns this disable". If it survives a USER
     // re-enable, a later deliberate hide is indistinguishable from gate damage
-    // and the next Pro reconcile resurrects a panel the user chose to hide —
-    // then cloud-syncs that resurrection to every device.
-    //
-    // The over-cap fixture above hides its panel BEFORE the clamp, so the
-    // marker is never set on it. This covers the real sequence: clamp, user
-    // re-enables, user later hides.
-    const original: Record<string, { name: string; enabled: boolean; priority: number }> = {};
-    for (let i = 0; i < FREE_MAX_PANELS + 1; i += 1) {
-      const key = `q${String(i).padStart(2, '0')}`;
-      original[key] = { name: key, enabled: true, priority: 1 };
-    }
-    const clampedKey = Object.keys(original)[FREE_MAX_PANELS]!;
-
-    const clamped = enforceFreePanelLimit(original, false);
-    assert.equal(clamped[clampedKey]?.enabled, false);
-    assert.equal(clamped[clampedKey]?.proGated, true, 'the gate owns this disable');
+    // and the next heal pass resurrects a panel the user chose to hide — then
+    // cloud-syncs that resurrection to every device. Built the proGated
+    // fixture directly rather than deriving it from enforceFreePanelLimit,
+    // which no longer produces one itself.
+    const clampedKey = 'q40';
+    const clamped: Record<string, { name: string; enabled: boolean; priority: number; proGated?: boolean }> = {
+      [clampedKey]: { name: clampedKey, enabled: false, priority: 1, proGated: true },
+    };
 
     // 1. User re-enables it themselves (Cmd+K, settings toggle, undo-close).
     userSetPanelEnabled(clamped[clampedKey]!, true);
@@ -234,7 +185,7 @@ describe('variant panel config resolution', () => {
     // 2. Later, the user deliberately hides it.
     userSetPanelEnabled(clamped[clampedKey]!, false);
 
-    // 3. Going Pro must NOT resurrect it.
+    // 3. A later heal pass must NOT resurrect it.
     assert.equal(restoreProGatedPanels(clamped)[clampedKey]?.enabled, false,
       'a panel the user hid after re-enabling it must stay hidden');
   });

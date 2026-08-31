@@ -1252,7 +1252,7 @@ export class PanelLayoutManager implements AppModule {
     const pro = isProUser();
     let healedSnapshots = pro ? this.restoreLegacyCustomWidgetTabs(state) : false;
     for (const tab of state.tabs) {
-      const clamped = enforceFreePanelLimit(tab.panelSettings, pro);
+      const clamped = enforceFreePanelLimit(tab.panelSettings);
       if (this.panelSettingsEnabledStateChanged(tab.panelSettings, clamped)) {
         healedSnapshots = true;
       }
@@ -1388,7 +1388,7 @@ export class PanelLayoutManager implements AppModule {
       // user's workspace before its ownership marker can be safely reconciled.
       // Once the bounded fallback fires, the tier is settled enough to clamp.
       panelSettings: this.isProTierResolvedOrFallback()
-        ? enforceFreePanelLimit(defaults.panelSettings, isProUser())
+        ? enforceFreePanelLimit(defaults.panelSettings)
         : defaults.panelSettings,
       panelOrder: defaults.panelOrder,
       bottomSet: [],
@@ -1479,7 +1479,7 @@ export class PanelLayoutManager implements AppModule {
     // healStoredTabSnapshots) when the entitlement resolves or the fallback
     // settles the account as free.
     const capped = this.isProTierResolvedOrFallback()
-      ? enforceFreePanelLimit(next, isProUser())
+      ? enforceFreePanelLimit(next)
       : next;
 
     this.ctx.panelSettings = capped;
