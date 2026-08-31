@@ -5,7 +5,7 @@
  * text. The policy must preserve a stale free-user off-ramp while denying new
  * activation, and it must continue to honor renderer/DeckGL constraints.
  */
-import { describe, it } from 'node:test';
+import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
@@ -136,9 +136,26 @@ function makeCommandHarness({
   return { ctx, calls, command };
 }
 
+// resilienceScore has carried no 'locked' marker since task 03 (2026-08-22,
+// de-paywalled) — LAYER_REGISTRY has zero reachable locked map layers today
+// (see tests/docs-stats-plan-layer-entitlement.test.mts). This whole suite
+// tests the WIRING between the real SearchManager source (view:resilience is
+// a dedicated shortcut hardcoded to the resilienceScore key specifically —
+// see search-manager.ts, not a generic lookup a synthetic key could stand in
+// for) and the real gating functions, so resilienceScore is synthetically
+// re-locked for the duration of this file rather than swapped for a
+// stand-in layer.
 describe('CMD+K premium layer gate (#6045)', () => {
-  it('free users cannot activate the locked resilience layer', () => {
-    assert.equal(LAYER_REGISTRY.resilienceScore.premium, 'locked');
+  let originalPremium: 'locked' | 'enhanced' | undefined;
+  before(() => {
+    originalPremium = LAYER_REGISTRY.resilienceScore.premium;
+    (LAYER_REGISTRY.resilienceScore as { premium?: 'locked' | 'enhanced' }).premium = 'locked';
+  });
+  after(() => {
+    (LAYER_REGISTRY.resilienceScore as { premium?: 'locked' | 'enhanced' }).premium = originalPremium;
+  });
+
+  it('free users cannot activate a locked resilience layer', () => {
     assert.equal(isLayerCommandAllowed('resilienceScore', false, 'flat', true, false), false);
   });
 
@@ -148,7 +165,7 @@ describe('CMD+K premium layer gate (#6045)', () => {
     assert.equal(sanitizeLockedLayers(stale, false).resilienceScore, false);
   });
 
-  it('premium users and enhanced layers retain activation access', () => {
+  it('premium users and free layers retain activation access', () => {
     assert.equal(isLayerCommandAllowed('resilienceScore', false, 'flat', true, true), true);
     assert.equal(isLayerCommandAllowed('ciiChoropleth', false, 'flat', false, false), true);
   });

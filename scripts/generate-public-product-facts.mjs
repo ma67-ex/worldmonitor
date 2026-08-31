@@ -515,10 +515,10 @@ function pricingSummary() {
         name: 'Free',
         price_usd_monthly: 0,
         signup_required: false,
-        // Free gets every map layer except the Pro-locked Resilience layer. The
-        // caveat rides on the total rather than a free count: registry size is
-        // derivable, a truthful free count is not (see docs-stats.mjs).
-        features: [`${stats.layerDefinitions} map layers (Resilience is Pro)`, '500+ feeds', 'country briefs', 'chokepoints', 'instability scores', 'watchlists', '3 dashboard tabs'],
+        // De-paywalled on this fork (task 03, 2026-08-22): resilienceScore
+        // carries no 'locked' marker any more, so Free gets every map layer.
+        // See docs-stats.mjs's validatePlanLayerEntitlementCopy / PLAN_LAYER_PRO_ONLY_KEY.
+        features: [`${stats.layerDefinitions} map layers`, '500+ feeds', 'country briefs', 'chokepoints', 'instability scores', 'watchlists', '3 dashboard tabs'],
       },
       {
         name: 'Pro',

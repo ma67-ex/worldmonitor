@@ -1,10 +1,32 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { describe, it, before, after } from 'node:test';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
-import { isLayerToggleAllowed } from '../src/config/map-layer-definitions';
+import { LAYER_REGISTRY, isLayerToggleAllowed } from '../src/config/map-layer-definitions';
 import type { MapLayers } from '../src/types';
+
+// resilienceScore has carried no 'locked' marker since task 03 (2026-08-22,
+// de-paywalled) — LAYER_REGISTRY has zero reachable locked map layers today
+// (see tests/docs-stats-plan-layer-entitlement.test.mts). isLayerToggleAllowed
+// is generic (keyed by whatever LAYER_REGISTRY says), so a synthetic locked
+// layer is patched onto the registry for this file's duration instead of
+// asserting something false about production config.
+const LOCKED_KEY = 'zzzTestLockedLayer' as unknown as keyof MapLayers;
+before(() => {
+  (LAYER_REGISTRY as Record<string, unknown>)[LOCKED_KEY] = {
+    key: LOCKED_KEY,
+    icon: '',
+    i18nSuffix: 'zzzTestLockedLayer',
+    fallbackLabel: 'Test Locked Layer',
+    renderers: ['flat'],
+    deckGLOnly: true,
+    premium: 'locked',
+  };
+});
+after(() => {
+  delete (LAYER_REGISTRY as Record<string, unknown>)[LOCKED_KEY];
+});
 
 const mapSrc = readFileSync(new URL('../src/components/Map.ts', import.meta.url), 'utf8');
 const tier = { premium: false };
@@ -69,7 +91,7 @@ function makeMap(initialLayers: Partial<MapLayers> = {}) {
   const map = new MapHarness();
   map.state = {
     zoom: 3,
-    layers: { resilienceScore: false, ciiChoropleth: false, ...initialLayers } as MapLayers,
+    layers: { [LOCKED_KEY]: false, ciiChoropleth: false, ...initialLayers } as MapLayers,
   };
   map.container = { querySelector: () => null };
   map.layerZoomOverrides = {};
@@ -84,17 +106,17 @@ describe('SVG map premium layer toggle gate (#6045)', () => {
   it('blocks free activation but preserves stale locked-layer off-ramp', () => {
     tier.premium = false;
     const fresh = makeMap();
-    fresh.map.toggleLayer('resilienceScore');
-    assert.equal(fresh.map.state.layers.resilienceScore, false);
+    fresh.map.toggleLayer(LOCKED_KEY);
+    assert.equal(fresh.map.state.layers[LOCKED_KEY], false);
     assert.deepEqual(fresh.changes, []);
 
-    const stale = makeMap({ resilienceScore: true });
-    stale.map.toggleLayer('resilienceScore');
-    assert.equal(stale.map.state.layers.resilienceScore, false);
-    assert.deepEqual(stale.changes, [['resilienceScore', false, 'user']]);
+    const stale = makeMap({ [LOCKED_KEY]: true } as Partial<MapLayers>);
+    stale.map.toggleLayer(LOCKED_KEY);
+    assert.equal(stale.map.state.layers[LOCKED_KEY], false);
+    assert.deepEqual(stale.changes, [[LOCKED_KEY, false, 'user']]);
   });
 
-  it('keeps enhanced layers available to free users', () => {
+  it('keeps free layers available to free users', () => {
     tier.premium = false;
     const map = makeMap();
     map.map.toggleLayer('ciiChoropleth');
@@ -104,12 +126,12 @@ describe('SVG map premium layer toggle gate (#6045)', () => {
   it('gates programmatic enableLayer with the same policy', () => {
     tier.premium = false;
     const free = makeMap();
-    free.map.enableLayer('resilienceScore');
-    assert.equal(free.map.state.layers.resilienceScore, false);
+    free.map.enableLayer(LOCKED_KEY);
+    assert.equal(free.map.state.layers[LOCKED_KEY], false);
 
     tier.premium = true;
     const premium = makeMap();
-    premium.map.enableLayer('resilienceScore');
-    assert.equal(premium.map.state.layers.resilienceScore, true);
+    premium.map.enableLayer(LOCKED_KEY);
+    assert.equal(premium.map.state.layers[LOCKED_KEY], true);
   });
 });

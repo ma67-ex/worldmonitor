@@ -14,7 +14,7 @@
 // the `deckGLOnly` / `isLayerExecutable` contract.
 
 import { strict as assert } from 'node:assert';
-import { test, describe } from 'node:test';
+import { test, describe, before, after } from 'node:test';
 import type { MapLayers } from '../src/types';
 import { persistGateOwnershipTransition } from '../src/services/variant-panel-ownership';
 import {
@@ -30,6 +30,30 @@ import {
   mapLayerStatesEqual,
   shouldSanitizeLockedLayers,
 } from '../src/config/map-layer-definitions';
+
+// resilienceScore has carried no 'locked' marker since task 03 (2026-08-22,
+// de-paywalled) — LAYER_REGISTRY has zero reachable locked map layers today
+// (see tests/docs-stats-plan-layer-entitlement.test.mts). The tests below
+// exercise the GENERIC entitlement machinery (isLayerEntitled,
+// sanitizeLockedLayers, etc.), so a synthetic locked layer — shaped like
+// resilienceScore's real definition (flat-only, deckGLOnly) — is patched
+// onto the registry for their duration instead of asserting something false
+// about production config.
+const LOCKED_KEY = 'zzzTestLockedLayer' as unknown as keyof typeof LAYER_REGISTRY;
+before(() => {
+  (LAYER_REGISTRY as Record<string, unknown>)[LOCKED_KEY] = {
+    key: LOCKED_KEY,
+    icon: '',
+    i18nSuffix: 'zzzTestLockedLayer',
+    fallbackLabel: 'Test Locked Layer',
+    renderers: ['flat'],
+    deckGLOnly: true,
+    premium: 'locked',
+  };
+});
+after(() => {
+  delete (LAYER_REGISTRY as Record<string, unknown>)[LOCKED_KEY];
+});
 
 describe('LAYER_REGISTRY — deckGLOnly flag', () => {
   test('layers with only DeckGL render paths are marked deckGLOnly', () => {
@@ -128,20 +152,27 @@ describe('isLayerExecutable — renderer gate', () => {
 // contract so CMD+K cannot enable locked layers for free users (and cannot
 // leave a stuck checked+disabled control).
 describe('isLayerEntitled — premium locked gate', () => {
-  test('resilienceScore requires premium (locked)', () => {
-    assert.equal(LAYER_REGISTRY.resilienceScore.premium, 'locked');
-    assert.equal(isLayerEntitled('resilienceScore', false), false,
-      'free users must not be entitled to resilienceScore');
-    assert.equal(isLayerEntitled('resilienceScore', true), true,
-      'premium users must be entitled to resilienceScore');
+  test('a locked layer requires premium', () => {
+    assert.equal(LAYER_REGISTRY[LOCKED_KEY].premium, 'locked');
+    assert.equal(isLayerEntitled(LOCKED_KEY, false), false,
+      'free users must not be entitled to a locked layer');
+    assert.equal(isLayerEntitled(LOCKED_KEY, true), true,
+      'premium users must be entitled to a locked layer');
   });
 
-  test('enhanced layers remain entitled without premium', () => {
-    // ciiChoropleth is premium:'enhanced' on desktop — free users can still
-    // toggle it (PRO badge only). Gating it would regress free-tier CII.
-    // On web where premium is undefined the same assertion holds.
+  test('resilienceScore is fully free — no premium marker on this fork', () => {
+    // De-paywalled since task 03 (2026-08-22). Was 'locked'; now carries no
+    // premium field at all, same as any other free layer.
+    assert.equal(LAYER_REGISTRY.resilienceScore.premium, undefined);
+    assert.equal(isLayerEntitled('resilienceScore', false), true);
+  });
+
+  test('layers with no premium marker are always entitled', () => {
+    // ciiChoropleth previously carried premium:'enhanced' on the desktop
+    // build (removed — cosmetic-only PRO badge, never a real gate, see
+    // docs/tasks/abdullah/24-desktop-pro-badge-cleanup.md). Free either way.
     assert.equal(isLayerEntitled('ciiChoropleth', false), true,
-      'enhanced/free layers stay entitled for free users');
+      'free layers stay entitled for free users');
     assert.equal(isLayerEntitled('ciiChoropleth', true), true);
   });
 
@@ -160,27 +191,27 @@ describe('isLayerEntitled — premium locked gate', () => {
 describe('sanitizeLockedLayers — free-user stuck-state heal', () => {
   test('clears locked layers when unentitled, leaves others alone', () => {
     const input = {
-      resilienceScore: true,
+      [LOCKED_KEY]: true,
       ciiChoropleth: true,
       conflicts: true,
       pipelines: false,
     } as unknown as import('../src/types').MapLayers;
     const out = sanitizeLockedLayers(input, false);
-    assert.equal(out.resilienceScore, false, 'locked layer forced off');
-    assert.equal(out.ciiChoropleth, true, 'enhanced/free layer preserved');
+    assert.equal(out[LOCKED_KEY], false, 'locked layer forced off');
+    assert.equal(out.ciiChoropleth, true, 'free layer preserved');
     assert.equal(out.conflicts, true);
     assert.equal(out.pipelines, false);
     // Input not mutated
-    assert.equal(input.resilienceScore, true);
+    assert.equal(input[LOCKED_KEY], true);
   });
 
   test('is a no-op when entitled', () => {
     const input = {
-      resilienceScore: true,
+      [LOCKED_KEY]: true,
       conflicts: true,
     } as unknown as import('../src/types').MapLayers;
     const out = sanitizeLockedLayers(input, true);
-    assert.equal(out.resilienceScore, true);
+    assert.equal(out[LOCKED_KEY], true);
     assert.equal(out.conflicts, true);
   });
 });
@@ -223,23 +254,23 @@ describe('locked map-layer ownership', () => {
 
   test('records a locked layer forced off for a free user and keeps ownership across reruns', () => {
     const input = {
-      resilienceScore: true,
+      [LOCKED_KEY]: true,
       conflicts: true,
     } as unknown as MapLayers;
 
     const first = sanitizeLockedLayersWithOwnership(input, new Set());
-    assert.equal(first.layers.resilienceScore, false);
+    assert.equal(first.layers[LOCKED_KEY], false);
     assert.equal(first.layers.conflicts, true);
-    assert.deepEqual(first.gateOwned, new Set(['resilienceScore']));
+    assert.deepEqual(first.gateOwned, new Set([LOCKED_KEY]));
 
     const second = sanitizeLockedLayersWithOwnership(first.layers, first.gateOwned);
-    assert.equal(second.layers.resilienceScore, false);
-    assert.deepEqual(second.gateOwned, new Set(['resilienceScore']));
+    assert.equal(second.layers[LOCKED_KEY], false);
+    assert.deepEqual(second.gateOwned, new Set([LOCKED_KEY]));
   });
 
   test('keeps the live free gate sanitized when ownership persistence fails', () => {
     const durableLayers = {
-      resilienceScore: true,
+      [LOCKED_KEY]: true,
       conflicts: true,
     } as unknown as MapLayers;
     const reconciled = sanitizeLockedLayersWithOwnership(durableLayers, new Set());
@@ -251,8 +282,8 @@ describe('locked map-layer ownership', () => {
       () => { writes.push('ownership'); return false; },
     );
 
-    assert.equal(reconciled.layers.resilienceScore, false, 'live state remains safely gated');
-    assert.equal(durableLayers.resilienceScore, true, 'durable preference remains retryable');
+    assert.equal(reconciled.layers[LOCKED_KEY], false, 'live state remains safely gated');
+    assert.equal(durableLayers[LOCKED_KEY], true, 'durable preference remains retryable');
     assert.deepEqual(writes, ['ownership'], 'destructive durable write is blocked');
     assert.equal(persistence.complete, false);
   });
@@ -260,13 +291,13 @@ describe('locked map-layer ownership', () => {
   test('restores only valid locked layers owned by the gate', () => {
     const restored = restoreGateOwnedLockedLayers(
       {
-        resilienceScore: false,
+        [LOCKED_KEY]: false,
         conflicts: false,
       } as unknown as MapLayers,
-      new Set(['resilienceScore', 'conflicts', 'removed-layer']),
+      new Set([LOCKED_KEY, 'conflicts', 'removed-layer']),
     );
 
-    assert.equal(restored.resilienceScore, true);
+    assert.equal(restored[LOCKED_KEY], true);
     assert.equal(restored.conflicts, false, 'ordinary user-disabled layers stay disabled');
     assert.equal('removed-layer' in restored, false, 'unknown historical keys are ignored');
   });
@@ -285,55 +316,68 @@ describe('locked map-layer ownership', () => {
   });
 
   test('consumes stale resilience ownership after a free-to-Pro CII sequence', () => {
-    const free = sanitizeLockedLayersWithOwnership(
-      {
-        resilienceScore: true,
-        ciiChoropleth: false,
-      } as unknown as MapLayers,
-      new Set(),
-    );
-    const ciiSelectedWhileFree = {
-      ...free.layers,
-      ciiChoropleth: true,
-    };
-    const restored = restoreGateOwnedLockedLayers(
-      ciiSelectedWhileFree,
-      free.gateOwned,
-    );
-    let durableOwnership = new Set(free.gateOwned);
+    // resilienceScore's mutual-exclusivity-with-ciiChoropleth branch
+    // (map-layer-definitions.ts's restoreGateOwnedLockedLayers) is keyed by
+    // the literal name 'resilienceScore', not by a generic 'locked' check —
+    // this scenario is unreachable in production today since resilienceScore
+    // is never locked (task 03) and so can never enter gateOwned. Locking it
+    // for the duration of this one test to keep the regression guard alive
+    // in case a future re-lock reintroduces the interaction.
+    const original = LAYER_REGISTRY.resilienceScore.premium;
+    (LAYER_REGISTRY.resilienceScore as { premium?: 'locked' | 'enhanced' }).premium = 'locked';
+    try {
+      const free = sanitizeLockedLayersWithOwnership(
+        {
+          resilienceScore: true,
+          ciiChoropleth: false,
+        } as unknown as MapLayers,
+        new Set(),
+      );
+      const ciiSelectedWhileFree = {
+        ...free.layers,
+        ciiChoropleth: true,
+      };
+      const restored = restoreGateOwnedLockedLayers(
+        ciiSelectedWhileFree,
+        free.gateOwned,
+      );
+      let durableOwnership = new Set(free.gateOwned);
 
-    const persistence = persistGateOwnershipTransition(
-      'pro',
-      () => true,
-      () => { durableOwnership = new Set(); },
-    );
+      const persistence = persistGateOwnershipTransition(
+        'pro',
+        () => true,
+        () => { durableOwnership = new Set(); },
+      );
 
-    assert.equal(restored.resilienceScore, false);
-    assert.equal(restored.ciiChoropleth, true);
-    assert.equal(persistence.complete, true);
-    assert.deepEqual(durableOwnership, new Set());
-    assert.equal(
-      restoreGateOwnedLockedLayers(restored, durableOwnership),
-      restored,
-      'later reconciliations have no stale resilience ownership to replay',
-    );
+      assert.equal(restored.resilienceScore, false);
+      assert.equal(restored.ciiChoropleth, true);
+      assert.equal(persistence.complete, true);
+      assert.deepEqual(durableOwnership, new Set());
+      assert.equal(
+        restoreGateOwnedLockedLayers(restored, durableOwnership),
+        restored,
+        'later reconciliations have no stale resilience ownership to replay',
+      );
+    } finally {
+      (LAYER_REGISTRY.resilienceScore as { premium?: 'locked' | 'enhanced' }).premium = original;
+    }
   });
 });
 
 describe('isLayerToggleAllowed — stale locked-state recovery', () => {
   test('free users may turn a stale locked layer off but not turn it on', () => {
-    assert.equal(isLayerToggleAllowed('resilienceScore', true, false), true,
+    assert.equal(isLayerToggleAllowed(LOCKED_KEY, true, false), true,
       'stale locked state must remain recoverable');
-    assert.equal(isLayerToggleAllowed('resilienceScore', false, false), false,
+    assert.equal(isLayerToggleAllowed(LOCKED_KEY, false, false), false,
       'free users must not activate a locked layer');
   });
 
   test('premium users may toggle locked layers in either direction', () => {
-    assert.equal(isLayerToggleAllowed('resilienceScore', true, true), true);
-    assert.equal(isLayerToggleAllowed('resilienceScore', false, true), true);
+    assert.equal(isLayerToggleAllowed(LOCKED_KEY, true, true), true);
+    assert.equal(isLayerToggleAllowed(LOCKED_KEY, false, true), true);
   });
 
-  test('enhanced and free layers remain toggleable for free users', () => {
+  test('free layers remain toggleable for free users', () => {
     assert.equal(isLayerToggleAllowed('ciiChoropleth', false, false), true);
     assert.equal(isLayerToggleAllowed('conflicts', false, false), true);
   });
@@ -364,17 +408,17 @@ describe('shouldSanitizeLockedLayers — settled-free policy', () => {
 
 describe('isLayerCommandAllowed — CMD+K toggle policy', () => {
   test('free users can clear stale locked layers but cannot enable them', () => {
-    assert.equal(isLayerCommandAllowed('resilienceScore', true, 'flat', true, false), true);
-    assert.equal(isLayerCommandAllowed('resilienceScore', false, 'flat', true, false), false);
+    assert.equal(isLayerCommandAllowed(LOCKED_KEY, true, 'flat', true, false), true);
+    assert.equal(isLayerCommandAllowed(LOCKED_KEY, false, 'flat', true, false), false);
   });
 
-  test('premium and enhanced/free layers keep their expected toggle paths', () => {
-    assert.equal(isLayerCommandAllowed('resilienceScore', false, 'flat', true, true), true);
+  test('premium and free layers keep their expected toggle paths', () => {
+    assert.equal(isLayerCommandAllowed(LOCKED_KEY, false, 'flat', true, true), true);
     assert.equal(isLayerCommandAllowed('ciiChoropleth', false, 'flat', false, false), true);
   });
 
   test('renderer compatibility still blocks commands independently of entitlement', () => {
-    assert.equal(isLayerCommandAllowed('resilienceScore', false, 'globe', true, true), false);
+    assert.equal(isLayerCommandAllowed(LOCKED_KEY, false, 'globe', true, true), false);
     assert.equal(isLayerCommandAllowed('storageFacilities', false, 'flat', false, true), false);
   });
 });

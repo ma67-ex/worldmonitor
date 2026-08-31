@@ -1,21 +1,43 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { describe, it, before, after } from 'node:test';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
 import {
+  LAYER_REGISTRY,
   sanitizeLockedLayers,
   shouldSanitizeLockedLayers,
 } from '../src/config/map-layer-definitions';
 import { normalizeExclusiveChoropleths } from '../src/components/resilience-choropleth-utils';
 import type { MapLayers } from '../src/types';
 
+// resilienceScore has carried no 'locked' marker since task 03 (2026-08-22,
+// de-paywalled) — LAYER_REGISTRY has zero reachable locked map layers today
+// (see tests/docs-stats-plan-layer-entitlement.test.mts). sanitizeLockedLayers
+// is generic (keyed by whatever LAYER_REGISTRY says), so a synthetic locked
+// layer is patched onto the registry for this file's duration instead of
+// asserting something false about production config.
+const LOCKED_KEY = 'zzzTestLockedLayer' as unknown as keyof MapLayers;
+before(() => {
+  (LAYER_REGISTRY as Record<string, unknown>)[LOCKED_KEY] = {
+    key: LOCKED_KEY,
+    icon: '',
+    i18nSuffix: 'zzzTestLockedLayer',
+    fallbackLabel: 'Test Locked Layer',
+    renderers: ['flat', 'globe'],
+    premium: 'locked',
+  };
+});
+after(() => {
+  delete (LAYER_REGISTRY as Record<string, unknown>)[LOCKED_KEY];
+});
+
 const panelLayoutSrc = readFileSync(new URL('../src/app/panel-layout.ts', import.meta.url), 'utf8');
 const appSrc = readFileSync(new URL('../src/App.ts', import.meta.url), 'utf8');
 const tier = { premium: false, resolved: true, fallback: false };
 let gateOwnershipReads = 0;
 const savedPreference = {
-  resilienceScore: true,
+  [LOCKED_KEY]: true,
   ciiChoropleth: false,
   conflicts: false,
 } as unknown as MapLayers;
@@ -140,7 +162,7 @@ function runInitialUrlRestore({
   tier.fallback = fallback;
   restoreProbe.persisted = { ...savedPreference };
   restoreProbe.writes = 0;
-  const sourceLayers = { resilienceScore: true, ciiChoropleth: false, conflicts: true } as unknown as MapLayers;
+  const sourceLayers = { [LOCKED_KEY]: true, ciiChoropleth: false, conflicts: true } as unknown as MapLayers;
   let rendered: MapLayers | null = null;
   const initialUrlState = { layers: sourceLayers };
   const ctx = {
@@ -169,30 +191,30 @@ function runInitialUrlRestore({
 describe('initial URL map-layer entitlement healing (#6045)', () => {
   it('sanitizes the rendered URL snapshot without changing saved preferences', () => {
     const result = runInitialUrlRestore({ premium: false, resolved: true });
-    assert.equal(result.ctx.mapLayers.resilienceScore, false);
-    assert.equal(result.ctx.initialUrlState.layers.resilienceScore, false);
-    assert.equal(result.rendered?.resilienceScore, false);
+    assert.equal(result.ctx.mapLayers[LOCKED_KEY], false);
+    assert.equal(result.ctx.initialUrlState.layers[LOCKED_KEY], false);
+    assert.equal(result.rendered?.[LOCKED_KEY], false);
     assert.equal(result.persistenceWrites, 0, 'URL application must not persist map layers');
     assert.deepEqual(result.persisted, savedPreference, 'saved preferences remain untouched');
   });
 
   it('does not clamp a pending tier before the bounded fallback', () => {
     const result = runInitialUrlRestore({ premium: false, resolved: false });
-    assert.equal(result.ctx.mapLayers.resilienceScore, true);
-    assert.equal(result.ctx.initialUrlState.layers.resilienceScore, true);
+    assert.equal(result.ctx.mapLayers[LOCKED_KEY], true);
+    assert.equal(result.ctx.initialUrlState.layers[LOCKED_KEY], true);
   });
 
   it('clamps a still-pending tier once the bounded fallback is active', () => {
     const result = runInitialUrlRestore({ premium: false, resolved: false, fallback: true });
-    assert.equal(result.ctx.mapLayers.resilienceScore, false);
-    assert.equal(result.ctx.initialUrlState.layers.resilienceScore, false);
+    assert.equal(result.ctx.mapLayers[LOCKED_KEY], false);
+    assert.equal(result.ctx.initialUrlState.layers[LOCKED_KEY], false);
   });
 
   it('keeps a premium URL snapshot exact without consuming durable gate ownership', () => {
     gateOwnershipReads = 0;
     const sourceLayers = {
       conflicts: true,
-      resilienceScore: false,
+      [LOCKED_KEY]: false,
     } as unknown as MapLayers;
     const Harness = new AppSanitizeHarness();
     Harness.freeTierGate = { authSettleDeadlineExceeded: false };
@@ -205,7 +227,7 @@ describe('initial URL map-layer entitlement healing (#6045)', () => {
 
     assert.equal(result, sourceLayers, 'the exact URL-derived snapshot is preserved');
     assert.equal(result.conflicts, true);
-    assert.equal(result.resilienceScore, false, 'durable ownership must not enable an omitted layer');
+    assert.equal(result[LOCKED_KEY], false, 'durable ownership must not enable an omitted layer');
     assert.equal(gateOwnershipReads, 0, 'ephemeral Pro views must not consume ownership metadata');
   });
 });
