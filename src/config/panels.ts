@@ -1286,13 +1286,26 @@ export function restoreFreeMapPanelAccess(
  * Mirrors the entitlement checks in panel-layout.ts (single source of truth).
  */
 export function isPanelEntitled(key: string, config: PanelConfig, isPro = false): boolean {
+  // apiKeyPanels must be checked unconditionally, NOT gated behind
+  // `config.premium` — these 5 keys stopped carrying `premium: 'locked'` in
+  // panels.ts as of the BYOK commit (2026-08-16, docs/tasks/abdullah/01-byok-panels.md),
+  // which made this branch unreachable for them while WEB_PREMIUM_PANELS in
+  // panel-layout.ts (the actual single source of truth this function is
+  // meant to mirror) kept gating them regardless. That let CMD+K search,
+  // settings-toggle visibility, and WebMCP's isPanelAllowed treat these
+  // panels as unconditionally entitled even with no key present — the same
+  // "PRO badge + visible internal loader" bug class the
+  // apiKeyPanels/WEB_PREMIUM_PANELS guardrail test below already documents
+  // for regional-intelligence (PR #3578), just reached through a different
+  // one of isPanelEntitled's call sites instead of the render path.
+  const apiKeyPanels = ['stock-analysis', 'market-implications', 'regional-intelligence', 'deduction', 'chat-analyst'];
+  if (apiKeyPanels.includes(key)) {
+    if (isEntitled()) return true;
+    return getSecretState('WORLDMONITOR_API_KEY').present || isPro;
+  }
   if (!config.premium) return true;
   // Dodo entitlements unlock all premium panels
   if (isEntitled()) return true;
-  const apiKeyPanels = ['stock-analysis', 'market-implications', 'regional-intelligence', 'deduction', 'chat-analyst'];
-  if (apiKeyPanels.includes(key)) {
-    return getSecretState('WORLDMONITOR_API_KEY').present || isPro;
-  }
   if (config.premium === 'locked') {
     return isDesktopRuntime();
   }
