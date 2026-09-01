@@ -2032,53 +2032,52 @@ describe('widget-agent relay — error classifier', () => {
 });
 
 // ---------------------------------------------------------------------------
-// panel-layout — Pro CTAs must re-evaluate on Convex entitlement updates
+// panel-layout — Pro add-block CTAs are unconditionally visible on this fork
 // ---------------------------------------------------------------------------
 //
-// "Create Interactive Widget" (proBlock) and "Connect MCP" (mcpBlock) are
-// gated by applyProBlockGating(hasPremiumAccess(...)). For a paying Dodo
-// subscriber whose Clerk publicMetadata.plan is never written, hasPremiumAccess
-// only flips true once the Convex entitlement snapshot lands via
-// onEntitlementChange — NOT via subscribeAuthState. Subscribing only to
-// subscribeAuthState (the prior shape) meant the CTAs stayed display:none for
-// the entire page lifetime for paying users. Lock the dual-subscription.
-describe('panel-layout — Pro add-block gating reacts to entitlement updates', () => {
+// "Create Interactive Widget" (proBlock) and "Connect MCP" (mcpBlock) used to
+// be gated by applyProBlockGating(hasPremiumAccess(...)) — real upstream
+// Clerk/Convex Pro gating that predates this fork and was missed by task 18
+// (2026-08-24, which only removed proBlock's stale "PRO" badge, not this
+// display:none visibility gate a few lines below). Fixed in
+// docs/tasks/abdullah/27: this fork has no billing stack behind either CTA
+// (task 08 neutered api/_widget-agent.ts and isCallerPremium, which
+// api/mcp-proxy.ts uses), so both blocks now render unconditionally with no
+// auth/entitlement subscription at all.
+describe('panel-layout — Pro add-block CTAs render unconditionally (no paywall)', () => {
   const layout = src('src/app/panel-layout.ts');
 
-  it('imports onEntitlementChange', () => {
+  it('proBlock and mcpBlock are appended with no display:none gating', () => {
+    const proIdx = layout.indexOf("const proBlock = document.createElement('button');");
+    assert.ok(proIdx !== -1, 'proBlock declaration not found in panel-layout');
+    const mcpAppendIdx = layout.indexOf('panelsGrid.appendChild(mcpBlock);');
+    assert.ok(mcpAppendIdx !== -1, 'mcpBlock append not found in panel-layout');
+    const region = layout.slice(proIdx, mcpAppendIdx + 200);
     assert.ok(
-      /import\s*\{[^}]*\bonEntitlementChange\b[^}]*\}\s*from\s*['"][^'"]*entitlements['"]/.test(layout),
-      'panel-layout must import onEntitlementChange to re-evaluate Pro CTA gating on Convex snapshots',
+      !region.includes('hasPremiumAccess'),
+      'proBlock/mcpBlock creation must not reference hasPremiumAccess — both CTAs are free on this fork',
+    );
+    assert.ok(
+      !region.includes('style.display'),
+      'proBlock/mcpBlock must not be toggled via style.display — no gating left to react to',
     );
   });
 
-  it('proBlock + mcpBlock gating subscribes to BOTH auth and entitlement changes', () => {
-    // Anchor on the gating function to scope the search to its surroundings.
-    const gateFnIdx = layout.indexOf('applyProBlockGating');
-    assert.ok(gateFnIdx !== -1, 'applyProBlockGating not found in panel-layout');
-    const region = layout.slice(gateFnIdx, gateFnIdx + 1500);
+  it('mcpBlock no longer renders a stale "PRO" badge', () => {
+    const mcpIdx = layout.indexOf("const mcpBlock = document.createElement('button');");
+    assert.ok(mcpIdx !== -1, 'mcpBlock declaration not found in panel-layout');
+    const mcpAppendIdx = layout.indexOf('panelsGrid.appendChild(mcpBlock);', mcpIdx);
+    const region = layout.slice(mcpIdx, mcpAppendIdx);
     assert.ok(
-      region.includes('subscribeAuthState'),
-      'Pro CTA gating must subscribe to subscribeAuthState (legacy auth-driven path)',
-    );
-    assert.ok(
-      region.includes('onEntitlementChange'),
-      'Pro CTA gating MUST subscribe to onEntitlementChange so paying Dodo users flip from hidden->visible when the Convex entitlement snapshot lands',
+      !region.includes('widget-pro-badge'),
+      'mcpBlock must not render the widget-pro-badge element — Connect MCP is free, same fix already applied to proBlock in task 18',
     );
   });
 
-  it('teardown clears the entitlement subscription so a destroyed layout does not leak callbacks', () => {
+  it('destroy() no longer holds a proBlock gating-subscription handle', () => {
     assert.ok(
-      layout.includes('proBlockEntitlementUnsubscribe'),
-      'panel-layout must hold a proBlockEntitlementUnsubscribe handle and clear it in destroy()',
-    );
-    // Look for the destroy() block
-    const destroyIdx = layout.indexOf('destroy(): void {');
-    assert.ok(destroyIdx !== -1, 'destroy() not found');
-    const destroyRegion = layout.slice(destroyIdx, destroyIdx + 2000);
-    assert.ok(
-      destroyRegion.includes('proBlockEntitlementUnsubscribe'),
-      'destroy() must invoke proBlockEntitlementUnsubscribe to avoid leaking callbacks across layout init/destroy cycles',
+      !layout.includes('proBlockUnsubscribe') && !layout.includes('proBlockEntitlementUnsubscribe'),
+      'proBlock gating subscription handles should be fully removed, not just unused',
     );
   });
 });

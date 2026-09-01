@@ -429,8 +429,6 @@ export class PanelLayoutManager implements AppModule {
   private aviationCommandBar: AviationCommandBar | null = null;
   private readonly applyTimeRangeFilterDebounced: (() => void) & { cancel(): void };
   private unsubscribeAuth: (() => void) | null = null;
-  private proBlockUnsubscribe: (() => void) | null = null;
-  private proBlockEntitlementUnsubscribe: (() => void) | null = null;
   private boundWidgetCreatorHandler: ((e: Event) => void) | null = null;
   private unsubscribeEntitlementChange: (() => void) | null = null;
   private unsubscribeSubscriptionChange: (() => void) | null = null;
@@ -708,10 +706,6 @@ export class PanelLayoutManager implements AppModule {
     this.applyTimeRangeFilterDebounced.cancel();
     this.unsubscribeAuth?.();
     this.unsubscribeAuth = null;
-    this.proBlockUnsubscribe?.();
-    this.proBlockUnsubscribe = null;
-    this.proBlockEntitlementUnsubscribe?.();
-    this.proBlockEntitlementUnsubscribe = null;
 
     const destroyedTargets = new Set<{ destroy?: () => void }>();
     const destroyOnce = (target: { destroy?: () => void } | null | undefined): void => {
@@ -2702,7 +2696,13 @@ export class PanelLayoutManager implements AppModule {
     });
     panelsGrid.appendChild(addPanelBlock);
 
-    // Always create Pro and MCP add-panel blocks — show/hide reactively via auth state.
+    // Always create Pro and MCP add-panel blocks, always visible — this fork
+    // has no billing stack behind either CTA (task 08 neutered the server-side
+    // gates on api/_widget-agent.ts and isCallerPremium, which api/mcp-proxy.ts
+    // uses). They used to be hidden behind hasPremiumAccess() (real upstream
+    // Clerk/Convex Pro gate, predates this fork); task 18 (2026-08-24) only
+    // removed the stale "PRO" badge on proBlock and missed this actual
+    // display:none visibility gate a few lines below — docs/tasks/abdullah/27.
     const proBlock = document.createElement('button');
     proBlock.className = 'add-panel-block ai-widget-block ai-widget-block-pro';
     proBlock.dataset.clsMover = 'pro-widget-cta';
@@ -2739,45 +2739,14 @@ export class PanelLayoutManager implements AppModule {
     const mcpLabel = document.createElement('span');
     mcpLabel.className = 'add-panel-block-label';
     mcpLabel.textContent = t('mcp.connectPanel');
-    const mcpBadge = document.createElement('span');
-    mcpBadge.className = 'widget-pro-badge';
-    mcpBadge.textContent = t('widgets.proBadge');
     mcpBlock.appendChild(mcpIcon);
     mcpBlock.appendChild(mcpLabel);
-    mcpBlock.appendChild(mcpBadge);
     mcpBlock.addEventListener('click', () => {
       void import('@/components/McpConnectModal').then((m) => m.openMcpConnectModal({
         onComplete: (spec) => this.addMcpPanel(spec),
       })).catch((err) => console.error('[mcp-connect] failed to lazy-load McpConnectModal', err));
     });
     panelsGrid.appendChild(mcpBlock);
-
-    // Reactively show/hide Pro-only UI blocks ("Create Interactive Widget" +
-    // "Connect MCP" CTAs) based on premium access.
-    //
-    // hasPremiumAccess() folds in isEntitled() (Convex Dodo entitlement) per
-    // panel-gating.ts:11-27 — so a paying subscriber whose Clerk publicMetadata
-    // is never written by the webhook still resolves to true once the Convex
-    // snapshot lands. BUT: the snapshot lands AFTER auth state stabilises, and
-    // Convex updates do NOT necessarily fire a fresh subscribeAuthState event.
-    // Subscribing only to subscribeAuthState meant these CTAs stayed
-    // display:none for the whole page lifetime for paying users — exactly the
-    // shape PR #3505 chased on the server side, repeated here on the client.
-    //
-    // Subscribe to BOTH auth state and entitlement changes; whichever fires
-    // last (typically entitlements) is the one that flips the CTAs visible.
-    // Mirrors the same dual-subscription wiring used by updatePanelGating
-    // for existing panels (see lines ~259 and ~282).
-    const proBlocks = [proBlock, mcpBlock];
-    const applyProBlockGating = (isPro: boolean) => {
-      for (const block of proBlocks) {
-        block.style.display = isPro ? '' : 'none';
-      }
-    };
-    const reapply = () => applyProBlockGating(hasPremiumAccess(getAuthState()));
-    reapply();
-    this.proBlockUnsubscribe = subscribeAuthState(reapply);
-    this.proBlockEntitlementUnsubscribe = onEntitlementChange(reapply);
 
     const bottomGrid = document.getElementById('mapBottomGrid');
     if (bottomGrid) {
