@@ -48,7 +48,7 @@ import {
   panelGateStateChanged,
   sweepLegacyDisabledCustomWidgets,
 } from '@/app/free-tier-gate';
-import { initEntitlementSubscription, destroyEntitlementSubscription, isEntitlementActive, hasTier, getEntitlementState, onEntitlementChange } from '@/services/entitlements';
+import { initEntitlementSubscription, destroyEntitlementSubscription, isEntitlementActive, onEntitlementChange } from '@/services/entitlements';
 import { hasUserAiKey, onUserAiKeyChange } from '@/services/user-ai-keys';
 import { createEntitlementReloadController } from '@/services/entitlement-reload-controller';
 import { initSubscriptionWatch, destroySubscriptionWatch, onSubscriptionChange } from '@/services/billing';
@@ -130,7 +130,6 @@ const WEB_PREMIUM_PANELS = new Set([
   'market-implications',
   'deduction',
   'chat-analyst',
-  'latest-brief',
   'regional-intelligence',
 ]);
 
@@ -152,22 +151,6 @@ const BYOK_GATED_PANELS = new Set([
   'stock-analysis',
 ]);
 
-/**
- * Panels that require a Clerk-authenticated PRO account specifically.
- * Desktop API key / browser tester keys do NOT satisfy the gate because
- * these panels are bound to a Clerk userId server-side (e.g. the Brief
- * is stored at brief:{clerkUserId}:{date} in Redis — no Clerk user, no
- * brief to fetch).
- *
- * Without this extra gate, API-key + free-Clerk users would see the
- * panel "unlocked" by hasPremiumAccess() and then hit a 403 when the
- * server re-checks entitlement from the JWT. This set promotes the
- * inconsistency to the layout gating layer so the user sees the
- * correct "Upgrade to Pro" CTA instead of a doomed fetch.
- */
-const WEB_CLERK_PRO_ONLY_PANELS = new Set([
-  'latest-brief',
-]);
 
 /**
  * Panel keys a dedicated panel owns but registers for AFTER the CANONICAL_FEEDS
@@ -831,33 +814,6 @@ export class PanelLayoutManager implements AppModule {
     for (const [key, panel] of Object.entries(this.ctx.panels)) {
       const isPremium = WEB_PREMIUM_PANELS.has(key) && !(BYOK_GATED_PANELS.has(key) && hasUserAiKey());
       let reason = getPanelGateReason(state, isPremium);
-
-      // Clerk-pro-only panels: even when hasPremiumAccess() returns
-      // true via API/tester key, these panels need a Clerk userId
-      // bound to a PRO entitlement. We DO NOT trust client-side
-      // entitlement state as an authoritative gate — the server-side
-      // /api/latest-brief check is authoritative. We only downgrade
-      // the gate reason here as AFFIRMATIVE DENIAL: when we KNOW
-      // (snapshot loaded AND tier < 1) the user is free. In every
-      // other case — snapshot not yet loaded, Convex subscription
-      // skipped, transient failure — we leave the panel unlocked
-      // and let the server 403 path drive the upgrade CTA inside
-      // the panel's refresh() catch block.
-      //
-      // Prior iterations of this code tried the opposite — gating
-      // positively on hasTier(1) — and locked legitimate Pro users
-      // out whenever the Convex snapshot was late, skipped, or
-      // failed. Affirmative-denial-only is the right shape: never
-      // over-gate, accept the one-doomed-fetch-per-session cost
-      // for API-key-only + free-Clerk users as the lesser harm.
-      if (
-        reason === PanelGateReason.NONE &&
-        WEB_CLERK_PRO_ONLY_PANELS.has(key) &&
-        getEntitlementState() !== null &&
-        !hasTier(1)
-      ) {
-        reason = state.user ? PanelGateReason.FREE_TIER : PanelGateReason.ANONYMOUS;
-      }
 
       // #4771: a FREE_TIER verdict for a customer with stale paid evidence
       // becomes a billing-state reason (verifying renewal / update payment /
@@ -2069,11 +2025,6 @@ export class PanelLayoutManager implements AppModule {
       });
       return monitorPanel;
     });
-
-    // Latest Brief — reads /api/latest-brief and opens the hosted
-    // magazine on click. Self-fetching (no data-loader integration);
-    // PRO gating handled by the base Panel class via premium: 'locked'.
-    this.lazyDefaultPanel('latest-brief', () => import('@/components/LatestBriefPanel'), 'LatestBriefPanel');
 
     this.lazyDefaultPanel('commodities', () => import('@/components/MarketPanel'), 'CommoditiesPanel');
     this.lazyDefaultPanel('energy-complex', () => import('@/components/EnergyComplexPanel'), 'EnergyComplexPanel');

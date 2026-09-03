@@ -169,7 +169,7 @@ export const PUBLIC_PRODUCT_FACTS = {
     "locales": 28,
     "variants": 6,
     "mapLayers": 58,
-    "panelImplementations": 109,
+    "panelImplementations": 108,
     "feedDefinitions": 658,
     "freshnessTrackedSourceGroups": 39,
     "sourceAttributionHosts": 548,

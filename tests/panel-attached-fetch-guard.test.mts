@@ -33,14 +33,6 @@ describe('self-starting panel fetches wait for attachment', () => {
     );
   });
 
-  it('LatestBriefPanel refresh waits for connection before /api/latest-brief fetch', () => {
-    assertGuardBefore(
-      read('src/components/LatestBriefPanel.ts'),
-      'refresh',
-      /fetchLatest\(/,
-    );
-  });
-
   it('AirlineIntelPanel refresh waits for connection before aviation fetches', () => {
     assertGuardBefore(
       read('src/components/AirlineIntelPanel.ts'),
