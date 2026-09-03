@@ -130,6 +130,7 @@ export const COMMANDS: Command[] = [
   { id: 'panel:geo-hubs', keywords: ['geopolitical hubs', 'geo hubs', 'power centers', 'capitals', 'geopolitical centers'], label: 'Panel: Geopolitical Hubs', icon: '\u{1F30D}', category: 'panels' },
   { id: 'panel:tech-hubs', keywords: ['tech hubs', 'hot tech hubs', 'innovation hubs', 'silicon valley', 'tech cities'], label: 'Panel: Hot Tech Hubs', icon: '\u{1F984}', category: 'panels' },
   { id: 'panel:ai-regulation', keywords: ['ai regulation', 'ai act', 'ai governance', 'eu ai act', 'ai law', 'ai policy'], label: 'Panel: AI Regulation Dashboard', icon: '\u{1F4DC}', category: 'panels' },
+  { id: 'panel:latest-brief', keywords: ['latest brief', 'daily brief', 'situation brief', 'world brief', 'brief'], label: 'Panel: Latest Brief', icon: '\u{1F4C4}', category: 'panels' },
   { id: 'panel:finance', keywords: ['financial', 'finance news', 'finance', 'markets'], label: 'Panel: Financial', icon: '\u{1F4B5}', category: 'panels' },
   { id: 'panel:tech', keywords: ['technology', 'tech news', 'tech', 'technology news'], label: 'Panel: Technology', icon: '\u{1F4BB}', category: 'panels' },
   { id: 'panel:crypto', keywords: ['crypto', 'bitcoin', 'ethereum'], label: 'Panel: Crypto', icon: '\u20BF', category: 'panels' },

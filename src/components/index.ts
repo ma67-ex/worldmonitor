@@ -15,6 +15,7 @@ export * from './StockAnalysisPanel';
 export * from './StockBacktestPanel';
 export * from './PredictionPanel';
 export * from './MonitorPanel';
+export * from './LatestBriefPanel';
 export * from './SignalModal';
 export * from './PlaybackControl';
 export * from './StatusPanel';

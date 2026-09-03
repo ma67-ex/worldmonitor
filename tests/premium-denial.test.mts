@@ -362,6 +362,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const readSource = (rel: string): string => readFileSync(resolve(root, rel), 'utf8');
 
 const WIRED_PANELS = [
+  'src/components/LatestBriefPanel.ts',
   'src/components/ChatAnalystPanel.ts',
 ];
 
@@ -404,6 +405,21 @@ describe('premium panels route their denials through the classifier', () => {
    * expected number of upsell call sites — a third one is the mutation that
    * reintroduces the bug.
    */
+  it('LatestBriefPanel routes its denials through routeDenial', () => {
+    assert.match(readSource('src/components/LatestBriefPanel.ts'), /routeDenial\(/);
+  });
+
+  it('LatestBriefPanel has exactly two renderUpgradeRequired call sites', () => {
+    const source = readSource('src/components/LatestBriefPanel.ts');
+    const calls = [...source.matchAll(/this\.renderUpgradeRequired\(\)/g)];
+    assert.equal(
+      calls.length,
+      2,
+      'expected exactly two upsell call sites — the pre-fetch affirmative-denial '
+      + "gate and routeDenial's 'upgrade' case. A third is how #5608 comes back.",
+    );
+  });
+
   it("ChatAnalystPanel no longer hardcodes the upsell as its only 403 copy", () => {
     // The decision moved to src/services/analyst-denial.ts (a zero-runtime-import
     // leaf) so it is reachable from tsx --test — ChatAnalystPanel imports
@@ -434,8 +450,9 @@ describe('premium panels route their denials through the classifier', () => {
     );
   });
 
-  it('reports the only two client-side entitlement-desync decision sites', () => {
+  it('reports the only three client-side entitlement-desync decision sites', () => {
     const expectedCalls = new Map([
+      ['src/components/LatestBriefPanel.ts', "if (verdict === 'entitlement_desync') reportEntitlementDesync('latest-brief');"],
       ['src/components/ChatAnalystPanel.ts', "if (verdict === 'entitlement_desync') reportEntitlementDesync('chat-analyst');"],
       ['src/components/WidgetChatModal.ts', "if (verdict === 'entitlement_desync') reportEntitlementDesync('widget-chat');"],
     ]);

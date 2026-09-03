@@ -1,7 +1,7 @@
 import { track, type UmamiEvent } from './analytics';
 
 /** The only client surfaces that currently decide an entitlement desync. */
-export type EntitlementDesyncPanel = 'chat-analyst' | 'widget-chat';
+export type EntitlementDesyncPanel = 'latest-brief' | 'chat-analyst' | 'widget-chat';
 
 type AnalyticsTrack = (event: UmamiEvent, data?: Record<string, unknown>) => void;
 
