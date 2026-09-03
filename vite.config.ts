@@ -980,6 +980,21 @@ export default defineConfig(({ mode }) => {
             '**/onnx*.wasm',
             '**/locale-*.js',
             '**/clerk-*.js',
+            // GlobeMap chunk (~1.8MB) — only loaded when the user switches to
+            // globe view, never needed on first dashboard visit.
+            '**/GlobeMap-*.js',
+            // main.css is only linked from settings.html/live-channels.html
+            // (src/settings-main.ts, src/live-channels-main.ts); the dashboard
+            // entry (src/main.ts) imports base-layer.css instead and never
+            // references it.
+            '**/main-*.css',
+            // hls.js video player — only loaded on LiveNews channel play
+            // (already lazy-loaded at runtime).
+            '**/hls-*.js',
+            // Error-reporting SDK, deliberately deferred at runtime
+            // (src/bootstrap/sentry-defer.ts) — precaching it eagerly on
+            // first visit undoes that deferral's whole point.
+            '**/sentry-*.js',
             // Fonts are fetched only when their stylesheet applies. Precache
             // would pull every local weight into the first mobile visit.
             '**/*.woff2',
@@ -1090,6 +1105,12 @@ export default defineConfig(({ mode }) => {
           __dirname,
           'src/shims/child-process-proxy.ts'
         ),
+        // Dead WebGPU code paths (confirmed unreachable — see stub file
+        // comments for the full trace). three-render-objects.mjs and
+        // @luma.gl/shadertools both statically import these at module scope
+        // regardless of whether WebGPU is ever used at runtime.
+        'three/webgpu': resolve(__dirname, 'scripts/stubs/three-webgpu-stub.ts'),
+        wgsl_reflect: resolve(__dirname, 'scripts/stubs/wgsl-reflect-stub.ts'),
       },
     },
     worker: {
@@ -1216,6 +1237,13 @@ export default defineConfig(({ mode }) => {
             if (id.endsWith('/src/config/geo-map.ts')) {
               return 'geo-map-data';
             }
+            // commodity-geo table (~26KB). Was previously falling into
+            // Rollup's arbitrary unmatched-static-import bucket, surfacing
+            // in the build log as `conflict-zone-cull-*.js` (named after a
+            // 2.7KB unrelated file) instead of reflecting its real size. (#31)
+            if (id.endsWith('/src/config/commodity-geo.ts')) {
+              return 'commodity-geo-data';
+            }
             // Military-bases bulk (~48KB MILITARY_BASES_EXPANDED + merged
             // MILITARY_BASES). geo.ts no longer imports it; eager consumers
             // (country-intel, related-assets, data-loader→military-surge)
@@ -1291,6 +1319,13 @@ export default defineConfig(({ mode }) => {
             if (id.endsWith('/src/components/ResilienceWidget.ts')) {
               return 'panels-intel';
             }
+            // MapPopup.ts (~171KB) was previously landing in Rollup's
+            // arbitrary unmatched-static-import bucket, surfacing in the
+            // build log as `layer-explanation-card-*.js` (named after a
+            // 2.0KB unrelated file) instead of reflecting its real size. (#31)
+            if (id.endsWith('/src/components/MapPopup.ts')) {
+              return 'map-popup';
+            }
             if (id.includes('/src/components/') && id.endsWith('.ts')) {
               const panelChunk = panelChunkForComponentId(id);
               if (panelChunk) return panelChunk;
@@ -1298,7 +1333,7 @@ export default defineConfig(({ mode }) => {
             // Give lazy-loaded locale chunks a recognizable prefix so the
             // service worker can exclude them from precache (en.json is
             // statically imported into the main bundle).
-            const localeMatch = id.match(/\/locales\/(\w+)\.json$/);
+            const localeMatch = id.match(/\/locales\/([\w-]+)\.json$/);
             if (localeMatch && localeMatch[1] !== 'en') {
               return `locale-${localeMatch[1]}`;
             }
