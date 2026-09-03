@@ -9,4 +9,6 @@ export type UnifiedSettingsTabId =
   | 'billing'
   | 'panels'
   | 'sources'
-  | 'notifications';
+  | 'notifications'
+  | 'api-keys'
+  | 'mcp-clients';

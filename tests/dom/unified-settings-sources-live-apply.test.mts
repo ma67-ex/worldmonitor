@@ -140,6 +140,23 @@ vi.mock('@/services/billing-state', () => ({
   getReactivationHref: () => '/pro#pricing',
 }));
 
+vi.mock('@/services/api-keys', () => ({
+  createApiKey: vi.fn(),
+  listApiKeys: vi.fn(),
+  revokeApiKey: vi.fn(),
+}));
+
+vi.mock('@/services/api-plan-limit-notices', () => ({
+  acknowledgePlanLimitNotice: vi.fn(),
+  listCurrentPlanLimitNotices: vi.fn(),
+}));
+
+vi.mock('@/services/mcp-clients', () => ({
+  listMcpClients: vi.fn(),
+  fetchMcpQuota: vi.fn(),
+  revokeMcpClient: vi.fn(),
+}));
+
 const { UnifiedSettings } = await import('@/components/UnifiedSettings');
 
 type SettingsInternals = { overlay: HTMLElement };

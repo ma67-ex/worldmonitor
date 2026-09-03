@@ -833,6 +833,13 @@ export interface ProActivationFlowOptions {
   accountEmail: string;
   /** Injectable owner check for the browser harness; production uses live auth. */
   isAccountCurrent?: () => boolean;
+  /**
+   * Open the MCP-clients settings surface. Boot hook:
+   * `ctx.unifiedSettings.open('mcp-clients')`, wired ONLY when the account holds
+   * `mcpAccess` — Pro is `apiAccess: false, mcpAccess: true`, and the settings
+   * modal renders neither the MCP tab nor its panel without that feature.
+   */
+  openMcpClients?: () => void;
   /** Reveal the AI analyst / researcher panel. Boot hook: mount + scroll the `chat-analyst` panel into view. */
   openAiAnalyst?: () => void;
   /** Open the custom-widget builder. Boot hook: dispatch `wm:open-widget-creator` on `ctx.container`. */
@@ -1215,6 +1222,7 @@ function buildPowerExtra(options: ProActivationFlowOptions): ProActivationStepEx
   );
   add('widgets', 'components.proActivation.steps.power.pointers.widgets', 'Build a custom widget', options.openWidgetBuilder);
   add('analyst', 'components.proActivation.steps.power.pointers.analyst', 'Ask the AI analyst', options.openAiAnalyst);
+  add('mcpClients', 'components.proActivation.steps.power.pointers.mcpClients', 'Set up MCP', options.openMcpClients);
 
   const pointerButtons = pointers
     .map((p) => {
