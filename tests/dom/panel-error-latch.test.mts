@@ -250,11 +250,11 @@ describe('Panel error state is cleared by direct-write content renders', () => {
   it('a lock landing during the debounce window does not leak the payload', () => {
     // The paywall half of the same seam: setContentImmediate is the one
     // immediate write with no _locked bail, so a write queued just before
-    // showGatedCta/showLocked painted premium markup over the upgrade CTA and
+    // showGatedCta painted premium markup over the upgrade CTA and
     // was never repainted, because every other writer bails while locked.
     panel.setSafeContent(unsafeRawHtml('<div class="premium-payload">paid</div>', 'test fixture'));
 
-    panel.showLocked(['probe feature']);
+    panel.showGatedCta('free_tier', () => {});
     expect(internals(panel).content.querySelector('.panel-locked-state')).not.toBeNull();
 
     vi.advanceTimersByTime(500);
@@ -282,7 +282,7 @@ describe('Panel error state is cleared by direct-write content renders', () => {
     // The helpers are advertised as twins of setSafeContent, which bails while
     // locked. Without the same bail, a gated panel migrating onto them would
     // paint premium content over its upgrade CTA.
-    panel.showLocked(['probe feature']);
+    panel.showGatedCta('free_tier', () => {});
     expect(internals(panel).content.querySelector('.panel-locked-state')).not.toBeNull();
 
     (panel as unknown as { setContentNodes: (...c: unknown[]) => void })

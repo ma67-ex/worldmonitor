@@ -8,7 +8,6 @@ import { getAiFlowSettings } from '@/services/ai-flow-settings';
 import { getSecretState } from '@/services/runtime-config';
 import { hasUserAiKey } from '@/services/user-ai-keys';
 import { PanelGateReason } from '@/services/panel-gating';
-import { openExternalUrl } from '@/services/external-navigation';
 import { lockSvg, upgradeSvg } from '@/components/gate-icons';
 import { dataFreshness, type PanelFreshnessSummary } from '@/services/data-freshness';
 import { formatPanelFreshnessDisplay } from '@/services/panel-freshness-display';
@@ -951,49 +950,6 @@ export class Panel {
     this.setErrorState(false);
     this.clearRetryCountdown();
     this.retryAttempt = 0;
-  }
-
-  public showLocked(features: string[] = []): void {
-    this._locked = true;
-    this.clearRetryCountdown();
-    this._snapshotContentForRestore();
-
-    for (let child = this.header.nextElementSibling; child && child !== this.content; child = child.nextElementSibling) {
-      (child as HTMLElement).style.display = 'none';
-    }
-    this.element.classList.add('panel-is-locked');
-
-    const iconEl = h('div', { className: 'panel-locked-icon' });
-    setTrustedHtml(iconEl, trustedHtml(lockSvg, 'legacy direct innerHTML migration'));
-
-    const lockedChildren: (HTMLElement | string)[] = [
-      iconEl,
-      h('div', { className: 'panel-locked-desc' }, t('premium.lockedDesc')),
-    ];
-
-    if (features.length > 0) {
-      const featureList = h('ul', { className: 'panel-locked-features' });
-      for (const feat of features) {
-        featureList.appendChild(h('li', {}, feat));
-      }
-      lockedChildren.push(featureList);
-    }
-
-    const ctaBtn = h('button', { type: 'button', className: 'panel-locked-cta' }, 'Upgrade to Pro');
-    if (isDesktopRuntime()) {
-      ctaBtn.addEventListener('click', () => {
-        void openExternalUrl('https://worldmonitor.app/pro');
-      });
-    } else {
-      ctaBtn.addEventListener('click', () => {
-        import('@/services/checkout').then(m => import('@/config/products').then(p => m.startCheckout(p.DEFAULT_UPGRADE_PRODUCT))).catch(() => {
-          window.open('https://worldmonitor.app/pro', '_blank', 'noopener,noreferrer');
-        });
-      });
-    }
-    lockedChildren.push(ctaBtn);
-
-    this.replaceContent(h('div', { className: 'panel-locked-state' }, ...lockedChildren));
   }
 
   /**

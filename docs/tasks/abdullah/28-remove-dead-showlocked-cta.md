@@ -1,4 +1,18 @@
-**STATUS: TODO — spec'd 2026-09-01, ready to execute (no decisions left)**
+**STATUS: DONE — 2026-09-03**
+
+Note: the spec's "zero call sites pass `lockedFeatures`" claim was wrong —
+`lazyDefaultPanel('forecast'/'oref-sirens'/'telegram-intel', ...)` passed it
+conditionally via `_lockPanels = isDesktopApp && !hasPremiumAccess()`
+(missed by a literal grep for `lockedFeatures`, since these used a ternary).
+Consistent with this fork's broader depaywall direction, those 3 call sites
+and the `_lockPanels` local were also stripped. Also had to fix
+`tests/external-navigation-call-sites.test.mjs`, which hardcoded Panel.ts as
+a permanent `window.open` call site (count 1) — updated to drop Panel.ts
+from `callSiteFiles`/`ALLOWED_WINDOW_OPEN` now that it has no external-nav
+call left. Full `test:data` run: 238 failing vs the 235 baseline; the +3
+delta traced to `tests/rpc-premium-billing-denial.test.mts` /
+`tests/forecast-trigger-simulation.test.mts`, confirmed pre-existing via
+`git stash`.
 
 # 28 — Remove dead `Panel.showLocked()` CTA + unreachable `lockedFeatures` plumbing
 

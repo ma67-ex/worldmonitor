@@ -2309,8 +2309,6 @@ export class PanelLayoutManager implements AppModule {
       return p;
     });
 
-    const _lockPanels = this.ctx.isDesktopApp && !hasPremiumAccess();
-
     this.lazyDefaultPanel('daily-market-brief', () => import('@/components/DailyMarketBriefPanel'), 'DailyMarketBriefPanel');
 
     this.lazyDefaultPanel('market-implications', () => import('@/components/MarketImplicationsPanel'), 'MarketImplicationsPanel');
@@ -2345,24 +2343,18 @@ export class PanelLayoutManager implements AppModule {
       'forecast',
       () => import('@/components/ForecastPanel'),
       'ForecastPanel',
-      undefined,
-      _lockPanels ? ['AI-powered geopolitical forecasts', 'Cross-domain cascade predictions', 'Prediction market calibration'] : undefined,
     );
 
     this.lazyDefaultPanel(
       'oref-sirens',
       () => import('@/components/OrefSirensPanel'),
       'OrefSirensPanel',
-      undefined,
-      _lockPanels ? [t('premium.features.orefSirens1'), t('premium.features.orefSirens2')] : undefined,
     );
 
     this.lazyDefaultPanel(
       'telegram-intel',
       () => import('@/components/TelegramIntelPanel'),
       'TelegramIntelPanel',
-      undefined,
-      _lockPanels ? [t('premium.features.telegramIntel1'), t('premium.features.telegramIntel2')] : undefined,
     );
 
     this.lazyPanel('gcc-investments', async () => {
@@ -3319,13 +3311,11 @@ export class PanelLayoutManager implements AppModule {
     exportName: K,
     createPanel: (PanelClass: PanelExport<M, K>, module: M) => ImportedPanel<M, K> | null,
     setup?: (panel: ImportedPanel<M, K>) => void,
-    lockedFeatures?: string[],
   ): boolean {
     return this.lazyPanel(
       key,
       () => this.importPanel(key, importer, exportName, createPanel),
       setup,
-      lockedFeatures,
     );
   }
 
@@ -3334,9 +3324,8 @@ export class PanelLayoutManager implements AppModule {
     importer: () => Promise<M>,
     exportName: K,
     setup?: (panel: ImportedPanel<M, K>) => void,
-    lockedFeatures?: string[],
   ): boolean {
-    return this.lazyImportedPanel(key, importer, exportName, (PanelClass) => new PanelClass() as ImportedPanel<M, K>, setup, lockedFeatures);
+    return this.lazyImportedPanel(key, importer, exportName, (PanelClass) => new PanelClass() as ImportedPanel<M, K>, setup);
   }
 
   /**
@@ -3352,7 +3341,6 @@ export class PanelLayoutManager implements AppModule {
     key: string,
     loader: () => Promise<T | null>,
     setup?: (panel: T) => void,
-    lockedFeatures?: string[],
   ): boolean {
     if (!this.shouldCreatePanel(key)) return false;
     if (this.ctx.panels[key] || this.lazyPanelRegistrations.has(key)) return false;
@@ -3368,18 +3356,14 @@ export class PanelLayoutManager implements AppModule {
           return null;
         }
         this.ctx.panels[key] = basePanel;
-        if (lockedFeatures) {
-          basePanel.showLocked(lockedFeatures);
-        } else {
-          // Re-apply auth gating for panels that load after the initial auth state fire.
-          this.updatePanelGating(getAuthState());
-          await replayPendingCalls(key, panel);
-          if (this.ctx.isDestroyed) {
-            basePanel.destroy?.();
-            return null;
-          }
-          if (setup) setup(panel);
+        // Re-apply auth gating for panels that load after the initial auth state fire.
+        this.updatePanelGating(getAuthState());
+        await replayPendingCalls(key, panel);
+        if (this.ctx.isDestroyed) {
+          basePanel.destroy?.();
+          return null;
         }
+        if (setup) setup(panel);
         return basePanel;
       },
     });

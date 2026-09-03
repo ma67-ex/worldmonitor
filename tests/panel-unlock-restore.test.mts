@@ -9,8 +9,7 @@ after(() => {
   harness.cleanup();
 });
 
-// Regression: src/components/Panel.ts (showLocked / showGatedCta /
-// unlockPanel).
+// Regression: src/components/Panel.ts (showGatedCta / unlockPanel).
 //
 // Before the fix, Panel.unlockPanel() called replaceChildren(this.content)
 // to clear the lock-state CTA but never restored the subclass UI. Any
@@ -22,9 +21,9 @@ after(() => {
 // symptom — header-only, empty body, no input field).
 //
 // Fix shape: Panel snapshots this.content's child nodes at the moment
-// showLocked / showGatedCta replaces them, and unlockPanel re-attaches
-// those same node instances. Constructor-only subclasses are repaired
-// transparently — no per-subclass override required.
+// showGatedCta replaces them, and unlockPanel re-attaches those same
+// node instances. Constructor-only subclasses are repaired transparently
+// — no per-subclass override required.
 
 describe('Panel base class — unlockPanel restores pre-lock content', () => {
   it('initial mount renders the constructor-built UI', () => {
@@ -88,25 +87,6 @@ describe('Panel base class — unlockPanel restores pre-lock content', () => {
     );
   });
 
-  it('showLocked → unlockPanel also restores via the snapshot', () => {
-    harness.resetConstructorRunCount();
-    const panel = harness.createPanel();
-    const root = panel.getElement();
-
-    const inputBefore = root.querySelector('.minimal-test-input');
-    assert.ok(inputBefore, 'input present at mount');
-
-    panel.showLocked(['Feature A', 'Feature B']);
-
-    assert.equal(root.querySelector('.minimal-test-input'), null, 'input wiped while locked');
-    assert.ok(root.querySelector('.panel-locked-state'), 'lock state rendered');
-
-    panel.unlockPanel();
-
-    const inputAfter = root.querySelector('.minimal-test-input');
-    assert.equal(inputAfter, inputBefore, 'input restored by identity from showLocked path too');
-  });
-
   it('repeated lock / unlock cycles continue to restore the same node', () => {
     harness.resetConstructorRunCount();
     const panel = harness.createPanel();
@@ -132,7 +112,7 @@ describe('Panel base class — unlockPanel restores pre-lock content', () => {
     );
   });
 
-  it('a second showLocked WHILE already locked does not corrupt the snapshot', () => {
+  it('a second lock call WHILE already locked does not corrupt the snapshot', () => {
     harness.resetConstructorRunCount();
     const panel = harness.createPanel();
     const root = panel.getElement();
