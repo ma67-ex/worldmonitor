@@ -17,12 +17,6 @@ import {
   rebindConvexAuthForWatchHandoff,
   waitForConvexAuth,
 } from '../src/services/convex-client.ts';
-import { createApiKey, listApiKeys } from '../src/services/api-keys.ts';
-import {
-  acknowledgePlanLimitNotice,
-  listCurrentPlanLimitNotices,
-} from '../src/services/api-plan-limit-notices.ts';
-import { listMcpClients } from '../src/services/mcp-clients.ts';
 import { settleAccountOperation } from '../src/services/account-operation.ts';
 import {
   __setClerkInstanceForTests,
@@ -393,40 +387,6 @@ describe('generation-scoped Convex auth handoff', () => {
     assert.equal(await waitForConvexAuth(10), false);
   });
 
-  it('does not dispatch an API-key create if A changes while auth is pending', async () => {
-    __setClerkInstanceForTests({
-      session: { getToken: async () => 'token-a' },
-      user: { id: 'A' },
-    } as never);
-    const fake = installFakeClient();
-
-    // Leave A's barrier unresolved so the sensitive operation is in flight
-    // when Clerk selects B.
-    const createRejected = assert.rejects(
-      createApiKey('A key'),
-      /Account changed while creating the API key/,
-    );
-    await flushMicrotasks();
-
-    __setClerkInstanceForTests({
-      session: { getToken: async () => 'token-b' },
-      user: { id: 'B' },
-    } as never);
-    const handoffB = rebindConvexAuthForWatchHandoff(
-      () => true,
-      () => {},
-      1_000,
-      [],
-    );
-    await flushMicrotasks();
-
-    await createRejected;
-    assert.equal(fake.mutations.length, 0, 'no account-bound mutation may cross the switch');
-
-    fake.authConfigs[1].onChange(true);
-    assert.equal(await handoffB, true);
-  });
-
   it('checks the initiating account immediately before dispatch', async () => {
     __setClerkInstanceForTests({
       session: { getToken: async () => 'token-b' },
@@ -488,9 +448,6 @@ describe('generation-scoped Convex auth handoff', () => {
     fake.authConfigs[0].onChange(false);
 
     const cases: Array<[string, () => Promise<unknown>]> = [
-      ['API keys', listApiKeys],
-      ['MCP clients', listMcpClients],
-      ['API plan-limit notices', listCurrentPlanLimitNotices],
       ['Business Pro seats', listBusinessSeats],
     ];
     for (const [label, operation] of cases) {
@@ -501,58 +458,8 @@ describe('generation-scoped Convex auth handoff', () => {
     }
   });
 
-  it('rejects an A API key that resolves after Clerk selects B', async () => {
-    __setClerkInstanceForTests({
-      session: { getToken: async () => 'token-a' },
-      user: { id: 'A' },
-    } as never);
-    const fake = installFakeClient();
-    fake.authConfigs[0].onChange(true);
-    const mutation = deferred<{
-      id: string;
-      name: string;
-      keyPrefix: string;
-    }>();
-    fake.mutationResult = mutation.promise;
-
-    const rejected = assert.rejects(
-      createApiKey('A key'),
-      /Account changed while creating the API key/,
-    );
-    await waitForCalls(fake.mutations, 1);
-
-    mutation.resolve({ id: 'key_a', name: 'A key', keyPrefix: 'wm_a' });
-    queueMicrotask(() => {
-      __setClerkInstanceForTests({
-        session: { getToken: async () => 'token-b' },
-        user: { id: 'B' },
-      } as never);
-    });
-
-    await rejected;
-    assert.equal(fake.mutations.length, 1, 'the A mutation completed, but its plaintext stayed discarded');
-  });
-
-  it('rejects a notice acknowledgement when the identity-bound auth gate fails', async () => {
-    __setClerkInstanceForTests({
-      session: { getToken: async () => 'token-a' },
-      user: { id: 'A' },
-    } as never);
-    const fake = installFakeClient();
-    fake.authConfigs[0].onChange(false);
-
-    await assert.rejects(
-      acknowledgePlanLimitNotice('notice-a'),
-      /Account changed while acknowledging the API plan-limit notice/,
-    );
-    assert.equal(fake.mutations.length, 0);
-  });
-
   it('discards account-scoped list results that settle after A changes to B', async () => {
     const cases = [
-      ['API keys', listApiKeys],
-      ['MCP clients', listMcpClients],
-      ['plan-limit notices', listCurrentPlanLimitNotices],
       ['Business seats', listBusinessSeats],
     ] as const;
 

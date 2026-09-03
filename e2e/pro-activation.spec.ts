@@ -143,11 +143,6 @@ async function openFlow(page: Page, withOpeners: boolean): Promise<void> {
       };
       options.openWidgetBuilder = () => {};
       options.openAiAnalyst = () => {};
-      options.openMcpClients = () => {};
-      // Inject the retired opener too, so the "no apiKeys pointer" assertion is
-      // about buildPowerExtra dropping it rather than about this harness never
-      // supplying it — add() skips any pointer whose opener is absent (#5607).
-      options.openApiKeys = () => {};
     }
     void (mod.openProActivationFlow as (o: unknown) => Promise<unknown>)(options);
   }, withOpeners);
@@ -1111,13 +1106,6 @@ test.describe('Pro activation flow — telemetry + finish-setup chip', () => {
     await expect(pointer.locator('kbd')).toHaveCount(2);
     await expect(pointer).toHaveAttribute('aria-label', /Search the entire dashboard \((?:⌘K|Ctrl\+K)\)/);
     await expect(page.locator('.pro-activation-pointer').first()).toHaveAttribute('data-pointer', 'search');
-
-    // #5607: Pro is apiAccess:false / mcpAccess:true, so the third pointer sells
-    // MCP setup — never "API & MCP keys" deep-linked at the API-plan upsell.
-    await expect(
-      page.locator('.pro-activation-pointer[data-pointer="mcpClients"]'),
-    ).toContainText('Set up MCP');
-    await expect(page.locator('.pro-activation-pointer[data-pointer="apiKeys"]')).toHaveCount(0);
 
     // The advertised keyboard shortcut must work while the full-screen
     // interstitial is still open, not launch an invisible search layer behind it.
