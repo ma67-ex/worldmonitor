@@ -95,6 +95,8 @@ interface WebcamIframeTracker {
   container: HTMLElement;
   timeout: ReturnType<typeof setTimeout> | null;
   blocked: boolean;
+  /** Video ids already tried on this tile — lets advanceToNextCandidate skip dead ones instead of looping. */
+  triedVideoIds: Set<string>;
 }
 
 export class LiveWebcamsPanel extends Panel {
@@ -353,9 +355,37 @@ export class LiveWebcamsPanel extends Panel {
     // The synchronous src above is the stale hardcoded snapshot (often dead — see
     // WEBCAM_FEEDS comment); swap in the channel's actual current live video once resolved.
     this.resolveVideoId(feed).then(videoId => {
-      if (videoId !== feed.fallbackVideoId) iframe.src = this.buildEmbedUrl(videoId);
+      if (videoId === feed.fallbackVideoId) return;
+      iframe.src = this.buildEmbedUrl(videoId);
+      this.iframeTrackers.get(iframe)?.triedVideoIds.add(videoId);
     });
     return iframe;
+  }
+
+  /** Other known live streams to fall back to, current feed first, same-region before cross-region. */
+  private candidateVideoIds(feed: WebcamFeed): string[] {
+    const sameRegion = WEBCAM_FEEDS.filter(f => f.region === feed.region && f.id !== feed.id).map(f => f.fallbackVideoId);
+    const otherRegion = WEBCAM_FEEDS.filter(f => f.region !== feed.region).map(f => f.fallbackVideoId);
+    return [feed.fallbackVideoId, ...sameRegion, ...otherRegion];
+  }
+
+  /** A stream errored or never came up — swap the tile to another known live feed instead of showing "unavailable". */
+  private advanceToNextCandidate(iframe: HTMLIFrameElement): void {
+    const tracker = this.iframeTrackers.get(iframe);
+    if (!tracker) return;
+    this.clearIframeTimeout(iframe);
+    const next = this.candidateVideoIds(tracker.feed).find(id => !tracker.triedVideoIds.has(id));
+    if (!next) {
+      // Every known stream failed — nothing left to swap to.
+      tracker.blocked = true;
+      this.renderBlockedOverlay(iframe, tracker.feed, tracker.container);
+      return;
+    }
+    tracker.blocked = false;
+    tracker.triedVideoIds.add(next);
+    tracker.container.querySelector('.webcam-embed-fallback')?.remove();
+    iframe.src = this.buildEmbedUrl(next);
+    tracker.timeout = setTimeout(() => this.markIframeBlocked(iframe), this.EMBED_READY_TIMEOUT_MS);
   }
 
   private findIframeBySource(source: MessageEventSource | null): HTMLIFrameElement | null {
@@ -374,11 +404,7 @@ export class LiveWebcamsPanel extends Panel {
   }
 
   private markIframeBlocked(iframe: HTMLIFrameElement): void {
-    const tracker = this.iframeTrackers.get(iframe);
-    if (!tracker || tracker.blocked) return;
-    tracker.blocked = true;
-    this.clearIframeTimeout(iframe);
-    this.renderBlockedOverlay(iframe, tracker.feed, tracker.container);
+    this.advanceToNextCandidate(iframe);
   }
 
   private markIframeReady(iframe: HTMLIFrameElement): void {
@@ -395,6 +421,7 @@ export class LiveWebcamsPanel extends Panel {
       container,
       timeout: null,
       blocked: false,
+      triedVideoIds: new Set([feed.fallbackVideoId]),
     };
     this.iframeTrackers.set(iframe, tracker);
 
@@ -640,6 +667,10 @@ export class LiveWebcamsPanel extends Panel {
           this.markIframeReady(iframe);
         } else if (parsed.event === 'infoDelivery' && parsed.info?.playerState === 1) {
           this.markIframeReady(iframe);
+        } else if (parsed.event === 'onError') {
+          // YT player posts this for a dead/private/embed-disallowed video (the "Video
+          // unavailable" screen) — swap to another known live feed instead of showing it.
+          this.markIframeBlocked(iframe);
         }
       } catch { /* not YouTube JSON — ignore */ }
       return;
