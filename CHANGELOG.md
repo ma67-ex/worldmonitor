@@ -4,6 +4,13 @@ All notable changes to World Monitor are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- Corrected the Vercel project's Framework Preset from Astro to Vite. Astro's
+  routing conventions were overriding `vercel.json`'s custom API rewrites,
+  404ing every `misc-gateway2`-routed endpoint (including `/api/youtube/live`)
+  regardless of what the underlying code did.
+
 ### Changed
 
 - **Corporate intelligence is live; `get-company-enrichment` and
