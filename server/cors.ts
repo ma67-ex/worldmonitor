@@ -16,6 +16,10 @@ const PRODUCTION_PATTERNS: RegExp[] = [
   // "akul-sharmas-projects-8d7c98ac". Keep in sync with api/_cors.js.
   /^https:\/\/worldmonitor-one-theta\.vercel\.app$/,
   /^https:\/\/worldmonitor(-[a-z0-9-]+)?-akul-sharmas-projects-8d7c98ac\.vercel\.app$/,
+  // Fork (github.com/ma67-ex/worldmonitor) -- Vercel project scope "ma6-tech".
+  // Keep in sync with api/_cors.js.
+  /^https:\/\/worldmonitor-roan-one\.vercel\.app$/,
+  /^https:\/\/worldmonitor(-[a-z0-9-]+)?-ma6-tech\.vercel\.app$/,
   /^https:\/\/(.*\.)?sitrep\.app$/,
   /^https?:\/\/tauri\.localhost(:\d+)?$/,
   /^https?:\/\/[a-z0-9-]+\.tauri\.localhost(:\d+)?$/i,
