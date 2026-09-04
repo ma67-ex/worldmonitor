@@ -128,6 +128,7 @@ const SOURCE_DOMAIN_OVERRIDES = new Map([
   ['www.aaii.com', 'finance'],
   ['www.aaronsw.com', 'technology'],
   ['www.cbr.ru', 'finance'],
+  ['www.googleapis.com', 'news'],
   ['Financial Action Task Force (FATF)', 'geopolitics'],
   ['www.fwdstart.me', 'technology'],
   ['International Forum of Sovereign Wealth Funds', 'finance'],
