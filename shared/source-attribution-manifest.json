@@ -8680,6 +8680,20 @@
       ]
     },
     {
+      "host": "www.googleapis.com",
+      "provider": "www.googleapis.com",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit www.googleapis.com and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "api/youtube/_live.js"
+        }
+      ]
+    },
+    {
       "host": "www.gov.br",
       "provider": "www.gov.br",
       "kind": "structured",
