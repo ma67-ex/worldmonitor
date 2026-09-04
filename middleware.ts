@@ -367,5 +367,4 @@ ${AI_CRAWLER_VARIANT_LINKS}
 
 export const config = {
   matcher: ['/', '/mcp', '/api/:path*'],
-  runtime: 'nodejs',
 };
