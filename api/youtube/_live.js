@@ -14,6 +14,34 @@ export const config = { runtime: 'edge' };
 const RATE_LIMIT_SCOPE = 'youtube-live';
 const RATE_LIMIT_PER_MINUTE = 30;
 
+/** Resolve a @handle to a channelId, then find its current live video, via the official API.
+ *  Returns null (not throws) when there's no live video, so callers fall through cleanly. */
+async function findLiveVideoViaOfficialApi(channel, apiKey) {
+  const handle = channel.startsWith('@') ? channel.slice(1) : channel;
+  const channelsRes = await fetch(
+    `https://www.googleapis.com/youtube/v3/channels?part=id,snippet&forHandle=${encodeURIComponent(handle)}&key=${apiKey}`,
+  );
+  if (!channelsRes.ok) return null;
+  const channelsData = await channelsRes.json();
+  const channelId = channelsData.items?.[0]?.id;
+  if (!channelId) return null;
+
+  const searchRes = await fetch(
+    `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&key=${apiKey}`,
+  );
+  if (!searchRes.ok) return null;
+  const searchData = await searchRes.json();
+  const live = searchData.items?.[0];
+  if (!live?.id?.videoId) return null;
+
+  return {
+    videoId: live.id.videoId,
+    isLive: true,
+    channelName: live.snippet?.channelTitle || channelsData.items[0].snippet?.title || null,
+    title: live.snippet?.title || null,
+  };
+}
+
 export default async function handler(request, ctx) {
   const cors = getCorsHeaders(request);
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
@@ -50,6 +78,21 @@ export default async function handler(request, ctx) {
       status: 400,
       headers: { ...cors, 'Content-Type': 'application/json' },
     });
+  }
+
+  // Official YouTube Data API v3 (no relay needed) — tried first when configured,
+  // since it's more reliable than scraping from a datacenter IP.
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (apiKey && channel) {
+    try {
+      const officialResult = await findLiveVideoViaOfficialApi(channel, apiKey);
+      if (officialResult) {
+        return new Response(JSON.stringify(officialResult), {
+          status: 200,
+          headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600, s-maxage=600, stale-while-revalidate=60' },
+        });
+      }
+    } catch { /* official API failed — fall through to relay/scrape */ }
   }
 
   // Proxy to Railway relay
