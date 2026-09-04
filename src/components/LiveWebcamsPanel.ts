@@ -129,6 +129,9 @@ export class LiveWebcamsPanel extends Panel {
   private readonly forceSingleView = !isDesktopRuntime() && isMobileDevice();
   private readonly EMBED_READY_TIMEOUT_MS = 15000;
   private boundEmbedMessageHandler: (e: MessageEvent) => void;
+  // fallbackVideoId is a hardcoded snapshot that goes stale once the linked stream ends —
+  // resolve the channel's current live video before falling back to it.
+  private readonly liveVideoIdCache = new Map<string, string>();
 
   constructor() {
     super({ id: 'live-webcams', title: t('panels.liveWebcams'), className: 'panel-wide', closable: true, collapsible: true, infoTooltip: t('components.liveWebcams.infoTooltip') });
@@ -317,6 +320,25 @@ export class LiveWebcamsPanel extends Panel {
     return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1&rel=0&enablejsapi=1&origin=${window.location.origin}${vq}`;
   }
 
+  private async resolveVideoId(feed: WebcamFeed): Promise<string> {
+    const cached = this.liveVideoIdCache.get(feed.id);
+    if (cached) return cached;
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(`/api/youtube/live?channel=${encodeURIComponent(feed.channelHandle)}`, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.videoId === 'string' && data.videoId) {
+          this.liveVideoIdCache.set(feed.id, data.videoId);
+          return data.videoId;
+        }
+      }
+    } catch { /* relay/network failure — fall through to the hardcoded fallback */ }
+    return feed.fallbackVideoId;
+  }
+
   private createIframe(feed: WebcamFeed): HTMLIFrameElement {
     const iframe = document.createElement('iframe');
     iframe.className = 'webcam-iframe';
@@ -328,6 +350,11 @@ export class LiveWebcamsPanel extends Panel {
       iframe.allowFullscreen = true;
       iframe.setAttribute('loading', 'lazy');
     }
+    // The synchronous src above is the stale hardcoded snapshot (often dead — see
+    // WEBCAM_FEEDS comment); swap in the channel's actual current live video once resolved.
+    this.resolveVideoId(feed).then(videoId => {
+      if (videoId !== feed.fallbackVideoId) iframe.src = this.buildEmbedUrl(videoId);
+    });
     return iframe;
   }
 
