@@ -230,3 +230,5 @@ See our [Security Policy](./SECURITY.md) for responsible disclosure guidelines.
 <!-- deploy-trigger: 2026-09-03T17:10:06Z -->
 
 <!-- deploy-trigger: 2026-09-04T17:28:23Z — pulled + deployed Abdullah's live-webcam-id fix (a6189312b); gateway-user-key-apiaccess.test.ts renewal_verification_failed test still open, see chat -->
+
+<!-- deploy-trigger: 2026-09-04T17:36:58Z — pulled + deployed Abdullah's webcam auto-swap-on-error fix (49751e421), follow-up to a6189312b -->
