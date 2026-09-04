@@ -1307,7 +1307,7 @@ export function isPanelEntitled(key: string, config: PanelConfig, isPro = false)
   // Dodo entitlements unlock all premium panels
   if (isEntitled()) return true;
   if (config.premium === 'locked') {
-    return isDesktopRuntime();
+    return isDesktopRuntime() || isPro;
   }
   return true;
 }
