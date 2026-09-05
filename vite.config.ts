@@ -1378,11 +1378,12 @@ export default defineConfig(({ mode }) => {
             });
           },
         },
-        // PizzINT - Pentagon Pizza Index
-        '/api/pizzint': {
+        // PizzINT - Pentagon Pizza Index. Matches api/_pizzint-proxy.js's
+        // upstream URL so dev hits the same endpoint as prod.
+        '/api/pizzint-proxy': {
           target: 'https://www.pizzint.watch',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/pizzint/, '/api'),
+          rewrite: (path) => path.replace(/^\/api\/pizzint-proxy/, '/api/dashboard-data'),
           configure: (proxy) => {
             proxy.on('error', (err) => {
               console.log('PizzINT proxy error:', err.message);
