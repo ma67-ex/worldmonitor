@@ -8902,7 +8902,9 @@ a.prediction-link:hover {
 }
 
 .panels-save-layout,
-.panels-reset-layout {
+.panels-reset-layout,
+.panels-select-all,
+.panels-select-none {
   padding: 6px 12px;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -8930,7 +8932,9 @@ a.prediction-link:hover {
   cursor: default;
 }
 
-.panels-reset-layout:hover {
+.panels-reset-layout:hover,
+.panels-select-all:hover,
+.panels-select-none:hover {
   border-color: var(--text-dim);
 }
 

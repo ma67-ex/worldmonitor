@@ -220,6 +220,16 @@ export class UnifiedSettings {
         return;
       }
 
+      if (target.closest('.panels-select-all')) {
+        this.setVisiblePanelsEnabled(true);
+        return;
+      }
+
+      if (target.closest('.panels-select-none')) {
+        this.setVisiblePanelsEnabled(false);
+        return;
+      }
+
       const panelItem = target.closest<HTMLElement>('.panel-toggle-item');
       if (panelItem?.dataset.panel) {
         if (panelItem.dataset.proLocked) {
@@ -693,6 +703,8 @@ export class UnifiedSettings {
           <div class="panel-toggle-grid" id="usPanelToggles"></div>
           <div class="panels-footer">
             <span class="panels-status" id="usPanelsStatus" aria-live="polite"></span>
+            <button class="panels-select-all">${t('common.selectAll')}</button>
+            <button class="panels-select-none">${t('common.selectNone')}</button>
             <button class="panels-save-layout">${t('modals.story.save')}</button>
             <button class="panels-reset-layout" title="${t('header.resetLayoutTooltip')}" aria-label="${t('header.resetLayoutTooltip')}">${t('header.resetLayout')}</button>
           </div>
@@ -965,6 +977,27 @@ export class UnifiedSettings {
       }
     }
     panel.enabled = !panel.enabled;
+    this.panelsJustSaved = false;
+    this.renderPanelsTab();
+  }
+
+  private setVisiblePanelsEnabled(enable: boolean): void {
+    const pro = isProUser();
+    let hitFreeCap = false;
+    for (const [key, panel] of this.getVisiblePanelEntries()) {
+      if (!enable) {
+        panel.enabled = false;
+        continue;
+      }
+      const resolvedPanel = ALL_PANELS[key] ? getEffectivePanelConfig(key, SITE_VARIANT) : panel;
+      if (!isPanelEntitled(key, resolvedPanel, pro)) continue;
+      if (!pro && isFreePanelCapCounted(key) && countFreePanelCapUsage(this.draftPanelSettings) >= FREE_MAX_PANELS) {
+        hitFreeCap = true;
+        continue;
+      }
+      panel.enabled = true;
+    }
+    if (hitFreeCap) showToast(t('modals.settingsWindow.freePanelLimit', { max: String(FREE_MAX_PANELS) }));
     this.panelsJustSaved = false;
     this.renderPanelsTab();
   }
