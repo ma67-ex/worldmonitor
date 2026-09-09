@@ -118,6 +118,7 @@ import {
   getLayersForVariant,
   resolveLayerLabel,
   bindLayerSearch,
+  bindLayerSelectAll,
   getLayerExplanation,
   hasCuratedLayerExplanation,
   isLayerEntitled,
@@ -5572,6 +5573,7 @@ export class DeckGLMap {
     setTrustedHtml(toggles, trustedHtml(`
       <div class="toggle-header">
         <span>${t('components.deckgl.layersTitle')}</span>
+        <button type="button" class="layer-select-all">${t('common.selectAll')}</button>
         <button class="layer-help-btn" aria-label="${t('components.deckgl.layerGuide')}">?</button>
         <button class="toggle-collapse">&#9660;</button>
       </div>
@@ -5722,6 +5724,7 @@ export class DeckGLMap {
       toggles.addEventListener('touchmove', (e) => e.stopPropagation(), { passive: false });
     }
     bindLayerSearch(toggles);
+    bindLayerSelectAll(toggles);
     const searchEl = toggles.querySelector('.layer-search') as HTMLElement | null;
 
     collapseBtn?.addEventListener('click', () => {

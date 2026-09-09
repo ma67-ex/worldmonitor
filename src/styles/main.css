@@ -1743,59 +1743,23 @@ canvas,
   min-height: var(--dashboard-first-grid-reservation) !important;
 }
 
-/* #5332: eager always-full panels grow their grid row when populated content
-   replaces the loading state — rows are minmax(--dashboard-panel-row-min,
-   --dashboard-panel-row-max) sized from the panel's intrinsic content height,
-   so the growth shoves every row below (field: div.panel shift p75 0.244 on
-   9% of desktop views; the dominant remaining desktop CLS mechanism, #4580).
-   Pin the known always-full panels to the row max so their row lands at its
-   final height from first paint; .panel-content already scrolls. User-set
-   spans (.span-N) keep their own min-height reservation contract and are
-   excluded. Keep this key list in sync with the ranked offenders in #5332. */
-#panelsGrid > .panel[data-panel="threat-timeline"]:not(.span-2):not(.span-3):not(.span-4):not(.panel-wide):not(.resized),
-#panelsGrid > .panel[data-panel="gdelt-intel"]:not(.span-2):not(.span-3):not(.span-4):not(.panel-wide):not(.resized),
-#panelsGrid > .panel[data-panel="intel"]:not(.span-2):not(.span-3):not(.span-4):not(.panel-wide):not(.resized),
-#panelsGrid > .panel[data-panel="live-news"]:not(.span-2):not(.span-3):not(.span-4):not(.panel-wide):not(.resized),
-#panelsGrid > .panel[data-panel="politics"]:not(.span-2):not(.span-3):not(.span-4):not(.panel-wide):not(.resized),
-#panelsGrid > .panel[data-panel="energy-complex"]:not(.span-2):not(.span-3):not(.span-4):not(.panel-wide):not(.resized),
-#panelsGrid > .panel[data-panel="global-procurement"]:not(.span-2):not(.span-3):not(.span-4):not(.panel-wide):not(.resized),
-#panelsGrid > .panel[data-panel="strategic-posture"]:not(.span-2):not(.span-3):not(.span-4):not(.panel-wide):not(.resized),
-#panelsGrid > .panel[data-panel="cascade"]:not(.span-2):not(.span-3):not(.span-4):not(.panel-wide):not(.resized),
-#panelsGrid > .panel[data-panel="live-webcams"]:not(.span-2):not(.span-3):not(.span-4):not(.panel-wide):not(.resized) {
-  height: var(--dashboard-panel-row-max);
-}
-
-/* Offenders that are two-row by default — span-2 defaults and
-   the .panel-wide live-news panel — get the populated two-row max (2 rows +
-   gap) so its footprint is identical loading vs populated, INCLUDING the
-   deferred-shell phase (the shell carries the same classes, so shell->panel
-   swap is shift-free). The pins apply to NATURAL footprints only: user-resized
-   panels (.resized, PR #5333 review P1) and explicit .span-N overrides keep
-   the resize contract, and the #panelsGrid scope keeps panels dragged into
-   the ultra-wide .map-bottom-grid (height:100%/1fr tracks) on that grid's
-   own sizing contract. */
-#panelsGrid > .panel[data-panel="threat-timeline"].span-2:not(.resized),
-#panelsGrid > .panel[data-panel="gdelt-intel"].span-2:not(.resized),
-#panelsGrid > .panel[data-panel="energy-complex"].span-2:not(.resized),
-#panelsGrid > .panel[data-panel="strategic-posture"].span-2:not(.resized),
-#panelsGrid > .panel[data-panel="global-procurement"].span-2:not(.resized),
-#panelsGrid > .panel[data-panel="live-news"].panel-wide:not(.resized):not(.span-1):not(.span-2):not(.span-3):not(.span-4) {
-  height: calc(var(--dashboard-panel-row-max) * 2 + var(--dashboard-grid-gap));
-}
-
-/* The webcam wall is a 2x2 viewport surface, not a document-height panel.
-   Keep the CLS reservation on normal/tall windows, but cap the natural
-   footprint on short desktop windows so all four cells remain reachable in
-   the viewport. Explicit user-resized spans retain the normal resize
-   contract. The first-grid reservation prevents the two rows from collapsing
-   below their minimum track height on unusually short viewports. Reserve the
-   sticky dashboard chrome above the scrolled panel as well. */
-#panelsGrid > .panel[data-panel="live-webcams"].panel-wide:not(.resized):not(.span-1):not(.span-2):not(.span-3):not(.span-4) {
-  height: min(
-    calc(var(--dashboard-panel-row-max) * 2 + var(--dashboard-grid-gap)),
-    max(var(--dashboard-first-grid-reservation), calc(100dvh - 64px))
-  );
-}
+/* ponytail: no per-panel `height` pins here.
+   #5332/#4580 pinned "always-full" panels (live-news, live-webcams,
+   threat-timeline, gdelt-intel, strategic-posture, …) to
+   `height: var(--dashboard-panel-row-max)` (or 2×+gap for the wide/span-2
+   ones) to pre-reserve their grid row against content-driven growth. But a
+   `height` on a grid item does not size its track: `.panels-grid` rows
+   resolve to `--dashboard-panel-row-min` (content never fills the minmax
+   max), so a pinned panel rendered 180px (1-row) / 360px (wide) TALLER than
+   the grid cell reserved for it and the panels placed after it painted over
+   the overflow — e.g. a playing live-news video with AI Insights sitting on
+   its lower half. `.panel { height: 100% }` (above) already fills the exact
+   grid area at whatever size the track resolves to, which is also what
+   `.resized` / `.span-N` panels have always relied on — so let every panel
+   use it. Overlap is then structurally impossible: the grid places panels
+   without overlap and nothing renders outside its cell.
+   If the CLS pin is ever wanted back, do it on the track, not the item:
+   `.panels-grid { grid-auto-rows: var(--dashboard-panel-row-max); }`. */
 
 .panel.span-3 {
   grid-row: span 3 !important;
@@ -18222,6 +18186,29 @@ a.prediction-link:hover {
   color: var(--text-dim);
   cursor: pointer;
   font-size: calc(10px * var(--wm-panel-effective-scale, 1));
+}
+
+/* Push the title left so the header buttons group on the right. */
+.deckgl-layer-toggles .toggle-header > span:first-child {
+  margin-right: auto;
+}
+
+.deckgl-layer-toggles .layer-select-all {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 1px 6px;
+  font: inherit;
+  font-size: calc(9px * var(--wm-panel-effective-scale, 1));
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.deckgl-layer-toggles .layer-select-all:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
 }
 
 .deckgl-layer-toggles .toggle-list {

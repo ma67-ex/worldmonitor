@@ -30,6 +30,7 @@ import {
   hasCuratedLayerExplanation,
   resolveLayerLabel,
   bindLayerSearch,
+  bindLayerSelectAll,
   type MapVariant,
 } from '@/config/map-layer-definitions';
 import { renderLayerExplanationCard } from '@/utils/layer-explanation-card';
@@ -1998,6 +1999,7 @@ export class GlobeMap {
     setTrustedHtml(el, trustedHtml(`
       <div class="toggle-header">
         <span>${t('components.deckgl.layersTitle')}</span>
+        <button type="button" class="layer-select-all">${t('common.selectAll')}</button>
         <button class="toggle-collapse">&#9660;</button>
       </div>
       <input type="text" class="layer-search" placeholder="${t('components.deckgl.layerSearch')}" autocomplete="off" spellcheck="false" />
@@ -2099,6 +2101,7 @@ export class GlobeMap {
     this.enforceLayerLimit();
 
     bindLayerSearch(el);
+    bindLayerSelectAll(el);
     const searchEl = el.querySelector('.layer-search') as HTMLElement | null;
 
     const collapseBtn = el.querySelector('.toggle-collapse');

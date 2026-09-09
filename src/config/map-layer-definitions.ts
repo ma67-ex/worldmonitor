@@ -736,3 +736,32 @@ export function bindLayerSearch(container: HTMLElement): void {
     });
   });
 }
+
+/**
+ * Wire a `.layer-select-all` button (if present in `container`) to enable every
+ * layer toggle currently shown in the list. Mirrors the panels-tab Select All:
+ * respects the active search filter, skips hidden and premium-locked (disabled)
+ * rows, and toggles each checkbox through its own `change` handler so the
+ * per-layer rules (conflicts, free-plan cap, render, onLayerChange) still run.
+ */
+export function bindLayerSelectAll(container: HTMLElement): void {
+  const btn = container.querySelector('.layer-select-all') as HTMLButtonElement | null;
+  if (!btn) return;
+  btn.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    container.querySelectorAll('.layer-toggle').forEach(label => {
+      const el = label as HTMLElement;
+      if (el.hasAttribute('data-layer-hidden')) return;
+      const row = (el.closest('.layer-toggle-row') as HTMLElement | null) ?? el;
+      if (row.style.display === 'none') return; // filtered out by the search box
+      const input = el.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
+      if (!input || input.disabled || input.checked) return;
+      input.checked = true;
+      // ponytail: one change event per layer reuses each map's existing
+      // per-layer handler (incl. its render()). ~40 synchronous renders on a
+      // deliberate click is acceptable; batch only if it ever drags.
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  });
+}
