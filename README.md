@@ -232,3 +232,5 @@ See our [Security Policy](./SECURITY.md) for responsible disclosure guidelines.
 <!-- deploy-trigger: 2026-09-04T17:28:23Z — pulled + deployed Abdullah's live-webcam-id fix (a6189312b); gateway-user-key-apiaccess.test.ts renewal_verification_failed test still open, see chat -->
 
 <!-- deploy-trigger: 2026-09-04T17:36:58Z — pulled + deployed Abdullah's webcam auto-swap-on-error fix (49751e421), follow-up to a6189312b -->
+
+<!-- deploy-trigger: 2026-09-09T04:37:39Z — synced after Abdullah's Sep 4-8 work: YouTube Data API v3 live-detection, PizzINT proxy fix, Vercel Framework Preset corrected (was misdetected as Astro, 404ing misc-gateway2 routes), CORS allowlist extended for his separate fork/Vercel project (ma6-tech), panel-overlap CSS fix + map-layer Select All -->
