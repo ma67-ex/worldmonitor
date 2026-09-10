@@ -469,6 +469,7 @@ function sebufApiPlugin(): Plugin {
       leadsServerMod, leadsHandlerMod,
       scenarioServerMod, scenarioHandlerMod,
       shippingV2ServerMod, shippingV2HandlerMod,
+      sanctionsServerMod, sanctionsHandlerMod,
     ] = await Promise.all([
         import('./server/router'),
         import('./server/cors'),
@@ -525,6 +526,8 @@ function sebufApiPlugin(): Plugin {
         import('./server/worldmonitor/scenario/v1/handler'),
         import('./src/generated/server/worldmonitor/shipping/v2/service_server'),
         import('./server/worldmonitor/shipping/v2/handler'),
+        import('./src/generated/server/worldmonitor/sanctions/v1/service_server'),
+        import('./server/worldmonitor/sanctions/v1/handler'),
       ]);
 
     const serverOptions = {
@@ -558,6 +561,7 @@ function sebufApiPlugin(): Plugin {
       ...leadsServerMod.createLeadsServiceRoutes(leadsHandlerMod.leadsHandler, serverOptions),
       ...scenarioServerMod.createScenarioServiceRoutes(scenarioHandlerMod.scenarioHandler, serverOptions),
       ...shippingV2ServerMod.createShippingV2ServiceRoutes(shippingV2HandlerMod.shippingV2Handler, serverOptions),
+      ...sanctionsServerMod.createSanctionsServiceRoutes(sanctionsHandlerMod.sanctionsHandler, serverOptions),
     ];
     cachedCorsMod = corsMod;
     return routerMod.createRouter(allRoutes);
@@ -829,6 +833,42 @@ function youtubeLivePlugin(): Plugin {
   };
 }
 
+// Vercel routes /api/sanctions-ofac-proxy through a consolidated gateway
+// function (see vercel.json) that Vite dev never sees. Without this, the
+// request falls through to the SPA's index.html (200 OK, wrong body) and the
+// Sanctions & Designations panel reads that as an empty result. Invoke the
+// real edge handler in-process instead of reimplementing it — it already
+// cache-checks Redis first, so seeding sanctions:ofac-country-aggregate:v1
+// (scripts/seed-sanctions-pressure.mjs writes a different key; there is no
+// seeder for this one yet) avoids the 111MB live OFAC fetch on every reload.
+function sanctionsOfacProxyDevPlugin(): Plugin {
+  return {
+    name: 'sanctions-ofac-proxy-dev',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (!req.url?.startsWith('/api/sanctions-ofac-proxy')) {
+          return next();
+        }
+        try {
+          const { default: handler } = await import('./api/_sanctions-ofac-proxy');
+          const request = new Request(new URL(req.url, 'http://localhost'), {
+            method: req.method,
+            headers: req.headers as HeadersInit,
+          });
+          const response = await handler(request);
+          res.statusCode = response.status;
+          response.headers.forEach((value, key) => res.setHeader(key, value));
+          res.end(Buffer.from(await response.arrayBuffer()));
+        } catch (err) {
+          res.statusCode = 500;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: (err as Error).message || 'sanctions-ofac-proxy dev handler failed' }));
+        }
+      });
+    },
+  };
+}
+
 function gpsjamDevPlugin(): Plugin {
   return {
     name: 'gpsjam-dev',
@@ -939,6 +979,7 @@ export default defineConfig(({ mode }) => {
       rssProxyPlugin(),
       youtubeLivePlugin(),
       gpsjamDevPlugin(),
+      sanctionsOfacProxyDevPlugin(),
       sebufApiPlugin(),
       brotliPrecompressPlugin(),
       VitePWA({
