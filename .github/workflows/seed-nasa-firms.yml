@@ -1,0 +1,43 @@
+name: Seed NASA FIRMS (fires + thermal escalation)
+
+# Vercel has no crons configured (vercel.json crons: []), so nothing else
+# refreshes wildfire:fires:v1 / thermal:escalation:v1 in this fork's prod
+# Redis. NASA FIRMS NRT data republishes roughly every 3h — match that.
+on:
+  schedule:
+    - cron: '20 */3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: seed-nasa-firms
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      - run: npm ci
+
+      - name: Seed fire detections
+        env:
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          NASA_FIRMS_API_KEY: ${{ secrets.NASA_FIRMS_API_KEY }}
+        run: node scripts/seed-fire-detections.mjs
+
+      # Depends on wildfire:fires:v1 from the step above.
+      - name: Seed thermal escalation
+        env:
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+        run: node scripts/seed-thermal-escalation.mjs
