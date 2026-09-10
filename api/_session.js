@@ -14,6 +14,14 @@
 // Uses Web Crypto API (crypto.subtle) — works in both Vercel Edge runtime
 // and Node.js test environment without `node:crypto` (which the bundle check
 // rejects under --platform=browser).
+//
+// A note on setting WM_SESSION_SECRET for the first time on a fork: the
+// Vercel dashboard's "Redeploy" button alone will NOT pick it up.
+// scripts/vercel-ignore.sh (see vercel.json's ignoreCommand) skips the build
+// when it sees no api/server/src diff since the currently-deployed commit —
+// which is always true for a same-commit redeploy, env-var-only or not. A
+// real commit touching a watched path (this file, any api/ or server/ file,
+// etc.) is what actually forces the rebuild that reads the new env var.
 
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const PREFIX = 'wms_';
