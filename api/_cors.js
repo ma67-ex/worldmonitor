@@ -16,6 +16,13 @@ const ALLOWED_ORIGIN_PATTERNS = [
   // Same "never a bare *.vercel.app" tightness as the patterns above.
   /^https:\/\/worldmonitor-roan-one\.vercel\.app$/,
   /^https:\/\/worldmonitor(-[a-z0-9-]+)?-ma6-tech\.vercel\.app$/,
+  // Same fork, actual Vercel project name (verified 2026-09-10): the project
+  // is named "ma67-ex-worldmonitor", not "worldmonitor", so its real domains
+  // don't match the two patterns above and every request was getting a
+  // blanket 401/403 as a disallowed origin. Covers the default production
+  // domain and per-deployment hash URLs under the same "ma6-tech" scope.
+  /^https:\/\/ma67-ex-worldmonitor\.vercel\.app$/,
+  /^https:\/\/ma67-ex-worldmonitor(-[a-z0-9-]+)?-ma6-tech\.vercel\.app$/,
   // Future custom domain (src/config/brand.ts BRAND_DOMAIN), not live yet but
   // safe to allow ahead of time.
   /^https:\/\/(.*\.)?sitrep\.app$/,
