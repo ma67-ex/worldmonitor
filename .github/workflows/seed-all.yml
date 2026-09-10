@@ -1,0 +1,79 @@
+name: Seed all data sources (prod Redis)
+
+# vercel.json has no crons configured, so nothing else refreshes this fork's
+# prod Redis — everything seeded manually goes stale on its own TTL (many
+# 30-90min) with nothing to re-seed it. This is the general-purpose fix:
+# every scripts/seed-*.mjs, fanned out across matrix shards so one slow/rate
+# -limited script can't block the rest. Each script already knows how to
+# no-op fast if its own data is still fresh (see the "Skipped, last seeded
+# Nmin ago" pattern in the bundle seeders), so over-triggering is cheap.
+#
+# NASA FIRMS (fire-detections + thermal-escalation) has its own dedicated
+# workflow (seed-nasa-firms.yml) and is excluded here to avoid two crons
+# racing for the same Redis lock.
+#
+# The shard list is computed at runtime (`ls scripts/seed-*.mjs`), not
+# hardcoded — adding or removing a seed script never requires touching this
+# file.
+
+on:
+  schedule:
+    - cron: '35 */3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: seed-all
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  SHARD_COUNT: 15
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      - run: npm ci
+
+      - name: Seed this shard's scripts
+        env:
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          NASA_FIRMS_API_KEY: ${{ secrets.NASA_FIRMS_API_KEY }}
+          ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+          USPTO_API_KEY: ${{ secrets.USPTO_API_KEY }}
+        run: |
+          set -o pipefail
+          mapfile -t scripts < <(ls scripts/seed-*.mjs | xargs -n1 basename \
+            | grep -vE '^seed-(fire-detections|thermal-escalation)\.mjs$' \
+            | awk -v shard="${{ matrix.shard }}" -v n="$SHARD_COUNT" 'NR % n == shard')
+          echo "Shard ${{ matrix.shard }}: ${#scripts[@]} script(s)"
+          fail=0
+          for f in "${scripts[@]}"; do
+            echo "::group::$f"
+            if ! timeout 90 node "scripts/$f"; then
+              echo "  [shard ${{ matrix.shard }}] $f failed or timed out (exit $?) — continuing"
+              fail=1
+            fi
+            echo "::endgroup::"
+          done
+          # A per-script failure is expected (missing key, rate-limited upstream,
+          # etc.) and already logged above — don't fail the job for it, that's
+          # what would page/red-X every run for issues this workflow can't fix.
+          exit 0
