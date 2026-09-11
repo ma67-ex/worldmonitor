@@ -234,3 +234,5 @@ See our [Security Policy](./SECURITY.md) for responsible disclosure guidelines.
 <!-- deploy-trigger: 2026-09-04T17:36:58Z — pulled + deployed Abdullah's webcam auto-swap-on-error fix (49751e421), follow-up to a6189312b -->
 
 <!-- deploy-trigger: 2026-09-09T04:37:39Z — synced after Abdullah's Sep 4-8 work: YouTube Data API v3 live-detection, PizzINT proxy fix, Vercel Framework Preset corrected (was misdetected as Astro, 404ing misc-gateway2 routes), CORS allowlist extended for his separate fork/Vercel project (ma6-tech), panel-overlap CSS fix + map-layer Select All -->
+
+<!-- deploy-trigger: 2026-09-11T05:16:38Z — pulled Abdullah's Sep 10-11 work: sanctions RPC wired into local dev, CORS domain fix for his fork, WM_SESSION_SECRET redeploy-gotcha doc, new seed-nasa-firms.yml + seed-all.yml crons (every 3h) to keep this fork's own prod Redis fresh. Also committed generated product-facts/locale files that had drifted locally to the current source-attribution count (549 hosts) -->
