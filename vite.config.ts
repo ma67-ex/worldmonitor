@@ -869,6 +869,40 @@ function sanctionsOfacProxyDevPlugin(): Plugin {
   };
 }
 
+// Vercel routes /api/supply-chain/hormuz-tracker through the misc-gateway2
+// catch-all (see api/misc-gateway2/[...path].ts), which Vite dev never sees —
+// same gap as sanctionsOfacProxyDevPlugin above. Without this, the request
+// falls through to the SPA's index.html and the Hormuz Trade Tracker panel
+// reads that as an empty result even though supply_chain:hormuz_tracker:v1
+// is populated in Redis.
+function hormuzTrackerDevPlugin(): Plugin {
+  return {
+    name: 'hormuz-tracker-dev',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (!req.url?.startsWith('/api/supply-chain/hormuz-tracker')) {
+          return next();
+        }
+        try {
+          const { default: handler } = await import('./api/supply-chain/_hormuz-tracker');
+          const request = new Request(new URL(req.url, 'http://localhost'), {
+            method: req.method,
+            headers: req.headers as HeadersInit,
+          });
+          const response = await handler(request);
+          res.statusCode = response.status;
+          response.headers.forEach((value, key) => res.setHeader(key, value));
+          res.end(Buffer.from(await response.arrayBuffer()));
+        } catch (err) {
+          res.statusCode = 500;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: (err as Error).message || 'hormuz-tracker dev handler failed' }));
+        }
+      });
+    },
+  };
+}
+
 function gpsjamDevPlugin(): Plugin {
   return {
     name: 'gpsjam-dev',
@@ -980,6 +1014,7 @@ export default defineConfig(({ mode }) => {
       youtubeLivePlugin(),
       gpsjamDevPlugin(),
       sanctionsOfacProxyDevPlugin(),
+      hormuzTrackerDevPlugin(),
       sebufApiPlugin(),
       brotliPrecompressPlugin(),
       VitePWA({
