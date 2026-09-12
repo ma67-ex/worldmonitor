@@ -1,0 +1,36 @@
+name: Seed commodity quotes (metals & materials)
+
+# Vercel has no crons configured (vercel.json crons: []), so nothing else
+# refreshes market:commodities-bootstrap:v1 in this fork's prod Redis.
+# seed-commodity-quotes.mjs writes with a 30-minute TTL — match that so the
+# key never fully expires between runs.
+on:
+  schedule:
+    - cron: '*/25 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: seed-commodities
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      - run: npm ci
+
+      - name: Seed commodity quotes
+        env:
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+        run: node scripts/seed-commodity-quotes.mjs
