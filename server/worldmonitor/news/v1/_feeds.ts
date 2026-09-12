@@ -18,21 +18,57 @@ export function isServerFeedReachableForLanguage(
   return !feed.lang || feed.lang === language || !!feed.strategicDefault;
 }
 
+/**
+ * Order feeds for a time-boxed digest build.
+ *
+ * `deadlinePriority` feeds go first, highest first (an explicit "fetch this
+ * before anything else" hint) — unchanged from before.
+ *
+ * Everything else (the vast majority: every feed defaults to priority 0) used
+ * to fall back to declaration order, i.e. straight through `VARIANT_FEEDS` one
+ * category at a time. With ~240 feeds and a ~10s build deadline
+ * (OVERALL_DEADLINE_MS), a cold build routinely runs out of time partway
+ * through that list — and because the list is grouped by category, "partway
+ * through" always lands at the same place: africa/latam/asia/energy/
+ * thinktanks/crisis/layoffs sit last in `VARIANT_FEEDS.full` and got zero
+ * feeds attempted on every single cold build, cycle after cycle, while
+ * politics/us/europe at the front always finished. Not a flaky feed, not bad
+ * luck — the ordering guaranteed those categories go empty every time the
+ * deadline is tight (#weeks-of-UNAVAILABLE).
+ *
+ * Fix: round-robin the no-priority feeds across categories — one feed from
+ * every category, then a second from every category, and so on — so a
+ * deadline cutoff costs each category a few of its later feeds instead of
+ * wiping out whole categories wholesale.
+ */
 export function orderServerFeedEntries<T extends {
+  category: string;
   feed: Pick<ServerFeed, 'deadlinePriority'>;
 }>(entries: readonly T[]): T[] {
-  return entries
-    .map((entry, index) => ({ entry, index }))
-    .sort((a, b) => {
-      const aPriority = Number.isFinite(a.entry.feed.deadlinePriority)
-        ? a.entry.feed.deadlinePriority!
-        : 0;
-      const bPriority = Number.isFinite(b.entry.feed.deadlinePriority)
-        ? b.entry.feed.deadlinePriority!
-        : 0;
-      return bPriority - aPriority || a.index - b.index;
-    })
-    .map(({ entry }) => entry);
+  const prioritized: { entry: T; index: number }[] = [];
+  const byCategory = new Map<string, T[]>();
+
+  entries.forEach((entry, index) => {
+    if (Number.isFinite(entry.feed.deadlinePriority) && entry.feed.deadlinePriority !== 0) {
+      prioritized.push({ entry, index });
+      return;
+    }
+    const bucket = byCategory.get(entry.category);
+    if (bucket) bucket.push(entry);
+    else byCategory.set(entry.category, [entry]);
+  });
+
+  prioritized.sort((a, b) => b.entry.feed.deadlinePriority! - a.entry.feed.deadlinePriority! || a.index - b.index);
+
+  const categoryBuckets = [...byCategory.values()];
+  const roundRobin: T[] = [];
+  for (let rank = 0; roundRobin.length < entries.length - prioritized.length; rank++) {
+    for (const bucket of categoryBuckets) {
+      if (rank < bucket.length) roundRobin.push(bucket[rank]);
+    }
+  }
+
+  return [...prioritized.map(({ entry }) => entry), ...roundRobin];
 }
 
 const gn = (q: string) =>
