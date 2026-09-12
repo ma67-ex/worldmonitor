@@ -98,6 +98,7 @@ export class CorrelationEngine {
       document.dispatchEvent(new CustomEvent('wm:correlation-updated', {
         detail: { domains: this.adapters.map(a => a.domain) },
       }));
+      this.hasCompletedRun = true;
     } finally {
       this.running = false;
     }
@@ -107,6 +108,26 @@ export class CorrelationEngine {
   getCards(domain: string): ConvergenceCard[] {
     return this.cards.get(domain) ?? [];
   }
+
+  /**
+   * True once `run()` has completed a full pass at least once.
+   *
+   * A correlation panel is lazily constructed on scroll-into-view, but the
+   * engine's first run fires once, right after page load, independent of
+   * scroll — almost always before a below-the-fold panel exists yet. That run's
+   * `panel?.updateCards(...)` (App.ts) then silently no-ops on the missing
+   * panel, and the panel's own constructor has no live cards to show, so it
+   * sits on its initial "Waiting for data..." state until the next scheduled
+   * refresh happens to catch it in viewport — up to `correlationEngine`'s full
+   * interval (5 min) later. Callers that construct a panel late use this flag
+   * to hydrate it immediately from whatever the engine already computed,
+   * instead of waiting on that next tick.
+   */
+  hasRunOnce(): boolean {
+    return this.hasCompletedRun;
+  }
+
+  private hasCompletedRun = false;
 
   getAllCards(): ConvergenceCard[] {
     return Array.from(this.cards.values()).flat();

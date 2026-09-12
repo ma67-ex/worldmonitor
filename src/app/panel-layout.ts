@@ -20,6 +20,7 @@ import { effectivePubDateMs } from '@/services/feed-date';
 import type { ClusteredEvent, MapLayers, PanelConfig } from '@/types';
 import type { RelatedAsset } from '@/types';
 import type { TheaterPostureSummary } from '@/services/military-surge';
+import type { ConvergenceCard } from '@/services/correlation-engine';
 import type { NewsPanel } from '@/components/NewsPanel';
 import type { AviationCommandBar } from '@/components/AviationCommandBar';
 import { MobilePanelNav } from '@/components/MobilePanelNav';
@@ -2227,27 +2228,35 @@ export class PanelLayoutManager implements AppModule {
 
     this.lazyDefaultPanel('defense-patents', () => import('@/components/DefensePatentsPanel'), 'DefensePatentsPanel');
 
-    // Correlation engine panels
+    // Correlation engine panels.
+    //
+    // Each is lazily constructed on scroll-into-view, but the engine's first
+    // (and often only-for-a-while) run fires once, right after page load,
+    // independent of scroll — almost always before a below-the-fold panel
+    // exists yet. Without this hydration, a panel built after that run sits on
+    // its initial "Waiting for data..." state until the next scheduled
+    // refresh happens to catch it in viewport, up to 5 minutes later. See
+    // CorrelationEngine.hasRunOnce().
     this.lazyImportedPanel('military-correlation', () => import('@/components/MilitaryCorrelationPanel'), 'MilitaryCorrelationPanel', (MilitaryCorrelationPanel) => {
       const p = new MilitaryCorrelationPanel();
       p.setMapNavigateHandler((lat, lon) => { this.ctx.map?.setCenter(lat, lon, 6); });
       return p;
-    });
+    }, (p) => this.hydrateCorrelationPanel(p, 'military'));
     this.lazyImportedPanel('escalation-correlation', () => import('@/components/EscalationCorrelationPanel'), 'EscalationCorrelationPanel', (EscalationCorrelationPanel) => {
       const p = new EscalationCorrelationPanel();
       p.setMapNavigateHandler((lat, lon) => { this.ctx.map?.setCenter(lat, lon, 4); });
       return p;
-    });
+    }, (p) => this.hydrateCorrelationPanel(p, 'escalation'));
     this.lazyImportedPanel('economic-correlation', () => import('@/components/EconomicCorrelationPanel'), 'EconomicCorrelationPanel', (EconomicCorrelationPanel) => {
       const p = new EconomicCorrelationPanel();
       p.setMapNavigateHandler((lat, lon) => { this.ctx.map?.setCenter(lat, lon, 4); });
       return p;
-    });
+    }, (p) => this.hydrateCorrelationPanel(p, 'economic'));
     this.lazyImportedPanel('disaster-correlation', () => import('@/components/DisasterCorrelationPanel'), 'DisasterCorrelationPanel', (DisasterCorrelationPanel) => {
       const p = new DisasterCorrelationPanel();
       p.setMapNavigateHandler((lat, lon) => { this.ctx.map?.setCenter(lat, lon, 5); });
       return p;
-    });
+    }, (p) => this.hydrateCorrelationPanel(p, 'disaster'));
 
     this.lazyImportedPanel('strategic-risk', () => import('@/components/StrategicRiskPanel'), 'StrategicRiskPanel', (StrategicRiskPanel) => {
       const strategicRiskPanel = new StrategicRiskPanel();
@@ -3326,6 +3335,18 @@ export class PanelLayoutManager implements AppModule {
     setup?: (panel: ImportedPanel<M, K>) => void,
   ): boolean {
     return this.lazyImportedPanel(key, importer, exportName, (PanelClass) => new PanelClass() as ImportedPanel<M, K>, setup);
+  }
+
+  /**
+   * Hydrate a just-constructed correlation panel from a live engine run, so it
+   * doesn't sit on its initial "Waiting for data..." until the next scheduled
+   * refresh (up to 5 min later). No-ops if the engine hasn't completed a run
+   * yet — the panel's own constructor already handles that "still loading"
+   * case. See CorrelationEngine.hasRunOnce().
+   */
+  private hydrateCorrelationPanel(panel: { updateCards(cards: ConvergenceCard[]): void }, domain: string): void {
+    const engine = this.ctx.correlationEngine;
+    if (engine?.hasRunOnce()) panel.updateCards(engine.getCards(domain));
   }
 
   /**
