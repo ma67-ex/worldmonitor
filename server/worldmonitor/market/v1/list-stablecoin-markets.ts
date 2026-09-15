@@ -4,9 +4,13 @@
  * Two request shapes, deliberately different in what they are allowed to cost:
  *
  *   Empty `coins` (the dashboard panel's hot path) is served from the Railway
- *   seed snapshot alone and NEVER reaches an upstream provider. That is the
- *   posture #1684 established when it converted this handler to a pure Redis
- *   read, and nothing here weakens it.
+ *   seed snapshot when present — the posture #1684 established when it
+ *   converted this handler to a pure Redis read. When the seed key is cold
+ *   (never seeded, or its TTL expired with no cron to refresh it), this now
+ *   falls back to one Redis-cached (10 min) CoinGecko call for the default
+ *   coin set rather than surfacing a permanently empty panel — the same
+ *   self-heal pattern applied to crypto-quotes/-sectors/token-panels. A
+ *   healthy seed still costs nothing; this only fires on a cold cache.
  *
  *   Naming coins explicitly opts into a bounded, Redis-cached provider lookup
  *   for exactly the IDs the snapshot does not carry. Seed hits cost nothing;
@@ -36,8 +40,14 @@ import {
   parseStringArray,
   type CryptoMarketsSource,
 } from './_shared';
+import stablecoinConfig from '../../../../shared/stablecoins.json';
 
 const SEED_CACHE_KEY = 'market:stablecoins:v1';
+// Live fallback for the default (coins=[]) request when the seed is cold.
+// Cached separately from the seed key so a seed script, if one runs again,
+// still wins on its next successful write.
+const DEFAULT_LIVE_CACHE_KEY = 'market:stablecoins:live:v1';
+const DEFAULT_LIVE_CACHE_TTL = 600;
 
 // Request-driven gap lookups get their own key space. The seed key stays
 // seed-owned: a request that ends in a negative sentinel must never overwrite
@@ -326,6 +336,16 @@ async function resolveGapCoins(ids: string[]): Promise<{
   }
 }
 
+async function fetchDefaultStablecoinsLive(): Promise<Stablecoin[] | null> {
+  const { items } = await fetchCryptoMarketsWithSource(stablecoinConfig.ids, {
+    sparkline: false,
+    priceChangePercentage: '24h,7d',
+  });
+  const usable = items.filter(isUsableStablecoin);
+  if (usable.length === 0) return null;
+  return usable.map((item) => classifyStablecoin(item));
+}
+
 export async function listStablecoinMarkets(
   _ctx: ServerContext,
   req: ListStablecoinMarketsRequest,
@@ -353,16 +373,45 @@ export async function listStablecoinMarkets(
   const seedCorrupt = seedRows.length > 0 && seedCoins.length === 0;
   const seedUnusable = seedUnreachable || seedCorrupt;
 
-  // Default request: the seeded snapshot verbatim, no upstream work, ever.
+  // Default request: the seeded snapshot verbatim when present — no upstream
+  // work on a healthy seed.
   if (lookupIds.length === 0 && unresolved.length === 0) {
-    if (seedCoins.length === 0) return unavailableResponse([]);
-    return {
-      timestamp: seed?.timestamp || new Date().toISOString(),
-      summary: summarize(seedCoins),
-      stablecoins: seedCoins,
-      unresolved: [],
-      dataStatus: 'OK',
-    };
+    if (seedCoins.length > 0) {
+      return {
+        timestamp: seed?.timestamp || new Date().toISOString(),
+        summary: summarize(seedCoins),
+        stablecoins: seedCoins,
+        unresolved: [],
+        dataStatus: 'OK',
+      };
+    }
+
+    // Seed key is cold. Fetch the default coin set live instead of surfacing
+    // an empty panel — cached so a burst of concurrent visitors shares one
+    // upstream call.
+    try {
+      const live = await cachedFetchJson<Stablecoin[]>(
+        DEFAULT_LIVE_CACHE_KEY,
+        DEFAULT_LIVE_CACHE_TTL,
+        fetchDefaultStablecoinsLive,
+        120,
+        { timeoutMs: 15_000, cacheFetcherErrors: false },
+      );
+      if (live && live.length > 0) {
+        return {
+          timestamp: new Date().toISOString(),
+          summary: summarize(live),
+          stablecoins: live,
+          unresolved: [],
+          dataStatus: 'OK',
+        };
+      }
+    } catch (err) {
+      // sentry-coverage-ok: live fallback failure degrades to the unavailable response below.
+      console.warn('[Stablecoin] default live fallback failed:', (err as Error).message);
+    }
+
+    return unavailableResponse([]);
   }
 
   const seedById = new Map(seedCoins.map(coin => [coin.id, coin]));
