@@ -456,14 +456,15 @@ async function allSettledWithConcurrency<T, R>(
   return results;
 }
 
-export async function fetchCoinPaprikaMarkets(
+export async function fetchCoinPaprikaMarketsWithMap(
   geckoIds: string[],
+  paprikaIdMap: Record<string, string>,
 ): Promise<CoinGeckoMarketItem[]> {
-  const paprikaIds = geckoIds.map(id => COINPAPRIKA_ID_MAP[id]).filter((id): id is string => Boolean(id));
+  const paprikaIds = geckoIds.map(id => paprikaIdMap[id]).filter((id): id is string => Boolean(id));
   if (paprikaIds.length === 0) throw new Error('No CoinPaprika ID mapping for requested coins');
 
   const matched = await fetchCoinPaprikaTickersById(paprikaIds);
-  const reverseMap = new Map(Object.entries(COINPAPRIKA_ID_MAP).map(([g, p]) => [p, g]));
+  const reverseMap = new Map(Object.entries(paprikaIdMap).map(([g, p]) => [p, g]));
 
   return matched.map(t => {
     const q = t.quotes.USD;
@@ -480,6 +481,12 @@ export async function fetchCoinPaprikaMarkets(
       sparkline_in_7d: undefined,
     };
   });
+}
+
+export async function fetchCoinPaprikaMarkets(
+  geckoIds: string[],
+): Promise<CoinGeckoMarketItem[]> {
+  return fetchCoinPaprikaMarketsWithMap(geckoIds, COINPAPRIKA_ID_MAP);
 }
 
 // ========================================================================
@@ -521,4 +528,67 @@ export async function fetchCryptoMarkets(
   opts: CoinGeckoMarketsOpts = {},
 ): Promise<CoinGeckoMarketItem[]> {
   return (await fetchCryptoMarketsWithSource(ids, opts)).items;
+}
+
+/** Same ladder as `fetchCryptoMarkets`, but the CoinPaprika leg uses a
+ *  caller-supplied id map instead of the shared crypto/stablecoin one —
+ *  for panels (DeFi/AI/Other tokens) whose universe isn't in CRYPTO_META. */
+export async function fetchCryptoMarketsWithMap(
+  ids: string[],
+  paprikaIdMap: Record<string, string>,
+  opts: CoinGeckoMarketsOpts = {},
+): Promise<CoinGeckoMarketItem[]> {
+  try {
+    return await fetchCoinGeckoMarkets(ids, opts);
+  } catch (err) {
+    // sentry-coverage-ok: expected fallback trigger; CoinPaprika owns recovery below.
+    console.warn('[CoinGecko] Failed, falling back to CoinPaprika:', (err as Error).message);
+    return fetchCoinPaprikaMarketsWithMap(ids, paprikaIdMap);
+  }
+}
+
+export interface TokenPanelConfig {
+  ids: string[];
+  meta: Record<string, { name: string; symbol: string }>;
+  coinpaprika: Record<string, string>;
+}
+
+export interface TokenQuote {
+  name: string;
+  symbol: string;
+  price: number;
+  change: number;
+  change7d: number;
+  sparkline: number[];
+}
+
+/**
+ * On-demand replacement for a token-panel seed read when the Redis seed key
+ * is cold (never seeded, or its TTL expired with no cron to refresh it).
+ * Mirrors `scripts/seed-token-panels.mjs`'s fetch shape so a live response
+ * looks identical to a seeded one to the caller.
+ */
+export async function fetchTokenPanelLive(config: TokenPanelConfig): Promise<TokenQuote[] | null> {
+  const items = await fetchCryptoMarketsWithMap(config.ids, config.coinpaprika, {
+    sparkline: false,
+    priceChangePercentage: '24h,7d',
+  });
+  if (items.length === 0) return null;
+
+  const byId = new Map(items.map(c => [c.id, c]));
+  const tokens: TokenQuote[] = [];
+  for (const id of config.ids) {
+    const coin = byId.get(id);
+    if (!coin) continue;
+    const m = config.meta[id];
+    tokens.push({
+      name: m?.name || coin.name || id,
+      symbol: m?.symbol || (coin.symbol || id).toUpperCase(),
+      price: coin.current_price ?? 0,
+      change: coin.price_change_percentage_24h ?? 0,
+      change7d: coin.price_change_percentage_7d_in_currency ?? 0,
+      sparkline: [],
+    });
+  }
+  return tokens.length > 0 ? tokens : null;
 }

@@ -30,6 +30,7 @@ import {
   CRYPTO_META,
   fetchCoinGeckoMarkets,
   fetchCoinPaprikaMarkets,
+  fetchCryptoMarkets,
   parseStringArray,
   UPSTREAM_TIMEOUT_MS,
 } from './_shared';
@@ -40,6 +41,13 @@ import { markNoCacheResponse, setResponseHeader } from '../../../_shared/respons
 const SEED_CACHE_KEY = 'market:crypto:v1';
 const GAP_CACHE_TTL = 600; // 10 min — matches the pre-#1684 REDIS_CACHE_TTL
 const MAX_IDS = 25;
+
+// Live fallback for the default (ids=[]) request when the seed key is cold —
+// never seeded, or its TTL expired with nothing to refresh it. Cached
+// separately from the seed key so a seed script, if one runs again, still
+// wins on its next successful write.
+const LIVE_CACHE_KEY = 'market:crypto:live:v1';
+const LIVE_CACHE_TTL = 600;
 
 // CoinGecko ID per seed quote symbol. Seed snapshots are keyed by symbol, so
 // request ids are matched to seed members via this reverse map.
@@ -190,16 +198,41 @@ export async function listCryptoQuotes(
     seedQuotes = [];
   }
 
-  // Default request: return the seeded default crypto set, never the provider.
+  // Default request: prefer the seeded default crypto set.
   if (ids.length === 0) {
-    if (seedQuotes.length === 0) {
-      return { quotes: [], unresolvedIds: [], provider: 'degraded' };
+    if (seedQuotes.length > 0) {
+      return {
+        quotes: seedQuotes.map((q) => ({ ...q, change7d: (q as Partial<CryptoQuote>).change7d ?? 0 })),
+        unresolvedIds: [],
+        provider: 'seed',
+      };
     }
-    return {
-      quotes: seedQuotes.map((q) => ({ ...q, change7d: (q as Partial<CryptoQuote>).change7d ?? 0 })),
-      unresolvedIds: [],
-      provider: 'seed',
-    };
+
+    // Seed key is cold — fetch the default set live instead of surfacing an
+    // empty panel. Cached so a burst of concurrent visitors shares one
+    // upstream call rather than each triggering their own.
+    try {
+      const live = await cachedFetchJson<CryptoQuote[]>(
+        LIVE_CACHE_KEY,
+        LIVE_CACHE_TTL,
+        async () => {
+          const items = await fetchCryptoMarkets(Object.keys(CRYPTO_META));
+          return items.length > 0 ? items.map(mapMarketItem) : null;
+        },
+        120,
+        { timeoutMs: 15_000, cacheFetcherErrors: false },
+      );
+      if (live && live.length > 0) {
+        return { quotes: live, unresolvedIds: [], provider: 'upstream' };
+      }
+    } catch (err) {
+      // sentry-coverage-ok: live fallback failure degrades to the explicit
+      // 'degraded' response below; never a hidden drop or poisoned cache.
+      console.warn('[crypto-quotes] live fallback failed:', (err as Error).message);
+    }
+
+    markNoCacheResponse(ctx.request);
+    return { quotes: [], unresolvedIds: [], provider: 'degraded' };
   }
 
   const accepted = ids.slice(0, MAX_IDS);
