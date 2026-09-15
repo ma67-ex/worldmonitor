@@ -2169,7 +2169,19 @@ function _fetchYahooChartNoProxy(symbol, query = '') {
   });
 }
 
+// Shared rate gate (#053): every fetchYahooChartDirect caller (market quotes,
+// commodities, sector, china index, shipping stress, ...) now serializes
+// through one chain so two independent seed loops can never burst Yahoo
+// concurrently — each call waits for the previous one to settle first.
+let _yahooGateChain = Promise.resolve();
 function fetchYahooChartDirect(symbol, query = '') {
+  const run = () => _fetchYahooChartDirectRaw(symbol, query);
+  const result = _yahooGateChain.then(run, run);
+  _yahooGateChain = result.then(() => {}, () => {});
+  return result;
+}
+
+function _fetchYahooChartDirectRaw(symbol, query = '') {
   return _fetchYahooChartNoProxy(symbol, query).then((result) => {
     if (result) return result;
     if (!PROXY_URL) return null;
@@ -6249,6 +6261,13 @@ async function seedSocialVelocity() {
         const isExternal = articleUrl && !articleUrl.includes('reddit.com');
         if (isExternal && seenUrls.has(articleUrl)) continue;
         if (isExternal) seenUrls.add(articleUrl);
+        // #054: permalink must be a relative /r/... path — reject anything else
+        // (a scheme like javascript:/data: smuggled through) before it can be
+        // stored and later rendered as a link.
+        if (!String(p.permalink || '').startsWith('/r/')) {
+          console.warn(`[SocialVelocity] Skipping post with malformed permalink: ${JSON.stringify(p.permalink)}`);
+          continue;
+        }
         const ageSec = Math.max(1, nowSec - (p.created_utc || nowSec));
         const recencyFactor = Math.exp(-ageSec / (6 * 3600));
         const velocityScore = Math.log1p(p.score || 1) * (p.upvote_ratio || 0.5) * recencyFactor * 100;
@@ -6256,7 +6275,7 @@ async function seedSocialVelocity() {
           id: String(p.id || ''),
           title: String(p.title || '').slice(0, 300),
           subreddit: sub,
-          url: `https://reddit.com${p.permalink || ''}`,
+          url: `https://reddit.com${p.permalink}`,
           score: p.score || 0,
           upvoteRatio: p.upvote_ratio || 0,
           numComments: p.num_comments || 0,
@@ -6390,6 +6409,43 @@ function extractTickers(text, knownTickers) {
   return found;
 }
 
+// ApeWisdom (apewisdom.io) — free, public, no auth required. Fallback for when
+// Reddit itself is unreachable (403-walled without OAuth app creds, #6330):
+// it already aggregates + ranks ticker mentions from r/wallstreetbets server-side,
+// so no post-scraping or ticker-extraction regex is needed on this leg.
+const APEWISDOM_URL = 'https://apewisdom.io/api/v1.0/filter/wallstreetbets/page/1';
+
+function mapApeWisdomResult(r) {
+  const mentions = Number(r.mentions) || 0;
+  const mentions24hAgo = Number(r.mentions_24h_ago) || 0;
+  const velocityScore = mentions24hAgo > 0
+    ? Math.round(((mentions - mentions24hAgo) / mentions24hAgo) * 100 * 10) / 10
+    : (mentions > 0 ? 100 : 0);
+  return {
+    symbol: normalizeTicker(String(r.ticker || '')),
+    mentionCount: mentions,
+    uniquePosts: mentions, // ApeWisdom does not expose a separate unique-post count
+    totalScore: Number(r.upvotes) || 0,
+    avgUpvoteRatio: 0, // not provided by this API
+    topPost: undefined,
+    subreddits: ['wallstreetbets'],
+    velocityScore,
+  };
+}
+
+async function fetchApeWisdomTickers() {
+  const resp = await fetch(APEWISDOM_URL, {
+    headers: { Accept: 'application/json', 'User-Agent': CHROME_UA },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!resp.ok) throw new Error(`ApeWisdom HTTP ${resp.status}`);
+  const json = await resp.json();
+  if (!Array.isArray(json.results)) throw new Error('ApeWisdom returned no results array');
+  return json.results
+    .filter((r) => r?.ticker && !TICKER_BLACKLIST.has(String(r.ticker).toUpperCase()))
+    .map(mapApeWisdomResult);
+}
+
 async function seedWsbTickers() {
   if (wsbTickersInFlight) { console.log('[WsbTickers] Skipped (in-flight)'); return; }
   wsbTickersInFlight = true;
@@ -6443,41 +6499,56 @@ async function seedWsbTickers() {
       }
     }
 
+    let tickers = [];
+    let source = 'reddit';
+
     if (tickerMap.size === 0) {
-      console.warn('[WsbTickers] No tickers found — extending TTL, retrying in 20min');
+      console.warn('[WsbTickers] No tickers found via Reddit — trying ApeWisdom fallback');
+      try {
+        tickers = await fetchApeWisdomTickers();
+        source = 'apewisdom';
+      } catch (e) {
+        console.warn('[WsbTickers] ApeWisdom fallback failed:', e?.message || e, '— extending TTL, retrying in 20min');
+        try { await upstashExpire(WSB_TICKERS_REDIS_KEY, WSB_TICKERS_TTL); } catch {}
+        wsbTickersRetryTimer = setTimeout(() => { seedWsbTickers().catch(() => {}); }, WSB_TICKERS_RETRY_MS);
+        return;
+      }
+    } else {
+      for (const [, entry] of tickerMap) {
+        const uniquePosts = entry.postIds.size;
+        const avgUpvoteRatio = uniquePosts > 0 ? Math.round((entry.upvoteRatioSum / uniquePosts) * 100) / 100 : 0;
+        const ageFactor = 1; // all posts are "hot" (recent)
+        const velocityScore = Math.round(Math.log1p(entry.totalScore) * entry.mentionCount * ageFactor * 10) / 10;
+        tickers.push({
+          symbol: entry.symbol,
+          mentionCount: entry.mentionCount,
+          uniquePosts,
+          totalScore: entry.totalScore,
+          avgUpvoteRatio,
+          topPost: entry.topPost,
+          subreddits: [...entry.subreddits],
+          velocityScore,
+        });
+      }
+    }
+
+    if (tickers.length === 0) {
+      console.warn('[WsbTickers] ApeWisdom returned no tickers — extending TTL, retrying in 20min');
       try { await upstashExpire(WSB_TICKERS_REDIS_KEY, WSB_TICKERS_TTL); } catch {}
       wsbTickersRetryTimer = setTimeout(() => { seedWsbTickers().catch(() => {}); }, WSB_TICKERS_RETRY_MS);
       return;
     }
 
-    const tickers = [];
-    for (const [, entry] of tickerMap) {
-      const uniquePosts = entry.postIds.size;
-      const avgUpvoteRatio = uniquePosts > 0 ? Math.round((entry.upvoteRatioSum / uniquePosts) * 100) / 100 : 0;
-      const ageFactor = 1; // all posts are "hot" (recent)
-      const velocityScore = Math.round(Math.log1p(entry.totalScore) * entry.mentionCount * ageFactor * 10) / 10;
-      tickers.push({
-        symbol: entry.symbol,
-        mentionCount: entry.mentionCount,
-        uniquePosts,
-        totalScore: entry.totalScore,
-        avgUpvoteRatio,
-        topPost: entry.topPost,
-        subreddits: [...entry.subreddits],
-        velocityScore,
-      });
-    }
-
     tickers.sort((a, b) => b.velocityScore - a.velocityScore);
     const top = tickers.slice(0, 50);
-    const payload = { tickers: top, fetchedAt: Date.now(), subredditsScanned: WSB_SUBREDDITS.length, postsScanned };
-    const writeOk = await envelopeWrite(WSB_TICKERS_REDIS_KEY, payload, WSB_TICKERS_TTL, { recordCount: top.length, sourceVersion: 'wsb-tickers' });
+    const payload = { tickers: top, fetchedAt: Date.now(), subredditsScanned: WSB_SUBREDDITS.length, postsScanned, source };
+    const writeOk = await envelopeWrite(WSB_TICKERS_REDIS_KEY, payload, WSB_TICKERS_TTL, { recordCount: top.length, sourceVersion: `wsb-tickers-${source}` });
     if (writeOk) {
       await upstashSet('seed-meta:intelligence:wsb-tickers', { fetchedAt: Date.now(), recordCount: top.length }, 604800);
     } else {
       console.error('[WsbTickers] Canonical write failed. Skipping seed-meta.');
     }
-    console.log(`[WsbTickers] Seeded ${top.length} tickers from ${postsScanned} posts (redis: ${writeOk ? 'OK' : 'FAIL'}) in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+    console.log(`[WsbTickers] Seeded ${top.length} tickers (source: ${source}) from ${postsScanned} posts (redis: ${writeOk ? 'OK' : 'FAIL'}) in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
   } catch (e) {
     console.warn('[WsbTickers] Seed error:', e?.message || e, '— extending TTL, retrying in 20min');
     try { await upstashExpire(WSB_TICKERS_REDIS_KEY, WSB_TICKERS_TTL); } catch {}
@@ -12307,7 +12378,7 @@ economic: list-world-bank-indicators (params: indicator, country_code),
   get-fred-series (params: series_id e.g. UNRATE/CPIAUCSL/DGS10), get-eurostat-country-data
 trade: get-trade-flows, get-trade-restrictions, get-tariff-trends, get-trade-barriers, list-comtrade-flows
 aviation: get-airport-ops-summary (params: airport_code), get-carrier-ops (params: carrier_code), list-aviation-news
-intelligence: get-country-intel-brief (params: country_code), get-country-facts (params: country_code),
+intelligence: get-country-intel-brief (params: country_code, framework — optional analytical framework text applied to the brief), get-country-facts (params: country_code),
   get-social-velocity
 health: list-disease-outbreaks
 supply-chain: get-shipping-stress,
