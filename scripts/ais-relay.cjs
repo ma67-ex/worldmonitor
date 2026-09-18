@@ -929,6 +929,8 @@ const orefState = {
   _persistInFlight: false,
   _alertsCache: null,  // { json, gzip, brotli }
   _historyCache: null, // { json, gzip, brotli }
+  summary: { monthCount: 0, yearCount: 0, topAreasMonth: [], topAreasYear: [], updatedAtMs: 0 },
+  _summaryCache: null, // { json, gzip, brotli }
 };
 
 function loadTelegramChannels() {
@@ -1279,6 +1281,95 @@ function categorizeOrefThreat(threat) {
   if (t.includes('tsunami') || t.includes('צונמי')) return 'TSUNAMI';
   if (t.includes('chemical') || t.includes('hazmat') || t.includes('חומרים מסוכנים') || t.includes('רדיולוגי')) return 'HAZMAT';
   return 'ALERT';
+}
+
+// ─────────────────────────────────────────────────────────────
+// OREF month/year history summary — Tzeva Adom's static archive
+//
+// Separate from orefState.history (the 7-day rolling feed above, sourced
+// live). This is a much longer, low-frequency view: Tzeva Adom publishes
+// https://www.tzevaadom.co.il/static/historical/all.json — a free, public,
+// no-auth archive of every alert since 2021, updated daily. Each entry is
+// `[id, category, [cities], unixTimestampSeconds]`.
+//
+// Category numbers verified against oref-alerts/oref-alerts.github.io's
+// EVENT_TYPES array (same source file, MIT-licensed open dashboard) — only
+// 0 and 5 mark a NEW siren; the rest are follow-up/lifecycle messages about
+// an alert already counted ("event ended", "can leave shelter", pre-alert
+// notices), and counting them too would double-count the same siren.
+const TZEVA_ADOM_HISTORY_URL = 'https://www.tzevaadom.co.il/static/historical/all.json';
+const TZEVA_ADOM_HISTORY_CATEGORIES = {
+  0: 'MISSILE', // ירי רקטות וטילים — Rocket and missile fire
+  5: 'DRONE',   // חדירת כלי טיס עוין — Hostile aircraft intrusion
+};
+const OREF_SUMMARY_REFRESH_MS = 24 * 60 * 60 * 1000; // source updates ~daily
+const OREF_SUMMARY_TOP_AREAS = 10;
+
+// Israel-local Y-M / Y so "this month" matches the Israeli calendar the
+// alerts actually happened in, not the relay server's UTC day/month.
+function orefIsraelYearMonth(ms) {
+  const fmt = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit' });
+  const parts = Object.fromEntries(fmt.formatToParts(new Date(ms)).map(p => [p.type, p.value]));
+  return { year: parts.year, month: parts.month };
+}
+
+function orefTopAreas(counts, limit) {
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([area, count]) => ({ area, count }));
+}
+
+async function orefRefreshHistorySummary() {
+  try {
+    const resp = await fetch(TZEVA_ADOM_HISTORY_URL, {
+      headers: { 'User-Agent': 'WorldMonitor/1.0', Accept: 'application/json' },
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const raw = await resp.json();
+    if (!Array.isArray(raw)) throw new Error('unexpected shape (not an array)');
+
+    const nowYM = orefIsraelYearMonth(Date.now());
+    let monthCount = 0;
+    let yearCount = 0;
+    const monthAreas = new Map();
+    const yearAreas = new Map();
+
+    for (const entry of raw) {
+      const [, category, cities, tsSec] = Array.isArray(entry) ? entry : [];
+      if (!TZEVA_ADOM_HISTORY_CATEGORIES[category]) continue; // lifecycle/pre-alert, not a new siren
+      if (!Number.isFinite(tsSec)) continue;
+      const ym = orefIsraelYearMonth(tsSec * 1000);
+      const inYear = ym.year === nowYM.year;
+      if (!inYear) continue;
+      const inMonth = ym.month === nowYM.month;
+
+      const areaList = Array.isArray(cities) ? cities : [];
+      for (const rawCity of areaList) {
+        const city = translateCity(rawCity);
+        yearCount++;
+        yearAreas.set(city, (yearAreas.get(city) || 0) + 1);
+        if (inMonth) {
+          monthCount++;
+          monthAreas.set(city, (monthAreas.get(city) || 0) + 1);
+        }
+      }
+    }
+
+    orefState.summary = {
+      monthCount,
+      yearCount,
+      topAreasMonth: orefTopAreas(monthAreas, OREF_SUMMARY_TOP_AREAS),
+      topAreasYear: orefTopAreas(yearAreas, OREF_SUMMARY_TOP_AREAS),
+      updatedAtMs: Date.now(),
+    };
+    const summaryJson = JSON.stringify({ configured: SIREN_ALERTS_ENABLED, ...orefState.summary });
+    orefState._summaryCache = { json: summaryJson, gzip: gzipSyncBuffer(summaryJson), brotli: brotliSyncBuffer(summaryJson) };
+    console.log(`[Relay] OREF history summary: ${monthCount} this month, ${yearCount} this year (from ${raw.length} archive entries)`);
+  } catch (err) {
+    console.warn('[Relay] OREF history summary refresh failed:', err?.message || err);
+  }
 }
 
 async function tzevaAdomFetchAlerts() {
@@ -1701,6 +1792,14 @@ async function startOrefPollLoop() {
     orefFetchAlerts().catch(e => console.warn('[Relay] OREF poll error:', e?.message || e));
   }, OREF_POLL_INTERVAL_MS).unref?.();
   console.log(`[Relay] OREF poll loop started (interval ${OREF_POLL_INTERVAL_MS}ms)`);
+
+  // Month/year summary: independent of the live poll above, refreshed daily
+  // since the source archive itself only updates ~daily. Runs after the live
+  // loop starts so a slow 30s fetch of the ~4MB archive never delays it.
+  orefRefreshHistorySummary().catch(e => console.warn('[Relay] OREF summary initial refresh error:', e?.message || e));
+  setInterval(() => {
+    orefRefreshHistorySummary().catch(e => console.warn('[Relay] OREF summary refresh error:', e?.message || e));
+  }, OREF_SUMMARY_REFRESH_MS).unref?.();
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -11115,6 +11214,19 @@ const server = http.createServer(async (req, res) => {
         totalHistoryCount: orefState.totalHistoryCount,
         timestamp: orefState.lastPollAt ? new Date(orefState.lastPollAt).toISOString() : new Date().toISOString(),
       }));
+    }
+  } else if (pathname === '/oref/summary') {
+    const c = orefState._summaryCache;
+    if (c) {
+      sendPreGzipped(req, res, 200, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600',
+      }, c.json, c.gzip, c.brotli);
+    } else {
+      sendCompressed(req, res, 200, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600',
+      }, JSON.stringify({ configured: SIREN_ALERTS_ENABLED, ...orefState.summary }));
     }
   } else if (pathname.startsWith('/ucdp-events')) {
     handleUcdpEventsRequest(req, res);

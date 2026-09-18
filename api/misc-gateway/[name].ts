@@ -55,6 +55,8 @@ import openskyHandler from '../_opensky';
 // @ts-expect-error — JS module, no declaration file
 import orefAlertsHandler from '../_oref-alerts';
 // @ts-expect-error — JS module, no declaration file
+import orefSirenSummaryHandler from '../_oref-siren-summary';
+// @ts-expect-error — JS module, no declaration file
 import pizzintProxyHandler from '../_pizzint-proxy';
 // @ts-expect-error — JS module, no declaration file
 import polymarketHandler from '../_polymarket';
@@ -109,6 +111,7 @@ const REGISTRY: Record<string, EdgeHandler> = {
   'oauth-protected-resource': oauthProtectedResourceHandler,
   'opensky': openskyHandler,
   'oref-alerts': orefAlertsHandler,
+  'oref-siren-summary': orefSirenSummaryHandler,
   'pizzint-proxy': pizzintProxyHandler,
   'polymarket': polymarketHandler,
   'product-catalog': productCatalogHandler,

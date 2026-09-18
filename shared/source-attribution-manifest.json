@@ -10600,6 +10600,20 @@
       ]
     },
     {
+      "host": "www.tzevaadom.co.il",
+      "provider": "www.tzevaadom.co.il",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit www.tzevaadom.co.il and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "scripts/ais-relay.cjs"
+        }
+      ]
+    },
+    {
       "host": "www.unep.org",
       "provider": "www.unep.org",
       "kind": "structured",

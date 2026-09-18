@@ -89,6 +89,7 @@
     { "source": "/api/oauth-protected-resource", "destination": "/api/misc-gateway/oauth-protected-resource" },
     { "source": "/api/opensky", "destination": "/api/misc-gateway/opensky" },
     { "source": "/api/oref-alerts", "destination": "/api/misc-gateway/oref-alerts" },
+    { "source": "/api/oref-siren-summary", "destination": "/api/misc-gateway/oref-siren-summary" },
     { "source": "/api/pizzint-proxy", "destination": "/api/misc-gateway/pizzint-proxy" },
     { "source": "/api/polymarket", "destination": "/api/misc-gateway/polymarket" },
     { "source": "/api/product-catalog", "destination": "/api/misc-gateway/product-catalog" },

@@ -32,6 +32,24 @@ export interface OrefHistoryResponse {
   error?: string;
 }
 
+export interface OrefAreaCount {
+  area: string;
+  count: number;
+}
+
+// Month/year rollup — independent of the 7-day rolling history above.
+// Sourced from Tzeva Adom's public archive (updated ~daily), so area names
+// arrive already in English (translated server-side); no LLM pass needed.
+export interface OrefSirenSummaryResponse {
+  configured: boolean;
+  monthCount: number;
+  yearCount: number;
+  topAreasMonth: OrefAreaCount[];
+  topAreasYear: OrefAreaCount[];
+  updatedAtMs: number;
+  error?: string;
+}
+
 let cachedResponse: OrefAlertsResponse | null = null;
 let lastFetchAt = 0;
 const CACHE_TTL = 8_000;
@@ -288,6 +306,30 @@ export async function fetchOrefHistory(): Promise<OrefHistoryResponse> {
     return data;
   } catch (err) {
     return { configured: false, history: [], historyCount24h: 0, timestamp: new Date().toISOString(), error: String(err) };
+  }
+}
+
+let cachedSummary: OrefSirenSummaryResponse | null = null;
+let lastSummaryFetchAt = 0;
+const SUMMARY_CACHE_TTL = 30 * 60_000; // source refreshes ~daily; no need to poll often
+
+export async function fetchOrefSirenSummary(): Promise<OrefSirenSummaryResponse> {
+  const now = Date.now();
+  if (cachedSummary && now - lastSummaryFetchAt < SUMMARY_CACHE_TTL) return cachedSummary;
+
+  try {
+    const res = await fetch(toApiUrl('/api/oref-siren-summary'), {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) {
+      return { configured: false, monthCount: 0, yearCount: 0, topAreasMonth: [], topAreasYear: [], updatedAtMs: 0, error: `HTTP ${res.status}` };
+    }
+    const data: OrefSirenSummaryResponse = await res.json();
+    cachedSummary = data;
+    lastSummaryFetchAt = now;
+    return data;
+  } catch (err) {
+    return { configured: false, monthCount: 0, yearCount: 0, topAreasMonth: [], topAreasYear: [], updatedAtMs: 0, error: String(err) };
   }
 }
 

@@ -1,8 +1,8 @@
 import { Panel } from './Panel';
 import { joinSafeHtml, safeHtml, type SafeHtml } from '@/utils/sanitize';
 import { t } from '@/services/i18n';
-import { fetchOrefHistory } from '@/services/oref-alerts';
-import type { OrefAlertsResponse, OrefAlert, OrefHistoryEntry } from '@/services/oref-alerts';
+import { fetchOrefHistory, fetchOrefSirenSummary } from '@/services/oref-alerts';
+import type { OrefAlertsResponse, OrefAlert, OrefHistoryEntry, OrefSirenSummaryResponse } from '@/services/oref-alerts';
 
 const MAX_HISTORY_WAVES = 50;
 const ONE_HOUR_MS = 60 * 60 * 1000;
@@ -15,6 +15,8 @@ export class OrefSirensPanel extends Panel {
   private historyWaves: OrefHistoryEntry[] = [];
   private historyFetchInFlight = false;
   private historyLastFetchAt = 0;
+  private summary: OrefSirenSummaryResponse | null = null;
+  private summaryFetchInFlight = false;
 
   constructor() {
     super({
@@ -46,6 +48,21 @@ export class OrefSirensPanel extends Panel {
 
     this.render();
     this.loadHistory();
+    this.loadSummary();
+  }
+
+  private loadSummary(): void {
+    if (this.summaryFetchInFlight || this.summary) return;
+    this.summaryFetchInFlight = true;
+    fetchOrefSirenSummary()
+      .then(resp => {
+        if (resp.configured) {
+          this.summary = resp;
+          this.render();
+        }
+      })
+      .catch((err) => { console.warn('[OrefSirensPanel] Summary fetch failed:', err); })
+      .finally(() => { this.summaryFetchInFlight = false; });
   }
 
   private loadHistory(): void {
@@ -131,8 +148,21 @@ export class OrefSirensPanel extends Panel {
     </div>`;
   }
 
+  private renderSummary(): SafeHtml {
+    if (!this.summary) return safeHtml``;
+    const { monthCount, yearCount, topAreasMonth } = this.summary;
+    const areasHtml = joinSafeHtml(topAreasMonth.slice(0, 5).map(a =>
+      safeHtml`<span class="oref-summary-area">${a.area} <b>${String(a.count)}</b></span>`
+    ));
+    return safeHtml`<div class="oref-summary-section">
+      <div class="oref-summary-counts">${t('components.orefSirens.monthYearSummary', { month: String(monthCount), year: String(yearCount) })}</div>
+      ${topAreasMonth.length > 0 ? safeHtml`<div class="oref-summary-areas">${areasHtml}</div>` : safeHtml``}
+    </div>`;
+  }
+
   private render(): void {
     const historyHtml = this.renderHistoryWaves();
+    const summaryHtml = this.renderSummary();
 
     if (this.alerts.length === 0) {
       this.setSafeContent(safeHtml`
@@ -141,6 +171,7 @@ export class OrefSirensPanel extends Panel {
             <span class="oref-status-icon">&#x2705;</span>
             <span>${t('components.orefSirens.noAlerts')}</span>
           </div>
+          ${summaryHtml}
           ${historyHtml}
         </div>
       `);
@@ -166,6 +197,7 @@ export class OrefSirensPanel extends Panel {
           <span>${t('components.orefSirens.activeSirens', { count: String(this.alerts.length) })}</span>
         </div>
         <div class="oref-list">${alertRows}</div>
+        ${summaryHtml}
         ${historyHtml}
       </div>
     `);
