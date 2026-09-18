@@ -3962,6 +3962,20 @@
       ]
     },
     {
+      "host": "lemmy.world",
+      "provider": "lemmy.world",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit lemmy.world and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "scripts/ais-relay.cjs"
+        }
+      ]
+    },
+    {
       "host": "lequotidien.sn",
       "provider": "lequotidien.sn",
       "kind": "feed",

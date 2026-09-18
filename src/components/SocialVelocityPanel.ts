@@ -58,6 +58,10 @@ export class SocialVelocityPanel extends Panel {
   }
 
   private _render(): void {
+    // Lemmy communities are stored as "name@instance" (the relay's fallback when Reddit is blocked).
+    const hasLemmy = this._posts.some((p) => p.subreddit.includes('@'));
+    const hasReddit = this._posts.some((p) => !p.subreddit.includes('@'));
+    const sourceLabel = hasLemmy && hasReddit ? 'Reddit + Lemmy' : hasLemmy ? 'Lemmy' : 'Reddit';
     const rows = this._posts.slice(0, 20).map((p, i) => {
       const age = relativeTime(p.createdAt);
       const vColor = velocityColor(p.velocityScore);
@@ -70,7 +74,7 @@ export class SocialVelocityPanel extends Panel {
           <div style="flex:1;min-width:0">
             <a href="${escapeHtml(sanitizeUrl(p.url))}" target="_blank" rel="noopener noreferrer" style="font-size:calc(12px * var(--wm-panel-effective-scale, 1));font-weight:500;color:var(--text);text-decoration:none;line-height:1.35;display:block">${escapeHtml(p.title)}</a>
             <div style="display:flex;gap:8px;margin-top:4px;align-items:center;flex-wrap:wrap">
-              <span style="font-size:calc(9px * var(--wm-panel-effective-scale, 1));padding:1px 6px;border-radius:3px;background:rgba(255,255,255,0.06);color:var(--text-dim)">r/${escapeHtml(p.subreddit)}</span>
+              <span style="font-size:calc(9px * var(--wm-panel-effective-scale, 1));padding:1px 6px;border-radius:3px;background:rgba(255,255,255,0.06);color:var(--text-dim)">${escapeHtml(p.subreddit.includes('@') ? p.subreddit : `r/${p.subreddit}`)}</span>
               <span style="font-size:calc(9px * var(--wm-panel-effective-scale, 1));color:var(--text-dim)">&#9650; ${escapeHtml(formatScore(p.score))}</span>
               <span style="font-size:calc(9px * var(--wm-panel-effective-scale, 1));color:var(--text-dim)">&#128172; ${escapeHtml(formatScore(p.numComments))}</span>
               <span style="font-size:calc(9px * var(--wm-panel-effective-scale, 1));color:var(--text-dim)">${ratio}% up</span>
@@ -91,7 +95,7 @@ export class SocialVelocityPanel extends Panel {
       <div style="overflow-y:auto;max-height:440px">
         ${rows || '<div style="padding:16px;text-align:center;color:var(--text-dim);font-size:calc(12px * var(--wm-panel-effective-scale, 1))">No signals</div>'}
       </div>
-      <div style="margin-top:6px;font-size:calc(9px * var(--wm-panel-effective-scale, 1));color:var(--text-dim)">Reddit · velocity = recency × score × ratio</div>
+      <div style="margin-top:6px;font-size:calc(9px * var(--wm-panel-effective-scale, 1));color:var(--text-dim)">${sourceLabel} · velocity = recency × score × ratio</div>
     `, 'legacy Panel.setContent() migration'));
   }
 }

@@ -6246,6 +6246,40 @@ async function fetchRedditHot(subreddit, failures = []) {
   return posts;
 }
 
+// Lemmy fallback for Social Velocity — Reddit's public endpoints 403 without OAuth /
+// a vendor key. Lemmy is an open, Reddit-style network with a free no-key public API that
+// exposes the same per-post fields (score, comments, up/down votes, published), just at a
+// smaller scale. Only used when Reddit yields nothing; Reddit stays the primary path.
+const LEMMY_INSTANCE = 'https://lemmy.world';
+const LEMMY_COMMUNITIES = ['world@lemmy.world', 'geopolitics@lemmy.world'];
+
+function lemmyPublishedMs(published) {
+  const raw = String(published || '');
+  const ms = Date.parse(/(?:[zZ]|[+-]\d\d:?\d\d)$/.test(raw) ? raw : `${raw}Z`);
+  return Number.isFinite(ms) ? ms : NaN;
+}
+
+async function fetchLemmyHot(community, failures = []) {
+  try {
+    const url = `${LEMMY_INSTANCE}/api/v3/post/list?community_name=${encodeURIComponent(community)}&sort=Hot&limit=25`;
+    const resp = await fetch(url, {
+      headers: { Accept: 'application/json', 'User-Agent': 'WorldMonitor/1.0 (relay)' },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!resp.ok) {
+      failures.push(`lemmy ${community} HTTP ${resp.status}`);
+      console.warn(`[SocialVelocity] Lemmy ${community} HTTP ${resp.status}`);
+      return [];
+    }
+    const json = await resp.json();
+    return Array.isArray(json?.posts) ? json.posts : [];
+  } catch (e) {
+    failures.push(`lemmy ${community} ${e?.message || e}`);
+    console.warn(`[SocialVelocity] Lemmy ${community} error:`, e?.message || e);
+    return [];
+  }
+}
+
 async function seedSocialVelocity() {
   if (socialVelocityInFlight) { console.log('[SocialVelocity] Skipped (in-flight)'); return; }
   socialVelocityInFlight = true;
@@ -6287,6 +6321,39 @@ async function seedSocialVelocity() {
           velocityScore: Math.round(velocityScore * 10) / 10,
           createdAt: Math.round((p.created_utc || nowSec) * 1000),
         });
+      }
+    }
+    if (!allPosts.length) {
+      console.warn('[SocialVelocity] No posts via Reddit — trying Lemmy fallback');
+      for (const community of LEMMY_COMMUNITIES) {
+        await new Promise(r => setTimeout(r, 500));
+        const posts = await fetchLemmyHot(community, fetchFailures);
+        for (const pv of posts) {
+          const post = pv?.post;
+          const counts = pv?.counts;
+          if (!post || !counts || post.removed || post.deleted || post.nsfw) continue;
+          if (pv.featured_community || pv.featured_local) continue; // pinned/sticky, not "hot"
+          const createdMs = lemmyPublishedMs(post.published);
+          if (!Number.isFinite(createdMs) || !post.id || !post.name) continue;
+          const up = Number(counts.upvotes) || 0;
+          const down = Number(counts.downvotes) || 0;
+          const score = Number(counts.score) || 0;
+          const upvoteRatio = up + down > 0 ? up / (up + down) : 0.5;
+          const ageSec = Math.max(1, nowSec - createdMs / 1000);
+          const recencyFactor = Math.exp(-ageSec / (6 * 3600));
+          const velocityScore = Math.log1p(Math.max(score, 1)) * upvoteRatio * recencyFactor * 100;
+          allPosts.push({
+            id: `lemmy-${post.id}`,
+            title: String(post.name).slice(0, 300),
+            subreddit: community,
+            url: `${LEMMY_INSTANCE}/post/${post.id}`,
+            score,
+            upvoteRatio: Math.round(upvoteRatio * 100) / 100,
+            numComments: Number(counts.comments) || 0,
+            velocityScore: Math.round(velocityScore * 10) / 10,
+            createdAt: Math.round(createdMs),
+          });
+        }
       }
     }
     if (!allPosts.length) {
