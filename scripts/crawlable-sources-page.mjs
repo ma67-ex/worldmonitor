@@ -97,6 +97,7 @@ const SOURCE_DOMAIN_MATCHERS = [
 const SOURCE_DOMAIN_OVERRIDES = new Map([
   ['Hyperliquid', 'finance'],
   ['api.rainviewer.com', 'environment'],
+  ['apewisdom.io', 'finance'],
   ['api.scrapecreators.com', 'news'],
   ['api.telegram.org', 'news'],
   ['api.tzevaadom.co.il', 'military'],
@@ -151,6 +152,7 @@ const SOURCE_NAME_OVERRIDES = new Map([
   ['adsb.lol', 'ADSB.lol'],
   ['aerotime.aero', 'AeroTime'],
   ['agentskills.io', 'Agent Skills'],
+  ['apewisdom.io', 'ApeWisdom'],
   ['agsi.gie.eu', 'GIE AGSI+'],
   ['airlinegeeks.com', 'AirlineGeeks'],
   ['airplanes.live', 'Airplanes.live'],
