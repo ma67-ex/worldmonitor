@@ -276,6 +276,20 @@
       ]
     },
     {
+      "host": "apewisdom.io",
+      "provider": "apewisdom.io",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit apewisdom.io and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "scripts/ais-relay.cjs"
+        }
+      ]
+    },
+    {
       "host": "api.abuseipdb.com",
       "provider": "api.abuseipdb.com",
       "kind": "structured",
@@ -1743,6 +1757,9 @@
       "references": [
         {
           "path": "scripts/seed-climate-news.mjs"
+        },
+        {
+          "path": "server/worldmonitor/climate/v1/_live-fetch.ts"
         }
       ]
     },
@@ -2456,6 +2473,9 @@
       "references": [
         {
           "path": "scripts/seed-climate-news.mjs"
+        },
+        {
+          "path": "server/worldmonitor/climate/v1/_live-fetch.ts"
         }
       ]
     },
@@ -3687,6 +3707,9 @@
       "references": [
         {
           "path": "scripts/seed-climate-news.mjs"
+        },
+        {
+          "path": "server/worldmonitor/climate/v1/_live-fetch.ts"
         }
       ]
     },
@@ -4987,6 +5010,9 @@
       "references": [
         {
           "path": "scripts/seed-climate-news.mjs"
+        },
+        {
+          "path": "server/worldmonitor/climate/v1/_live-fetch.ts"
         }
       ]
     },
@@ -5449,6 +5475,9 @@
       "references": [
         {
           "path": "scripts/seed-climate-news.mjs"
+        },
+        {
+          "path": "server/worldmonitor/climate/v1/_live-fetch.ts"
         }
       ]
     },
@@ -7681,6 +7710,9 @@
       "references": [
         {
           "path": "scripts/seed-climate-news.mjs"
+        },
+        {
+          "path": "server/worldmonitor/climate/v1/_live-fetch.ts"
         }
       ]
     },
@@ -7873,6 +7905,9 @@
       "references": [
         {
           "path": "scripts/seed-climate-news.mjs"
+        },
+        {
+          "path": "server/worldmonitor/climate/v1/_live-fetch.ts"
         }
       ]
     },
@@ -10381,6 +10416,9 @@
           "path": "scripts/seed-climate-news.mjs"
         },
         {
+          "path": "server/worldmonitor/climate/v1/_live-fetch.ts"
+        },
+        {
           "path": "server/worldmonitor/news/v1/_feeds.ts"
         },
         {
@@ -10558,6 +10596,9 @@
       "references": [
         {
           "path": "scripts/seed-climate-news.mjs"
+        },
+        {
+          "path": "server/worldmonitor/climate/v1/_live-fetch.ts"
         }
       ]
     },
