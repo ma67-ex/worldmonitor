@@ -1653,7 +1653,18 @@ async function orefBootstrapHistoryWithRetry() {
     console.warn('[Relay] OREF Redis bootstrap failed:', err?.message || err);
   }
 
-  // Phase 2: upstream with retry + exponential backoff
+  // Phase 2: upstream history backfill — requires OREF_PROXY_AUTH (Israeli
+  // exit), since oref.org.il 403s any other IP. Tzeva Adom (the free live
+  // source above) has no history endpoint, so there is no free equivalent
+  // here — skip straight to "start empty" instead of burning ~21s on three
+  // doomed proxy attempts every boot. History still builds up live from here
+  // via orefFetchAlerts()/Tzeva Adom on every real siren, same as before.
+  if (!OREF_PROXY_AVAILABLE) {
+    orefState.bootstrapSource = null;
+    console.log('[Relay] OREF history bootstrap skipped — no proxy configured (Tzeva Adom has no history endpoint); history will build up live as sirens are reported.');
+    return;
+  }
+
   const MAX_ATTEMPTS = 3;
   const BASE_DELAY_MS = 3000;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
