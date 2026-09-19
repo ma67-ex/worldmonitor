@@ -6,6 +6,26 @@ All notable changes to World Monitor are documented here.
 
 ### Fixed
 
+- **Market Breadth, Earnings Calendar, Yield Curve & Rates, FSI, News↔Markets
+  and ~25 other panels sat cold with no scheduler-visible cause.** Root
+  cause wasn't missing infrastructure — `seed-all.yml` already cron-runs
+  every `scripts/seed-*.mjs` every 3h — it's that `seed-all.yml`'s job env
+  only forwarded 5 of the ~13 API keys these scripts need (FRED, Finnhub,
+  EIA, OpenAQ, WAQI, USDA FAS PSD, Comtrade, AviationStack, ReliefWeb,
+  proxy), even where the GH secret existed. Wired the rest through. Also
+  regenerated `WORLDMONITOR_SEED_REFRESH_KEY` (the gateway↔seed-script
+  shared secret gating `get-resilience-ranking`) and set it identically on
+  Vercel and GH Actions — same mismatch class as the earlier
+  `RELAY_SHARED_SECRET` bug. Fixed a real `ERR_IMPORT_ATTRIBUTE_MISSING`
+  crash in `freeze-resilience-reference-edition.mts` (JSON imports missing
+  `with { type: 'json' }`, required under Node 24's strict ESM loader).
+  Remaining failures need the user to add GH Actions secrets that already
+  exist on Vercel as unreadable Secret-type values (FRED_API_KEY,
+  FINNHUB_API_KEY, EIA_API_KEY, USDA_FAS_PSD_API_KEY, OPENAQ_API_KEY,
+  WAQI_API_KEY, AVIATIONSTACK_API, RELIEFWEB_APPNAME, COMTRADE_API_KEYS),
+  or are IP-blocked from GitHub's runner ranges (Barchart breadth scrape,
+  FATF 403, USPTO ODP 403) and need a proxy or relay egress instead.
+
 - **Every anonymous-access news/displacement/forecast/military dashboard
   panel 401'd** — World News, US, Europe, Middle East, Africa, Latin
   America, Asia-Pacific, Energy, Government, and Think Tanks all read from

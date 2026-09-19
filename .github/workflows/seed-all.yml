@@ -58,6 +58,15 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
           USPTO_API_KEY: ${{ secrets.USPTO_API_KEY }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          OPENAQ_API_KEY: ${{ secrets.OPENAQ_API_KEY }}
+          WAQI_API_KEY: ${{ secrets.WAQI_API_KEY }}
+          USDA_FAS_PSD_API_KEY: ${{ secrets.USDA_FAS_PSD_API_KEY }}
+          COMTRADE_API_KEYS: ${{ secrets.COMTRADE_API_KEYS }}
+          AVIATIONSTACK_API: ${{ secrets.AVIATIONSTACK_API }}
+          RELIEFWEB_APPNAME: ${{ secrets.RELIEFWEB_APPNAME }}
+          WORLDMONITOR_SEED_REFRESH_KEY: ${{ secrets.WORLDMONITOR_SEED_REFRESH_KEY }}
+          PROXY_URL: ${{ secrets.PROXY_URL }}
         run: |
           set -o pipefail
           mapfile -t scripts < <(ls scripts/seed-*.mjs | xargs -n1 basename \
