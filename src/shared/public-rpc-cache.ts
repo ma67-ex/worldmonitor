@@ -56,12 +56,36 @@ function stripRouterInjectedRpcEcho(url: URL): string {
   const lastSegment = segments[segments.length - 1] ?? '';
   const echo = `rpc=${lastSegment}`;
 
-  const parts = raw.split('&');
+  let parts = raw.split('&');
   const rpcParts = parts.filter((part) => part === 'rpc' || part.startsWith('rpc='));
-  if (rpcParts.length === 0) return raw;
-  if (!rpcParts.every((part) => part === echo)) return raw;
+  if (rpcParts.length > 0) {
+    if (!rpcParts.every((part) => part === echo)) return raw;
+    parts = parts.filter((part) => part !== echo);
+  }
 
-  return parts.filter((part) => part !== echo).join('&');
+  // api/domain-gateway/[domain]/v1/[...rest].ts (news/displacement/forecast/
+  // military all route through it) is a two-segment dynamic route, so Vercel
+  // echoes BOTH matched segments back onto the request: `domain=<domain>` and,
+  // keeping the literal spread prefix from the folder name, `...rest=<rpc>`.
+  // Unstripped, these fail the exhaustive shape checks below the same way the
+  // single `rpc=` echo did for the older one-segment router (#5285 above) —
+  // every public URL through this gateway 401'd until this was found live via
+  // a debug deploy (2026-09-14).
+  const domainSegment = segments[1] ?? '';
+  const domainEcho = `domain=${domainSegment}`;
+  const restEcho = `...rest=${lastSegment}`;
+  const domainParts = parts.filter((part) => part === 'domain' || part.startsWith('domain='));
+  const restParts = parts.filter((part) => part === '...rest' || part.startsWith('...rest='));
+  if (domainParts.length > 0) {
+    if (!domainParts.every((part) => part === domainEcho)) return parts.join('&');
+    parts = parts.filter((part) => part !== domainEcho);
+  }
+  if (restParts.length > 0) {
+    if (!restParts.every((part) => part === restEcho)) return parts.join('&');
+    parts = parts.filter((part) => part !== restEcho);
+  }
+
+  return parts.join('&');
 }
 
 function hasOnlyKeys(params: URLSearchParams, allowed: Set<string>): boolean {
@@ -83,6 +107,7 @@ function isDefenseIndustrialShape(params: URLSearchParams): boolean {
 }
 
 export function isPublicSharedRpcRequest(urlLike: string | URL, method = 'GET'): boolean {
+  const DEBUG = typeof urlLike === 'string' && urlLike.includes('list-feed-digest');
   if (method.toUpperCase() !== 'GET') return false;
 
   let url: URL;
@@ -90,19 +115,30 @@ export function isPublicSharedRpcRequest(urlLike: string | URL, method = 'GET'):
     url = urlLike instanceof URL
       ? urlLike
       : new URL(urlLike, 'https://worldmonitor.invalid');
-  } catch {
+  } catch (err) {
+    if (DEBUG) console.log('[DEBUG-shared-rpc] URL parse threw', String(err));
     return false;
   }
 
   const pathname = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, '') : url.pathname;
-  if (!PUBLIC_SHARED_RPC_PATHS.has(pathname)) return false;
+  if (!PUBLIC_SHARED_RPC_PATHS.has(pathname)) {
+    if (DEBUG) console.log('[DEBUG-shared-rpc] path not in set', JSON.stringify(pathname));
+    return false;
+  }
 
   // Shape-check the caller's query, not the router's echo of the path segment.
   const search = stripRouterInjectedRpcEcho(url);
   const params = new URLSearchParams(search);
-  if (!hasSingleValue(params, 'public') || params.get('public') !== '1') return false;
+  if (!hasSingleValue(params, 'public') || params.get('public') !== '1') {
+    if (DEBUG) console.log('[DEBUG-shared-rpc] public marker check failed', JSON.stringify({ search, allPublic: params.getAll('public') }));
+    return false;
+  }
 
-  if (pathname === '/api/news/v1/list-feed-digest') return isNewsDigestShape(params);
+  if (pathname === '/api/news/v1/list-feed-digest') {
+    const result = isNewsDigestShape(params);
+    if (DEBUG) console.log('[DEBUG-shared-rpc] news shape', JSON.stringify({ search, keys: [...params.keys()], variant: params.get('variant'), lang: params.get('lang'), result }));
+    return result;
+  }
   if (pathname === '/api/forecast/v1/get-forecasts') return search === FORECASTS_PUBLIC_SEARCH;
   if (pathname === '/api/military/v1/get-defense-industrial-base') return isDefenseIndustrialShape(params);
   return search === DISPLACEMENT_PUBLIC_SEARCH;
