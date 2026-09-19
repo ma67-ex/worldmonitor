@@ -6,11 +6,15 @@ All notable changes to World Monitor are documented here.
 
 ### Fixed
 
-- **Israel Sirens live feed was unreachable** — the Railway relay running
-  `ais-relay.cjs` had never been assigned a public domain, so `WS_RELAY_URL`
-  on Vercel pointed nowhere and `/api/oref-alerts` (and its history mode) both
-  503'd unconditionally. Generated a Railway domain for the relay service and
-  pointed `WS_RELAY_URL` at it.
+- **Every relay-proxied endpoint was unreachable**, not just sirens —
+  `/api/oref-alerts` (both modes), `/telegram/feed`, `/opensky`, and
+  `/ais/snapshot` all 503'd unconditionally. Two separate causes: (1) the
+  Railway relay running `ais-relay.cjs` had never been assigned a public
+  domain, so `WS_RELAY_URL` on Vercel pointed nowhere; (2) once reachable,
+  the relay was rejecting every request with 401 — `RELAY_SHARED_SECRET` on
+  Vercel and on the Railway relay held different values, so the relay's
+  `isAuthorizedRequest` check never matched. Generated a Railway domain and
+  set matching `WS_RELAY_URL` / `RELAY_SHARED_SECRET` on both sides.
 - Corrected the Vercel project's Framework Preset from Astro to Vite. Astro's
   routing conventions were overriding `vercel.json`'s custom API rewrites,
   404ing every `misc-gateway2`-routed endpoint (including `/api/youtube/live`)
