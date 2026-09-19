@@ -107,7 +107,6 @@ function isDefenseIndustrialShape(params: URLSearchParams): boolean {
 }
 
 export function isPublicSharedRpcRequest(urlLike: string | URL, method = 'GET'): boolean {
-  const DEBUG = typeof urlLike === 'string' && urlLike.includes('list-feed-digest');
   if (method.toUpperCase() !== 'GET') return false;
 
   let url: URL;
@@ -115,30 +114,19 @@ export function isPublicSharedRpcRequest(urlLike: string | URL, method = 'GET'):
     url = urlLike instanceof URL
       ? urlLike
       : new URL(urlLike, 'https://worldmonitor.invalid');
-  } catch (err) {
-    if (DEBUG) console.log('[DEBUG-shared-rpc] URL parse threw', String(err));
+  } catch {
     return false;
   }
 
   const pathname = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, '') : url.pathname;
-  if (!PUBLIC_SHARED_RPC_PATHS.has(pathname)) {
-    if (DEBUG) console.log('[DEBUG-shared-rpc] path not in set', JSON.stringify(pathname));
-    return false;
-  }
+  if (!PUBLIC_SHARED_RPC_PATHS.has(pathname)) return false;
 
   // Shape-check the caller's query, not the router's echo of the path segment.
   const search = stripRouterInjectedRpcEcho(url);
   const params = new URLSearchParams(search);
-  if (!hasSingleValue(params, 'public') || params.get('public') !== '1') {
-    if (DEBUG) console.log('[DEBUG-shared-rpc] public marker check failed', JSON.stringify({ search, allPublic: params.getAll('public') }));
-    return false;
-  }
+  if (!hasSingleValue(params, 'public') || params.get('public') !== '1') return false;
 
-  if (pathname === '/api/news/v1/list-feed-digest') {
-    const result = isNewsDigestShape(params);
-    if (DEBUG) console.log('[DEBUG-shared-rpc] news shape', JSON.stringify({ search, keys: [...params.keys()], variant: params.get('variant'), lang: params.get('lang'), result }));
-    return result;
-  }
+  if (pathname === '/api/news/v1/list-feed-digest') return isNewsDigestShape(params);
   if (pathname === '/api/forecast/v1/get-forecasts') return search === FORECASTS_PUBLIC_SEARCH;
   if (pathname === '/api/military/v1/get-defense-industrial-base') return isDefenseIndustrialShape(params);
   return search === DISPLACEMENT_PUBLIC_SEARCH;

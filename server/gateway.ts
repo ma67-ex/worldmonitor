@@ -1168,20 +1168,6 @@ export function createDomainGateway(
     // have one response contract for every caller.
     const isPublicNoAuthRpc = PUBLIC_NO_AUTH_RPC_PATHS.has(pathname)
       || isPublicSharedRpcRequest(request.url, request.method);
-    if (pathname === '/api/news/v1/list-feed-digest') {
-      let parsedOk = true; let parsedPathname = ''; let parsedSearch = '';
-      try {
-        const u = new URL(request.url);
-        parsedPathname = u.pathname;
-        parsedSearch = u.search;
-      } catch (e) { parsedOk = false; parsedSearch = String(e); }
-      console.log('[DEBUG-public-rpc-v2]', JSON.stringify({
-        pathname, url: request.url, method: request.method, isPublicNoAuthRpc,
-        parsedOk, parsedPathname, parsedSearch,
-        nodeVersion: typeof process !== 'undefined' ? process.version : 'no-process',
-        runtime: typeof EdgeRuntime !== 'undefined' ? 'edge' : 'not-edge-global',
-      }));
-    }
     const seedRefreshVerified = await isResilienceRankingSeedRefreshRequest(request, pathname);
     const relayWarmPingVerified = await isRelayWarmPingRequest(request, pathname);
     const requiresDirectLlmQuota = !internalMcpVerified && await shouldReserveGatewayDirectLlmQuota(request, pathname);

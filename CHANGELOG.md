@@ -6,6 +6,21 @@ All notable changes to World Monitor are documented here.
 
 ### Fixed
 
+- **Every anonymous-access news/displacement/forecast/military dashboard
+  panel 401'd** — World News, US, Europe, Middle East, Africa, Latin
+  America, Asia-Pacific, Energy, Government, and Think Tanks all read from
+  `/api/news/v1/list-feed-digest?public=1`, which requires an exact query
+  shape to bypass the API-key gate. `api/domain-gateway/[domain]/v1/[...rest].ts`
+  is a two-segment dynamic route, so Vercel echoes both matched segments
+  back onto the request (`domain=news`, `...rest=list-feed-digest`) in
+  addition to the caller's real query. `stripRouterInjectedRpcEcho()` only
+  stripped the older one-segment router's `rpc=` echo, so the extra
+  `domain=`/`...rest=` params always failed the exhaustive shape check and
+  silently 401'd every public RPC through this gateway (the same bug class
+  as #5285, one router deeper). Now strips both echoed segments before the
+  shape check. Also added `/api/sanctions/v1/list-sanctions-pressure` to the
+  no-auth allowlist — it was tier-gated behind an entitlement this fork has
+  no way to grant, so it 401'd every anonymous caller unconditionally.
 - **Every relay-proxied endpoint was unreachable**, not just sirens —
   `/api/oref-alerts` (both modes), `/telegram/feed`, `/opensky`, and
   `/ais/snapshot` all 503'd unconditionally. Two separate causes: (1) the
