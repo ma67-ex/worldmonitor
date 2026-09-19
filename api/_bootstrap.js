@@ -100,7 +100,10 @@ function publicSingleKeyBootstrapRequestKey(req) {
   const pathname = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, '') : url.pathname;
   if (pathname !== '/api/bootstrap') return null;
 
-  const params = Array.from(url.searchParams.keys());
+  // See the matching comment in _bootstrap-public-tier.js: api/misc-gateway/
+  // [name].ts echoes the matched dynamic segment back as `?name=bootstrap`.
+  const params = Array.from(url.searchParams.keys())
+    .filter((key) => key !== 'name' || url.searchParams.get('name') !== 'bootstrap');
   if (params.some((key) => key !== 'keys' && key !== 'public')) return null;
 
   const keyParams = url.searchParams.getAll('keys');

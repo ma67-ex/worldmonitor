@@ -6,6 +6,12 @@ All notable changes to World Monitor are documented here.
 
 ### Fixed
 
+- **Anonymous `/api/bootstrap?tier=fast|slow&public=1` and
+  `?keys=<name>&public=1` reads 401'd**, starving every panel that hydrates
+  from bootstrap. `api/misc-gateway/[name].ts` is a Vercel dynamic route that
+  echoes the matched segment back as `?name=bootstrap`, which failed the
+  exhaustive query-shape check (same bug class as the domain-gateway echo).
+  Both shape checks now ignore that one echo.
 - **Market Breadth, Earnings Calendar, Yield Curve & Rates, FSI, News↔Markets
   and ~25 other panels sat cold with no scheduler-visible cause.** Root
   cause wasn't missing infrastructure — `seed-all.yml` already cron-runs
