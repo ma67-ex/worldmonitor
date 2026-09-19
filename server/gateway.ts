@@ -440,6 +440,14 @@ export const PUBLIC_NO_AUTH_RPC_PATHS = new Set<string>([
   '/api/resilience/v1/get-runtime-manifest',
   '/api/seismology/v1/list-earthquakes',
   '/api/unrest/v1/list-unrest-events',
+  // ponytail (task 08): no billing stack behind this fork, so a tier-gated
+  // entry in ENDPOINT_ENTITLEMENTS has no path to ever carry a session with
+  // tier >= 1 — it just 401s every anonymous caller forever (see that map's
+  // comment in server/_shared/entitlement-check.ts). validateApiKey also
+  // requires a key for ANY anonymous request regardless of tier, so removing
+  // the tier entry alone wasn't enough; this is the shared-data, no-billing
+  // dashboard read the same way the other entries above are.
+  '/api/sanctions/v1/list-sanctions-pressure',
   // Lead-capture RPCs serve ANONYMOUS prospects by definition: the /pro
   // marketing page contact form and the waitlist/desktop signup both POST
   // without a wms_ session or API key (see pro-test/src/App.tsx onSubmit and
@@ -1160,6 +1168,9 @@ export function createDomainGateway(
     // have one response contract for every caller.
     const isPublicNoAuthRpc = PUBLIC_NO_AUTH_RPC_PATHS.has(pathname)
       || isPublicSharedRpcRequest(request.url, request.method);
+    if (pathname === '/api/news/v1/list-feed-digest') {
+      console.log('[DEBUG-public-rpc]', JSON.stringify({ pathname, url: request.url, method: request.method, isPublicNoAuthRpc, isPublicSharedRpcRequest: isPublicSharedRpcRequest(request.url, request.method) }));
+    }
     const seedRefreshVerified = await isResilienceRankingSeedRefreshRequest(request, pathname);
     const relayWarmPingVerified = await isRelayWarmPingRequest(request, pathname);
     const requiresDirectLlmQuota = !internalMcpVerified && await shouldReserveGatewayDirectLlmQuota(request, pathname);
