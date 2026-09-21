@@ -8852,6 +8852,20 @@ a.prediction-link:hover {
   padding-top: 8px;
 }
 
+/* "Broken panels last": errored panels sort to the end of the grid (visual only). */
+body.broken-panels-last .panel.panel-errored {
+  order: 9999;
+}
+
+.panels-broken-last {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: calc(10px * var(--wm-panel-effective-scale, 1));
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
 .panels-status {
   margin-right: auto;
   min-height: 14px;

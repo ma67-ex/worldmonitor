@@ -82,6 +82,7 @@ import { evaluateTabCap, exportLockToGateReason } from '@/services/gates/export'
 import { primeExportGateActivation } from '@/services/gates/export-resolver';
 import type { TabCapVerdict } from '@/services/gates/export-resolver';
 import { markLcpDebug } from '@/utils/lcp-debug';
+import { applyBrokenPanelsLast } from '@/utils/broken-panels-last';
 import type { Panel } from '@/components/Panel';
 import type { SupplyChainPanel } from '@/components/SupplyChainPanel';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
@@ -443,6 +444,7 @@ export class PanelLayoutManager implements AppModule {
   constructor(ctx: AppContext, callbacks: PanelLayoutManagerCallbacks) {
     this.ctx = ctx;
     this.callbacks = callbacks;
+    applyBrokenPanelsLast();
     this.applyTimeRangeFilterDebounced = debounce(() => {
       this.applyTimeRangeFilterToNewsPanels();
     }, 120);

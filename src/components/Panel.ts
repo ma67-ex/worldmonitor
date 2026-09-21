@@ -1159,6 +1159,7 @@ export class Panel {
   }
 
   public showConfigError(message: string): void {
+    this.element.classList.add('panel-errored');
     const msgEl = h('div', { className: 'config-error-message' }, message);
     if (isDesktopRuntime()) {
       msgEl.appendChild(
@@ -1186,6 +1187,7 @@ export class Panel {
 
   public setErrorState(hasError: boolean, tooltip?: string): void {
     this.header.classList.toggle('panel-header-error', hasError);
+    this.element.classList.toggle('panel-errored', hasError);
     if (tooltip) {
       this.header.title = tooltip;
     } else {

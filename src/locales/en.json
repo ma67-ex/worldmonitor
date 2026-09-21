@@ -333,6 +333,8 @@
     "sourceRegionGulfMena": "Gulf & MENA",
     "filterPanels": "Filter panels...",
     "resetLayout": "Reset Layout",
+    "brokenPanelsLast": "Broken panels last",
+    "brokenPanelsLastTooltip": "Move panels that failed to load to the end of the layout",
     "resetLayoutTooltip": "Restore default panel arrangement",
     "unsavedChanges": "You have unsaved panel changes. Discard them?",
     "panelCatCore": "Core",

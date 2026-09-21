@@ -54,6 +54,7 @@ import {
   type OverlayId,
 } from '@/utils/overlay-history';
 import { isMobileDevice } from '@/utils';
+import { isBrokenPanelsLast, setBrokenPanelsLast } from '@/utils/broken-panels-last';
 import {
   FONT_SCALE_STEPS,
   fontScaleLabel,
@@ -363,6 +364,10 @@ export class UnifiedSettings {
     });
 
     this.overlay.addEventListener('change', (e) => {
+      if ((e.target as HTMLElement).id === 'usBrokenPanelsLast') {
+        setBrokenPanelsLast((e.target as HTMLInputElement).checked);
+        return;
+      }
       const select = (e.target as HTMLElement).closest<HTMLSelectElement>('[data-panel-font-scale]');
       const panelKey = select?.dataset.panelFontScale;
       if (!select || !panelKey) return;
@@ -703,6 +708,7 @@ export class UnifiedSettings {
           <div class="panel-toggle-grid" id="usPanelToggles"></div>
           <div class="panels-footer">
             <span class="panels-status" id="usPanelsStatus" aria-live="polite"></span>
+            <label class="panels-broken-last" title="${t('header.brokenPanelsLastTooltip')}"><input type="checkbox" id="usBrokenPanelsLast"${isBrokenPanelsLast() ? ' checked' : ''} />${t('header.brokenPanelsLast')}</label>
             <button class="panels-select-all">${t('common.selectAll')}</button>
             <button class="panels-select-none">${t('common.selectNone')}</button>
             <button class="panels-save-layout">${t('modals.story.save')}</button>
