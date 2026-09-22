@@ -882,6 +882,9 @@ type EdgeCtx = { waitUntil: (p: Promise<unknown>) => void };
 const GATEWAY_ROUTE_HANDLERS: Record<string, () => Promise<{ default: (req: Request, ctx: EdgeCtx) => Response | Promise<Response> }>> = {
   'telegram-feed': () => import('./api/_telegram-feed'),
   'wm-session': () => import('./api/_wm-session'),
+  // Read-only (GET-only handler, enforced above) — same gap, feeds
+  // AI Insights, Canada alerts, and other bootstrap-key consumers.
+  'bootstrap': () => import('./api/_bootstrap'),
 };
 function gatewayRouteDevPlugin(): Plugin {
   return {
