@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 184
 tags: [code-review, phase-0, regional-intelligence, persistence, consistency, redis]
@@ -53,6 +53,18 @@ Commands in the current pipeline:
 - [ ] Document the partial-persist contract and add a repair job
 
 ## Work Log
+
+### 2026-09-06
+Fixed via Option 1. `persist-snapshot.mjs`'s 6-command write block (SET
+tsKey/idKey/latestKey, ZADD index, ZREMRANGEBYSCORE, DEL live) now posts to
+Upstash's `/multi-exec` endpoint instead of `/pipeline`, making it an
+all-or-nothing MULTI/EXEC transaction. Confirmed this is a drop-in swap (same
+request/response shape) by checking the established precedent in
+`scripts/seed-resilience-scores.mjs` and `scripts/seed-portwatch-port-
+activity.mjs`, which already use `/multi-exec` for the same reason. The
+separate 1-command dedup SETNX call is untouched — atomicity of a single
+command needs no transaction wrapper.
+verified: `node --check scripts/regional-snapshot/persist-snapshot.mjs` — pass; no test mocks this file's fetch calls (grep confirmed), so verified by inspection of the request/response contract parity with the existing `/multi-exec` callers.
 
 ## Resources
 - PR #2940

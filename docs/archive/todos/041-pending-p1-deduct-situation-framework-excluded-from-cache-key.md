@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p1
 issue_id: "041"
 tags: [code-review, security, caching, analytical-frameworks]
@@ -44,3 +44,6 @@ Same as A but bump version to `v3` to invalidate all existing deduction cache en
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by 5 independent agents
+
+## Work Log
+- 2026-09-06: Verified against current code — already fixed (fix landed since this issue was filed, tracker was stale). No code change needed.

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "052"
 tags: [code-review, quality, i18n, analytical-frameworks]
@@ -49,3 +49,4 @@ Defer i18n to a follow-up PR since the frameworks feature is new and translation
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by code-simplicity-reviewer
+- 2026-09-06: Already fixed — all Analysis Frameworks strings in `preferences-content.ts` use `t('components.insights.analysisFrameworks*')`, with matching keys present in both `en.json` and `fr.json`; no code change needed.

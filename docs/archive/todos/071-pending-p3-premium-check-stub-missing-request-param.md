@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "071"
 tags: [code-review, testing, analytical-frameworks]
@@ -38,3 +38,4 @@ export async function isCallerPremiumTrue(_request: Request): Promise<boolean> {
 
 ## Work Log
 - 2026-03-28: Identified by kieran-typescript-reviewer and architecture-strategist during PR #2386 review
+- 2026-09-06: Fixed — added `_request: Request` param to both `tests/helpers/premium-check-stub.ts` and the pre-existing `tests/helpers/premium-check-stub-true.ts` (the `true` variant already existed as a separate file, wired via `tests/redis-caching.test.mjs`). `npx tsx --test tests/redis-caching.test.mjs` (71/71 pass) and `npm run typecheck` pass.

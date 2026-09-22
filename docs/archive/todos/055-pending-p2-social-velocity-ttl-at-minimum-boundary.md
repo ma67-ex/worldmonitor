@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "055"
 tags: [code-review, reliability, seeding, social-velocity, ttl, pr-2375]
@@ -41,3 +41,4 @@ Keep 1800s TTL but reduce interval to 8min. Increases Reddit API call frequency.
 ## Work Log
 
 - 2026-03-27: Identified by code-review agents during PR #2375 review. Borderline compliance with gold standard.
+- 2026-09-06: Already fixed in current code (unrelated later change): `SOCIAL_VELOCITY_TTL` is now 43200s (12h) and `SOCIAL_VELOCITY_INTERVAL_MS` is 3h — a 4x ratio, matching the shipping-stress margin and exceeding the 2700s/4.5x recommendation in absolute safety margin. No code change made; frontmatter updated to `done`.

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 183
 tags: [code-review, phase-0, regional-intelligence, api-design, refactor]
@@ -46,6 +46,15 @@ Change `_seed-utils.mjs` to accept `{ canonicalKey, payload, ttlSec, persisted, 
 - [ ] OR add a wrapper helper in seed-regional-snapshots that names the arguments
 
 ## Work Log
+
+### 2026-09-06
+Fixed via Option 1 (`_seed-utils.mjs` is out of this sweep's touch scope
+anyway, so Option 2 wasn't available). Added a local
+`writeSummaryWithMeta({ key, data, ttlSec, recordCount, metaKey })` wrapper in
+`seed-regional-snapshots.mjs` that names every argument and passes `ttlSec`
+to both underlying positional slots internally, so the call site can no
+longer be broken by a future positional reorder.
+verified: `node --check scripts/seed-regional-snapshots.mjs` — pass; `npx tsx --test tests/regional-snapshot.test.mjs` — pass.
 
 ## Resources
 - PR #2940

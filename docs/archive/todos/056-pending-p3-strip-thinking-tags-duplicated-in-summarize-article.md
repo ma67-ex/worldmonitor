@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "056"
 tags: [code-review, quality, analytical-frameworks]
@@ -37,3 +37,4 @@ const cleaned = stripThinkingTags(rawSummary);
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by code-simplicity-reviewer
+- 2026-09-06: Already fixed — `summarize-article.ts:26` imports `stripThinkingTags` from `_shared/llm.ts`, no inline reimplementation; no code change needed.

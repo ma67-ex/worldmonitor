@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "073"
 tags: [code-review, quality, typescript, analytical-frameworks]
@@ -31,3 +31,4 @@ if (!pendingFwData) return;
 
 ## Work Log
 - 2026-03-28: Identified by code-simplicity-reviewer during PR #2386 review
+- 2026-09-06: Fixed — replaced the `_fwData` DOM-property cast with a `pendingFwData` closure variable scoped to `renderPreferences`, read/written by the same click-handler branches. `npm run typecheck` passes.

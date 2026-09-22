@@ -17,8 +17,9 @@
 //   - MX:     WB has it in LCN;  we put it in north-america (USMCA strategic frame)
 //   - TW:     WB does not list Taiwan; manually added to east-asia
 //
-// Country and corridor criticality weights match the formulas in
-// docs/internal/pro-regional-intelligence-appendix-scoring.md.
+// Country and corridor criticality weights match the formulas in the
+// Regional Intelligence scoring appendix (ships to docs/internal/ in the
+// main repo; not present in every worktree — see PR #2940 description).
 
 import iso2ToRegionData from './iso2-to-region.json' with { type: 'json' };
 
@@ -255,6 +256,14 @@ export const DEFAULT_COUNTRY_CRITICALITY = 0.3;
 /** @type {Record<string, string>} */
 const ISO2_TO_REGION = iso2ToRegionData;
 
+/** Precomputed at module load so getRegionCountries() is O(1) instead of an
+ * Object.entries scan on every call (8 calls per snapshot run). */
+const COUNTRIES_BY_REGION = new Map();
+for (const [iso, rid] of Object.entries(ISO2_TO_REGION)) {
+  if (!COUNTRIES_BY_REGION.has(rid)) COUNTRIES_BY_REGION.set(rid, []);
+  COUNTRIES_BY_REGION.get(rid).push(iso);
+}
+
 /** @param {string} regionId */
 export function getRegion(regionId) {
   return REGIONS.find((r) => r.id === regionId) ?? null;
@@ -262,16 +271,12 @@ export function getRegion(regionId) {
 
 /** @param {string} regionId */
 export function getRegionCountries(regionId) {
-  const out = [];
-  for (const [iso, rid] of Object.entries(ISO2_TO_REGION)) {
-    if (rid === regionId) out.push(iso);
-  }
-  return out;
+  return [...(COUNTRIES_BY_REGION.get(regionId) ?? [])];
 }
 
 /** @param {string} iso2 */
 export function regionForCountry(iso2) {
-  return ISO2_TO_REGION[iso2] ?? null;
+  return Object.hasOwn(ISO2_TO_REGION, iso2) ? ISO2_TO_REGION[iso2] : null;
 }
 
 /** @param {string} regionId */
@@ -320,7 +325,7 @@ export function getRegionCorridors(regionId) {
 
 /** @param {string} iso2 */
 export function countryCriticality(iso2) {
-  return COUNTRY_CRITICALITY[iso2] ?? DEFAULT_COUNTRY_CRITICALITY;
+  return Object.hasOwn(COUNTRY_CRITICALITY, iso2) ? COUNTRY_CRITICALITY[iso2] : DEFAULT_COUNTRY_CRITICALITY;
 }
 
 /**

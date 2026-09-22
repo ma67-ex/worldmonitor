@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: 192
 tags: [code-review, phase-0, regional-intelligence, performance, safety]
@@ -72,6 +72,33 @@ For #6, wrap each `JSON.stringify(f?.caseFile ?? ...)` in try/catch and fall bac
 - [ ] caseFile JSON.stringify wrapped in try/catch with fallback to {}
 
 ## Work Log
+
+### 2026-09-06
+Mixed: fixed 4 of 6, 1 already fixed, 1 skipped.
+1. Fixed — `buildPreMeta(sources, ...)` hoisted out of `computeSnapshot` into
+   `main()` (computed once, passed to `computeSnapshot` as `pre`); it never
+   depended on `regionId` so all 8 per-region calls were producing an
+   identical result.
+2. Skipped — `signalsByRegion` Map precompute for `balance-vector.mjs` /
+   `evidence-collector.mjs`. Unlike #1, this filter's *result* genuinely
+   differs per region (different predicate), so "hoisting" means building a
+   region-keyed index up front, which touches `isSignalInRegion`'s multi-
+   format matching semantics for a saving of at most ~100 signals x 8
+   regions of `Array.filter` work per 6h run — negligible next to the
+   per-region LLM narrative call that dominates runtime. Left as-is; revisit
+   only if signal volume grows by orders of magnitude.
+3. Already fixed — `evidence-collector.mjs:69-97` already filters chokepoints
+   by `getRegionCorridors(regionId)` before iterating, matching the todo's
+   own recommended fix. No change needed.
+4. Fixed — `geography.js`'s `regionForCountry()` and `countryCriticality()`
+   now guard with `Object.hasOwn()` before the bracket access.
+5. Already fixed — `persist-snapshot.mjs` already stringifies `snapshot`
+   once into a local `json` var and reuses it for both `tsKey` and `idKey`
+   SETs. No change needed.
+6. Fixed — folded into #190's `getCaseFileText()` helper, which wraps the
+   `JSON.stringify(caseFile)` call in try/catch with a `'{}'` fallback so a
+   circular/unstringifiable upstream caseFile can't crash the whole run.
+verified: `npx tsx --test tests/regional-snapshot.test.mjs tests/regional-snapshot-envelope-unwrap.test.mjs` — pass; `node --check shared/geography.js scripts/regional-snapshot/persist-snapshot.mjs scripts/seed-regional-snapshots.mjs` — pass.
 
 ## Resources
 - PR #2940

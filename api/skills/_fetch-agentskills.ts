@@ -4,6 +4,7 @@ export const config = { runtime: 'edge' };
 import { getCorsHeaders, isDisallowedOrigin } from '../_cors.js';
 import { readJsonFromUpstash, setCachedData } from '../_upstash-json.js';
 import { ENDPOINT_RATE_POLICIES, checkScopedRateLimit, getClientIp, scopedTooManyRequestsResponse } from '../../server/_shared/rate-limit';
+import { MAX_INSTRUCTIONS_LEN } from '../../shared/analysis-framework-limits';
 
 const ALLOWED_AGENTSKILLS_HOSTS = new Set(['agentskills.io', 'www.agentskills.io', 'api.agentskills.io']);
 
@@ -150,15 +151,16 @@ export default async function handler(
     return Response.json({ error: "This skill has no instructions — it may use tools only (not supported)." }, { status: 422, headers: corsHeaders });
   }
 
-  const MAX_LEN = 2000;
-  const truncated = instructions.length > MAX_LEN;
-  const name = typeof skillData.name === 'string' ? skillData.name : 'Imported Skill';
-  const description = typeof skillData.description === 'string' ? skillData.description : '';
+  const MAX_NAME_LEN = 200;
+  const MAX_DESC_LEN = 500;
+  const truncated = instructions.length > MAX_INSTRUCTIONS_LEN;
+  const name = (typeof skillData.name === 'string' ? skillData.name : 'Imported Skill').slice(0, MAX_NAME_LEN);
+  const description = (typeof skillData.description === 'string' ? skillData.description : '').slice(0, MAX_DESC_LEN);
 
   const payload: AgentSkillPayload = {
     name,
     description,
-    instructions: truncated ? instructions.slice(0, MAX_LEN) : instructions,
+    instructions: truncated ? instructions.slice(0, MAX_INSTRUCTIONS_LEN) : instructions,
     truncated,
   };
 

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "028"
 tags: [code-review, architecture, simulation-runner, schema]
@@ -58,3 +58,4 @@ Also add `theaterCount` to `GetSimulationOutcomeResponse` proto (currently only 
 ## Work Log
 
 - 2026-03-24: Found by compound-engineering:review:architecture-strategist in PR #2220 review
+- 2026-09-06: Already fixed. `getSimulationCompletionStatus({ eligibleTheaterCount, theaterCount, failedTheaterCount })` (scripts/seed-forecasts.mjs:169) is a dedicated helper returning `'no_eligible_theaters' | 'all_theaters_failed' | 'partial' | 'complete'`. Both outcome-construction sites (`processNextSimulationTask` ~line 18941 and the sibling path ~line 18607) call it and include `eligibleTheaterCount` and `completionStatus` on the outcome object. No code change needed.

@@ -110,8 +110,9 @@ export async function deductSituation(
 
     const query = typeof req.query === 'string' ? req.query.slice(0, MAX_QUERY_LEN).trim() : '';
     const geoContext = typeof req.geoContext === 'string' ? req.geoContext.slice(0, MAX_GEO_LEN).trim() : '';
-    const isPremium = await isCallerPremium(ctx.request);
-    const framework = isPremium && typeof req.framework === 'string' ? req.framework.slice(0, MAX_FRAMEWORK_LEN) : '';
+    const frameworkRaw = typeof req.framework === 'string' ? req.framework.slice(0, MAX_FRAMEWORK_LEN) : '';
+    const isPremium = frameworkRaw ? await isCallerPremium(ctx.request) : false;
+    const framework = isPremium ? frameworkRaw : '';
 
     if (!query) return { analysis: '', model: '', provider: 'skipped' };
 

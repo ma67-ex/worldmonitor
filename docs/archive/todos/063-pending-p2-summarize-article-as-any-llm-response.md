@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "063"
 tags: [code-review, typescript, quality, analytical-frameworks]
@@ -34,3 +34,4 @@ const data = await response.json() as {
 
 ## Work Log
 - 2026-03-28: Identified by kieran-typescript-reviewer during PR #2386 review
+- 2026-09-06: Fixed — replaced `as any` at `summarize-article.ts:309` with a typed inline cast for `choices`/`usage`; `npm run typecheck` passes.

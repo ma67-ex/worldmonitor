@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "159"
 tags: [code-review, performance, supply-chain, globe]
@@ -68,6 +68,7 @@ _Apply Option A if the inline loop is confirmed to run frequently (profile first
 
 ## Work Log
 - 2026-04-10: Identified by performance-oracle during PR #2910 review
+- 2026-09-06: Already fixed in current code — `GlobeMap.ts` has `private scenarioPolygons: GlobePolygon[]` (line 598), built in `setScenarioState()` (line 2413-2429, exactly Option A), and `flushPolygons()` (line 2404-2406) just concatenates the cached array with no GeoJSON iteration. No change needed.
 
 ## Resources
 - PR: #2910

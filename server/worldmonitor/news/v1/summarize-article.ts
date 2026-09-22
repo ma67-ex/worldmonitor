@@ -58,6 +58,13 @@ async function emitSummarizeLlmEvent(p: {
 export const TASK_NARRATION = /^(we need to|i need to|let me|i'll |i should|i will |the task is|the instructions|according to the rules|so we need to|okay[,.]\s*(i'll|let me|so|we need|the task|i should|i will)|sure[,.]\s*(i'll|let me|so|we need|the task|i should|i will|here)|first[, ]+(i|we|let)|to summarize (the headlines|the task|this)|my task (is|was|:)|step \d)/i;
 export const PROMPT_ECHO = /^(summarize the top story|summarize the key|rules:|here are the rules|the top story is likely)/i;
 
+// Provider credential-check skip reasons (module-level: same object every request).
+const SKIP_REASONS: Record<string, string> = {
+  ollama: 'OLLAMA_API_URL not configured',
+  groq: 'GROQ_API_KEY not configured',
+  openrouter: 'OPENROUTER_API_KEY not configured',
+};
+
 export function hasReasoningPreamble(text: string): boolean {
   const trimmed = text.trim();
   return TASK_NARRATION.test(trimmed) || PROMPT_ECHO.test(trimmed);
@@ -153,12 +160,6 @@ export async function summarizeArticle(
   }
 
   // Provider credential check
-  const skipReasons: Record<string, string> = {
-    ollama: 'OLLAMA_API_URL not configured',
-    groq: 'GROQ_API_KEY not configured',
-    openrouter: 'OPENROUTER_API_KEY not configured',
-  };
-
   const credentials = getProviderCredentials(provider);
   if (!credentials) {
     return {
@@ -170,14 +171,14 @@ export async function summarizeArticle(
       error: '',
       errorType: '',
       status: 'SUMMARIZE_STATUS_SKIPPED',
-      statusDetail: skipReasons[provider] || `Unknown provider: ${provider}`,
+      statusDetail: SKIP_REASONS[provider] || `Unknown provider: ${provider}`,
     };
   }
 
   const { apiUrl, model, headers: providerHeaders, extraBody } = credentials;
 
   // Request validation
-  if (!headlines || !Array.isArray(headlines) || headlines.length === 0) {
+  if (headlines.length === 0) {
     return {
       summary: '',
       model: '',
@@ -306,9 +307,12 @@ export async function summarizeArticle(
         // model-rejection streak.
         recordModelSuccess(apiUrl, model);
 
-        const data = await response.json() as any;
-        const tokens = (data.usage?.total_tokens as number) || 0;
-        const usage = data.usage as { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number } | undefined;
+        const data = await response.json() as {
+          choices?: Array<{ message?: { content?: string } }>;
+          usage?: { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number };
+        };
+        const tokens = data.usage?.total_tokens || 0;
+        const usage = data.usage;
         const message = data.choices?.[0]?.message;
         const rawText = typeof message?.content === 'string' ? message.content.trim() : '';
         const rawContent = stripThinkingTags(rawText);

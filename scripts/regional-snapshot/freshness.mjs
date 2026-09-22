@@ -1,6 +1,7 @@
 // @ts-check
-// Source freshness registry. Mirrors the table in
-// docs/internal/pro-regional-intelligence-appendix-scoring.md "Source Freshness Registry".
+// Source freshness registry. Mirrors the "Source Freshness Registry" table in
+// the Regional Intelligence scoring appendix (ships to docs/internal/ in the
+// main repo; not present in every worktree — see PR #2940 description).
 //
 // Each entry maps a Redis key (or key prefix) to its expected max-age.
 // The snapshot writer marks inputs as stale or missing based on this table

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "048"
 tags: [code-review, quality, analytical-frameworks, settings]
@@ -45,3 +45,4 @@ Add "Export frameworks" / "Import frameworks" buttons specifically in the Analys
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by architecture-strategist
+- 2026-09-06: Already fixed — `wm-analysis-frameworks` and `wm-panel-frameworks` are both in `src/utils/sync-keys.ts` `CLOUD_SYNC_KEYS`, which `settings-persistence.ts` export/import reads from; no code change needed.

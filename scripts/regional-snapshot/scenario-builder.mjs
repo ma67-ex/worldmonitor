@@ -1,12 +1,13 @@
 // @ts-check
 // Builds scenario sets per horizon, normalized so lane probabilities sum to 1.0.
-// See docs/internal/pro-regional-intelligence-appendix-scoring.md
-// "Scenario Set Normalization".
+// See the Regional Intelligence scoring appendix's "Scenario Set
+// Normalization" section (ships to docs/internal/ in the main repo; not
+// present in every worktree — see PR #2940 description).
 
-import { num } from './_helpers.mjs';
+import { num, round, getCaseFileText } from './_helpers.mjs';
 // Use scripts/shared mirror (not repo-root shared/): Railway service has
 // rootDirectory=scripts so ../../shared/ escapes the deploy root.
-import { REGIONS } from '../shared/geography.js';
+import { getRegion } from '../shared/geography.js';
 
 /** @type {import('../../shared/regions.types.js').ScenarioHorizon[]} */
 const HORIZONS = ['24h', '7d', '30d'];
@@ -20,8 +21,10 @@ const LANE_NAMES = ['base', 'escalation', 'containment', 'fragmentation'];
  * @returns {import('../../shared/regions.types.js').ScenarioSet[]}
  */
 export function buildScenarioSets(regionId, sources, triggers) {
-  const region = REGIONS.find((r) => r.id === regionId);
-  if (!region) return [];
+  // Consistent contract across compute modules: throw on unknown region
+  // rather than silently returning empty (issue #182).
+  const region = getRegion(regionId);
+  if (!region) throw new Error(`Unknown region: ${regionId}`);
 
   const fc = sources['forecast:predictions:v2'];
   const forecasts = Array.isArray(fc?.predictions) ? fc.predictions : [];
@@ -52,7 +55,7 @@ function buildLane(name, horizon, forecasts, triggers) {
     if (name === 'containment' && (trend === 'falling' || trend === 'de-escalating')) rawScore += prob * 0.5;
     if (name === 'base' && trend === 'stable') rawScore += prob * 0.3;
     if (name === 'fragmentation') {
-      const cf = JSON.stringify(f?.caseFile ?? {}).toLowerCase();
+      const cf = getCaseFileText(f);
       if (/fragment|collapse|breakdown/.test(cf)) rawScore += prob * 0.4;
     }
   }
@@ -76,9 +79,9 @@ function buildLane(name, horizon, forecasts, triggers) {
 
 function matchesHorizon(forecastHorizon, targetHorizon) {
   if (!forecastHorizon) return targetHorizon === '7d';
-  if (targetHorizon === '24h') return /h24|24h|day|24h/.test(forecastHorizon);
-  if (targetHorizon === '7d') return /d7|7d|week|d7/.test(forecastHorizon);
-  if (targetHorizon === '30d') return /d30|30d|month|d30/.test(forecastHorizon);
+  if (targetHorizon === '24h') return /h24|24h|day/.test(forecastHorizon);
+  if (targetHorizon === '7d') return /d7|7d|week/.test(forecastHorizon);
+  if (targetHorizon === '30d') return /d30|30d|month/.test(forecastHorizon);
   return false;
 }
 
@@ -88,8 +91,4 @@ function normalize(lanes) {
     return lanes.map((l) => ({ ...l, probability: l.name === 'base' ? 1.0 : 0.0 }));
   }
   return lanes.map((l) => ({ ...l, probability: round(l.probability / total) }));
-}
-
-function round(n) {
-  return Math.round(n * 1000) / 1000;
 }

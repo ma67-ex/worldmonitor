@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 182
 tags: [code-review, phase-0, regional-intelligence, error-handling, consistency]
@@ -51,6 +51,18 @@ Files involved:
 - [ ] Or: every module throws on unknown region
 
 ## Work Log
+
+### 2026-09-06
+Fixed. Chose Option 2 (all modules throw) over Option 1 (orchestrator pre-
+validates) because it fits the existing infrastructure with zero orchestrator
+changes: `seed-regional-snapshots.mjs`'s per-region loop already wraps
+`computeSnapshot` in a try/catch that counts a throw as a region failure and
+logs it — `balance-vector.mjs` already relied on exactly this. Normalized
+`actor-scoring.mjs`, `scenario-builder.mjs`, and `evidence-collector.mjs` to
+throw `Unknown region: ${regionId}` instead of silently returning `{actors:
+[], edges: []}` / `[]`. Added a focused test (`unknown region contract` in
+`tests/regional-snapshot.test.mjs`) asserting all 4 modules throw.
+verified: `npx tsx --test tests/regional-snapshot.test.mjs` — pass, including the new `unknown region contract` suite (4/4).
 
 ## Resources
 - PR #2940

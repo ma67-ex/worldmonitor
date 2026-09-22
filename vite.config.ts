@@ -869,6 +869,54 @@ function sanctionsOfacProxyDevPlugin(): Plugin {
   };
 }
 
+// Vercel routes /api/telegram-feed and /api/wm-session through the
+// consolidated misc-gateway dispatcher (api/misc-gateway/[name].ts), which
+// Vite dev never sees — same gap as sanctionsOfacProxyDevPlugin above.
+// Without this, both requests fall through to the SPA's index.html: the
+// Telegram Intel panel gets '<!DOCTYPE ...' where it expects JSON, and
+// wm-session issuance silently 404s on every page load. Invoking the real
+// edge handlers in-process (instead of reimplementing them) also means an
+// unconfigured WS_RELAY_URL / WM_SESSION_SECRET degrades the same clean way
+// it does in prod (503 JSON), rather than masking the config gap.
+type EdgeCtx = { waitUntil: (p: Promise<unknown>) => void };
+const GATEWAY_ROUTE_HANDLERS: Record<string, () => Promise<{ default: (req: Request, ctx: EdgeCtx) => Response | Promise<Response> }>> = {
+  'telegram-feed': () => import('./api/_telegram-feed'),
+  'wm-session': () => import('./api/_wm-session'),
+};
+function gatewayRouteDevPlugin(): Plugin {
+  return {
+    name: 'gateway-route-dev',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        const name = req.url?.split('?')[0]?.replace(/^\/api\//, '');
+        const loadHandler = name ? GATEWAY_ROUTE_HANDLERS[name] : undefined;
+        if (!loadHandler) return next();
+        try {
+          const chunks: Buffer[] = [];
+          for await (const chunk of req) {
+            chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+          }
+          const body = chunks.length ? Buffer.concat(chunks) : undefined;
+          const { default: handler } = await loadHandler();
+          const request = new Request(new URL(req.url!, 'http://localhost'), {
+            method: req.method,
+            headers: req.headers as HeadersInit,
+            body: body && req.method !== 'GET' && req.method !== 'HEAD' ? body : undefined,
+          });
+          const response = await handler(request, { waitUntil: (p) => { void p.catch(() => {}); } });
+          res.statusCode = response.status;
+          response.headers.forEach((value, key) => res.setHeader(key, value));
+          res.end(Buffer.from(await response.arrayBuffer()));
+        } catch (err) {
+          res.statusCode = 500;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: (err as Error).message || `${name} dev handler failed` }));
+        }
+      });
+    },
+  };
+}
+
 // Vercel routes /api/supply-chain/hormuz-tracker through the misc-gateway2
 // catch-all (see api/misc-gateway2/[...path].ts), which Vite dev never sees —
 // same gap as sanctionsOfacProxyDevPlugin above. Without this, the request

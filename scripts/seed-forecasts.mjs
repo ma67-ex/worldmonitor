@@ -5221,8 +5221,8 @@ function buildImpactExpansionDebugPayload(data = {}, worldState = null, runId = 
     convergence,
     // gateDetails records the active thresholds at time of execution for self-documenting artifacts.
     gateDetails: {
-      secondOrderMappedFloor: 0.58,
-      secondOrderMultiplier: 0.88,
+      secondOrderMappedFloor: getImpactValidationFloors('second_order').mapped,
+      secondOrderMultiplier: getImpactValidationFloors('second_order').multiplier,
       pathScoreThreshold: 0.50,
       acceptanceThreshold: 0.50,
       refinementQualityThreshold: 0.80,
@@ -13030,6 +13030,7 @@ function buildSimulationRequirementText(theater, candidate) {
 
 function buildSimulationPackageEntities(selectedTheaters, candidates, actorRegistry) {
   const seen = new Map();
+  const slugify = (s) => s.toLowerCase().replace(/\W+/g, '_');
 
   const addEntity = (key, entity) => {
     if (!seen.has(key)) seen.set(key, entity);
@@ -13054,7 +13055,7 @@ function buildSimulationPackageEntities(selectedTheaters, candidates, actorRegis
     for (const actorName of (candidate.stateSummary?.actors || [])) {
       const key = `su:${actorName}:${candidate.candidateStateId}`;
       addEntity(key, {
-        entityId: `${candidate.candidateStateId}:${actorName.toLowerCase().replace(/\W+/g, '_')}`,
+        entityId: `${candidate.candidateStateId}:${slugify(actorName)}`,
         name: actorName,
         class: inferEntityClassFromName(actorName),
         region: candidate.dominantRegion || '',
@@ -13072,7 +13073,7 @@ function buildSimulationPackageEntities(selectedTheaters, candidates, actorRegis
       for (const name of match[1].split(/,\s*/).filter(Boolean)) {
         const key = `ev:${name}:${candidate.candidateStateId}`;
         addEntity(key, {
-          entityId: `${candidate.candidateStateId}:${name.toLowerCase().replace(/\W+/g, '_')}`,
+          entityId: `${candidate.candidateStateId}:${slugify(name)}`,
           name,
           class: inferEntityClassFromName(name),
           region: candidate.dominantRegion || '',
@@ -13088,7 +13089,7 @@ function buildSimulationPackageEntities(selectedTheaters, candidates, actorRegis
   if (seen.size === 0) {
     for (const theater of selectedTheaters) {
       addEntity(`fallback:state:${theater.theaterId}`, {
-        entityId: `state:${theater.dominantRegion.toLowerCase().replace(/\W+/g, '_')}`,
+        entityId: `state:${slugify(theater.dominantRegion)}`,
         name: `${theater.dominantRegion} state authority`,
         class: 'state_actor',
         region: theater.dominantRegion,
@@ -13098,7 +13099,7 @@ function buildSimulationPackageEntities(selectedTheaters, candidates, actorRegis
         relevanceToTheater: theater.theaterId,
       });
       addEntity(`fallback:logistics:${theater.theaterId}`, {
-        entityId: `logistics:${(theater.routeFacilityKey || theater.dominantRegion).toLowerCase().replace(/\W+/g, '_')}`,
+        entityId: `logistics:${slugify(theater.routeFacilityKey || theater.dominantRegion)}`,
         name: `${theater.routeFacilityKey || theater.dominantRegion} logistics operators`,
         class: 'logistics_operator',
         region: theater.dominantRegion,
@@ -13124,6 +13125,7 @@ function buildSimulationPackageEntities(selectedTheaters, candidates, actorRegis
 }
 
 function buildSimulationPackageEventSeeds(selectedTheaters, candidates) {
+  const MAX_SEED_SUMMARY = 200;
   const seeds = [];
   let idx = 0;
 
@@ -13137,7 +13139,7 @@ function buildSimulationPackageEventSeeds(selectedTheaters, candidates) {
           seedId: `seed-${++idx}`,
           theaterId: theater.theaterId,
           type: 'live_news',
-          summary: sanitizeForPrompt(entry.text).slice(0, 200),
+          summary: sanitizeForPrompt(entry.text).slice(0, MAX_SEED_SUMMARY),
           evidenceRefs: [entry.key],
           timing: 'T+0h',
           strength: +Math.min(0.95, (candidate.rankingScore || 0.5)).toFixed(3),
@@ -13147,7 +13149,7 @@ function buildSimulationPackageEventSeeds(selectedTheaters, candidates) {
           seedId: `seed-${++idx}`,
           theaterId: theater.theaterId,
           type: 'observed_disruption',
-          summary: sanitizeForPrompt(entry.text).slice(0, 200),
+          summary: sanitizeForPrompt(entry.text).slice(0, MAX_SEED_SUMMARY),
           evidenceRefs: [entry.key],
           timing: 'T+0h',
           strength: +Math.min(0.9, (Number(candidate.marketContext?.criticalSignalLift || 0) + 0.3)).toFixed(3),
@@ -13162,7 +13164,7 @@ function buildSimulationPackageEventSeeds(selectedTheaters, candidates) {
           seedId: `seed-${++idx}`,
           theaterId: theater.theaterId,
           type: 'observed_disruption',
-          summary: sanitizeForPrompt(fallback.text).slice(0, 200),
+          summary: sanitizeForPrompt(fallback.text).slice(0, MAX_SEED_SUMMARY),
           evidenceRefs: [fallback.key],
           timing: 'T+0h',
           strength: +(candidate.rankingScore || 0.4).toFixed(3),
@@ -13351,7 +13353,12 @@ function buildSimulationStructuralWorld(selectedTheaters, { stateUnits, worldSig
 
   const selectedStateUnits = (stateUnits || []).filter((u) => theaterStateIds.has(u.id));
   const touchingSignals = (worldSignals?.signals || [])
-    .filter((s) => theaterRegions.has(s.region) || theaterRegions.has(s.macroRegion) || theaterStateIds.has(s.situationId))
+    .filter((s) => {
+      const sigMacro = s.macroRegion;
+      return theaterRegions.has(s.region)
+        || (Array.isArray(sigMacro) ? sigMacro.some((r) => theaterRegions.has(r)) : theaterRegions.has(sigMacro))
+        || theaterStateIds.has(s.situationId);
+    })
     .slice(0, 20);
   const touchingTransmissionEdges = (marketTransmission?.edges || [])
     .filter((e) => theaterStateIds.has(e.sourceSituationId) || theaterStateIds.has(e.targetSituationId))
@@ -14746,6 +14753,7 @@ function getForecastLlmCallOptions(stage = 'default') {
   const criticalProviderOrder = parseForecastProviderOrder(process.env.FORECAST_LLM_CRITICAL_PROVIDER_ORDER);
   const impactProviderOrder = parseForecastProviderOrder(process.env.FORECAST_LLM_IMPACT_PROVIDER_ORDER);
   const marketImplicationsProviderOrder = parseForecastProviderOrder(process.env.FORECAST_LLM_MARKET_IMPLICATIONS_PROVIDER_ORDER);
+  const simulationProviderOrder = parseForecastProviderOrder(process.env.FORECAST_LLM_SIMULATION_PROVIDER_ORDER);
   const providerOrder = stage === 'combined'
     ? (combinedProviderOrder || globalProviderOrder || defaultProviderOrder)
     : stage === 'critical_signals'
@@ -14758,6 +14766,8 @@ function getForecastLlmCallOptions(stage = 'default') {
       // Its own stage env still overrides.
       : stage === 'market_implications'
         ? (marketImplicationsProviderOrder || MARKET_IMPLICATIONS_DEFAULT_PROVIDER_ORDER)
+      : stage === 'simulation_round_1' || stage === 'simulation_round_2'
+        ? (simulationProviderOrder || globalProviderOrder || defaultProviderOrder)
       : (globalProviderOrder || defaultProviderOrder);
 
   const openrouterModel = stage === 'combined'

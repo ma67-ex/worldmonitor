@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 171
 tags: [code-review, phase-0, regional-intelligence, trigger-evaluator, bug]
@@ -57,6 +57,15 @@ Negative thresholds (e.g. `delta_lt: -0.20`) are also silently wrong under the c
 - [ ] Test: `delta_*` operators always return `false` in Phase 0.
 
 ## Work Log
+
+### 2026-09-06
+Already fixed. `trigger-evaluator.mjs:129-148`'s `isCloseToThreshold` already
+branches on operator exactly per Option 1 (`gt`/`gte`: `value < target &&
+value >= target - band`; `lt`/`lte`: `value > target && value <= target +
+band`; `delta_*`: `false`). All 4 acceptance-criteria cases plus negative-
+threshold cases are covered by existing tests in
+`tests/regional-snapshot.test.mjs:415-441`, which pass. No code change made.
+verified: `npx tsx --test tests/regional-snapshot.test.mjs` — pass (90/90).
 
 ## Resources
 

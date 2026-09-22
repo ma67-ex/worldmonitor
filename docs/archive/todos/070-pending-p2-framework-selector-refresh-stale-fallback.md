@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "070"
 tags: [code-review, correctness, ui, analytical-frameworks]
@@ -36,3 +36,4 @@ this.select.value = getActiveFrameworkForPanel(this.panelId)?.id ?? '';
 
 ## Work Log
 - 2026-03-28: Identified by kieran-typescript-reviewer during PR #2386 review
+- 2026-09-06: Fixed — `FrameworkSelector.refresh()` now falls back to `''` instead of the stale `current` value. `npm run typecheck` passes.

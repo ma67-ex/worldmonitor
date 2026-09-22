@@ -1,18 +1,25 @@
 // @ts-check
 // Shared helpers for snapshot compute modules.
 
+import { randomUUID } from 'node:crypto';
+
 import { stripSeedEnvelope } from '../_seed-envelope-source.mjs';
 
 /** Clamp a number to the [lo, hi] range. */
 export function clip(value, lo, hi) {
-  if (Number.isNaN(value) || !Number.isFinite(value)) return lo;
+  if (!Number.isFinite(value)) return lo;
   return Math.min(hi, Math.max(lo, value));
 }
 
-/** Safe numeric coercion with default fallback. */
+/** Safe numeric coercion with default fallback. Rejects partial numerics like "42abc". */
 export function num(value, fallback = 0) {
-  const n = typeof value === 'string' ? parseFloat(value) : Number(value);
+  const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
+}
+
+/** Round to 3 decimal places — canonical rounding for scoring outputs. */
+export function round(n) {
+  return Math.round(n * 1000) / 1000;
 }
 
 /** Weighted average. Returns 0 if all weights are zero. */
@@ -27,11 +34,12 @@ export function weightedAverage(items, valueFn, weightFn) {
   return total > 0 ? weighted / total : 0;
 }
 
-/** Percentile (0-100) of a numeric array. */
+/** Percentile (0-100) of a numeric array. `p` is clamped to [0, 100]. */
 export function percentile(values, p) {
   if (!values.length) return 0;
+  const clampedP = clip(p, 0, 100);
   const sorted = [...values].sort((a, b) => a - b);
-  const idx = (p / 100) * (sorted.length - 1);
+  const idx = (clampedP / 100) * (sorted.length - 1);
   const lo = Math.floor(idx);
   const hi = Math.ceil(idx);
   if (lo === hi) return sorted[lo];
@@ -39,11 +47,38 @@ export function percentile(values, p) {
   return sorted[lo] * (1 - frac) + sorted[hi] * frac;
 }
 
-/** Simple UUID v7-ish: time-ordered, sortable, no external deps. */
+/** Time-ordered id: hex timestamp + CSPRNG suffix. Not an RFC 4122 UUID. */
 export function generateSnapshotId() {
   const t = Date.now().toString(16).padStart(12, '0');
-  const r = Math.random().toString(16).slice(2, 14).padStart(12, '0');
+  const r = randomUUID().replace(/-/g, '').slice(0, 12);
   return `${t}-${r}`;
+}
+
+/**
+ * Lowercased, stringified case-file text for substring search — used by
+ * actor-scoring, balance-vector (alliance cohesion), and scenario-builder
+ * (fragmentation lane) to grep a forecast's caseFile for keywords.
+ *
+ * Memoizes onto `f._caseFileText` so a forecast stringified once (e.g. by
+ * seed-regional-snapshots.mjs's main() precompute pass, which runs before
+ * the per-region loop) is never re-stringified by any of the 3 consumers
+ * across all 8 regions (issue #190). Callers that invoke a compute module
+ * directly (unit tests, ad-hoc scripts) still get a correct on-demand value
+ * — the memoization is an optimization, not a required precondition.
+ *
+ * @param {{ caseFile?: unknown; signals?: unknown; _caseFileText?: string } | null | undefined} f
+ * @returns {string}
+ */
+export function getCaseFileText(f) {
+  if (f && typeof f._caseFileText === 'string') return f._caseFileText;
+  let text = '{}';
+  try {
+    text = JSON.stringify(f?.caseFile ?? f?.signals ?? {}).toLowerCase();
+  } catch {
+    text = '{}';
+  }
+  if (f && typeof f === 'object') f._caseFileText = text;
+  return text;
 }
 
 /**

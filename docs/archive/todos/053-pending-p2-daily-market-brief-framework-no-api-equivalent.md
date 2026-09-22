@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "053"
 tags: [code-review, quality, agent-native, analytical-frameworks]
@@ -38,3 +38,4 @@ Create an RPC endpoint for `buildDailyMarketBrief` that accepts `systemAppend` a
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by agent-native-reviewer
+- 2026-09-06: Already fixed (Option A) — `DailyMarketBriefPanel.ts:49` passes `note: 'Applies to client-generated analysis only'` to `FrameworkSelector`; no code change needed.

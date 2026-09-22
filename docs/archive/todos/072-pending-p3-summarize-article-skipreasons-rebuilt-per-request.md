@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "072"
 tags: [code-review, performance, quality, analytical-frameworks]
@@ -36,3 +36,4 @@ if (headlines.length === 0)
 
 ## Work Log
 - 2026-03-28: Identified by code-simplicity-reviewer during PR #2386 review
+- 2026-09-06: Fixed — moved `skipReasons` to a module-level `SKIP_REASONS` constant and simplified the dead `!headlines || !Array.isArray(headlines)` check to `headlines.length === 0` (headlines is always a `string[]` at that point). `npm run typecheck:api` passes.

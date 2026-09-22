@@ -548,6 +548,8 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
         }
       }, { signal });
 
+      let pendingFwData: { name: string; description: string; instructions: string } | null = null;
+
       container.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
         if (target.closest('#usExportBtn')) {
@@ -623,7 +625,7 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
             if (descEl) descEl.textContent = data.instructions.slice(0, 200) + (data.instructions.length > 200 ? '…' : '');
             if (preview) {
               preview.style.display = 'block';
-              (preview as HTMLElement & { _fwData?: { name: string; description: string; instructions: string } })._fwData = {
+              pendingFwData = {
                 name: data.name ?? 'Unnamed skill',
                 description: data.description ?? '',
                 instructions: data.instructions,
@@ -643,9 +645,8 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
         }
 
         if (target.closest('#fwAgentskillsSaveBtn')) {
-          const preview = container.querySelector<HTMLElement>('#fwAgentskillsPreview');
           const errEl = container.querySelector<HTMLElement>('#fwAgentskillsError');
-          const fwData = (preview as HTMLElement & { _fwData?: { name: string; description: string; instructions: string } } | null)?._fwData;
+          const fwData = pendingFwData;
           if (!fwData) return;
           try {
             saveImportedFramework({ id: crypto.randomUUID(), name: fwData.name, description: fwData.description, systemPromptAppend: fwData.instructions });

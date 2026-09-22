@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "016"
 tags: [code-review, deep-forecast, simulation-package, quality]
@@ -70,3 +70,4 @@ Effort: Small | Risk: Low
 ## Work Log
 
 - 2026-03-24: Found by compound-engineering:review:code-simplicity-reviewer in PR #2204 review
+- 2026-09-06: Applied the low-risk items. (2) `MAX_SEED_SUMMARY = 200` extracted in `buildSimulationPackageEventSeeds`, replacing 3 inline `.slice(0, 200)` calls. (3) local `slugify` helper extracted in `buildSimulationPackageEntities`, replacing 4 inline `.toLowerCase().replace(/\W+/g, '_')` calls. (5) `gateDetails.secondOrderMappedFloor`/`secondOrderMultiplier` now read from `getImpactValidationFloors('second_order')` instead of hardcoded literals (scripts/seed-forecasts.mjs ~line 5223). Skipped (1) candidateById Map — would require changing 3 function signatures for a pure style win, no correctness impact. Skipped (4) FALLBACK_ANCHOR_DEFS data-driven rewrite — real refactor of a working 30-line block, not a bug. Skipped (6) actor-regex broadening + debug log — changes matching behavior, not a simplification; out of scope for a backlog sweep. Verified with `node --check scripts/seed-forecasts.mjs`.

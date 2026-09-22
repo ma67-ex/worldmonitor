@@ -303,15 +303,20 @@ const emptySectorDependency: GetSectorDependencyResponse = {
   hasViableBypass: false, fetchedAt: '',
 };
 
+// Per-(iso2,hs2) cache key + circuit breaker so a persistent outage doesn't
+// re-attempt a live gRPC call (with 3s timeout) for every chokepoint on every
+// render — after 2 failures the breaker cools down and short-circuits.
+const sectorDependencyBreaker = createCircuitBreaker<GetSectorDependencyResponse>({ name: 'Sector Dependency', cacheTtlMs: 10 * 60 * 1000 });
+
 export async function fetchSectorDependency(
   iso2: string,
   hs2 = '27',
 ): Promise<GetSectorDependencyResponse> {
-  try {
-    return await client.getSectorDependency({ iso2, hs2 });
-  } catch {
-    return { ...emptySectorDependency, iso2, hs2 };
-  }
+  return sectorDependencyBreaker.execute(
+    () => client.getSectorDependency({ iso2, hs2 }, { signal: AbortSignal.timeout(3_000) }),
+    { ...emptySectorDependency, iso2, hs2 },
+    { cacheKey: `${iso2}:${hs2}` },
+  );
 }
 
 const emptyRouteExplorerLane: GetRouteExplorerLaneResponse = {

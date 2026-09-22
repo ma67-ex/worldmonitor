@@ -1,3 +1,3 @@
-export async function isCallerPremium(): Promise<boolean> {
+export async function isCallerPremium(_request: Request): Promise<boolean> {
   return true;
 }

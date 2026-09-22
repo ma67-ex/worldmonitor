@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 185
 tags: [code-review, phase-0, regional-intelligence, triggers]
@@ -39,6 +39,19 @@ Related issue: #171 (isCloseToThreshold inverted for lt operators)
 - [ ] Test: delta_gt trigger never appears in watching list during Phase 0
 
 ## Work Log
+
+### 2026-09-06
+Already fixed as a side effect of #171's fix. `isCloseToThreshold` (`trigger-
+evaluator.mjs:129-148`) has its own `case 'delta_gt': case 'delta_lt': return
+false;` branch, so it never elevates a delta-gated trigger to "watching" —
+the guard the todo asked for at the `evaluateTriggers` call site is
+unnecessary because the callee already refuses to compute a misleading
+watching-band for those operators. Existing test `evaluateTriggers > delta
+operators are dormant in Phase 0` (`tests/regional-snapshot.test.mjs:395`)
+covers the active-list side; the isCloseToThreshold suite
+(`:439-440`) directly covers the watching-band delta case this issue is
+about. No code change made.
+verified: `npx tsx --test tests/regional-snapshot.test.mjs` — pass (90/90).
 
 ## Resources
 - PR #2940

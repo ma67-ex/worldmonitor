@@ -43,3 +43,6 @@ The if/else is not harmful, just not minimal. Accept current form.
 
 ## Work Log
 - 2026-03-27: Identified during PR #2318 review via code-simplicity-reviewer
+
+## Work Log
+- 2026-09-06: Reviewed. toggleAttribute() only toggles presence with an empty-string value, but CSS selects on [data-font="system"] (value equality) not just presence — applying the suggested fix as-is would require also changing the CSS selector to [data-font]. Skipping: pure style simplification, zero functional benefit, adds a coordinated two-file change for a one-line cosmetic win. Left pending in case someone wants to also touch the CSS.

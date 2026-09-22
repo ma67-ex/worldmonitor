@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "054"
 tags: [code-review, security, seeding, reddit, social-velocity, pr-2375]
@@ -59,3 +59,4 @@ Ensure the Social Velocity panel only renders URLs with `https:` scheme. Belt-an
 ## Work Log
 
 - 2026-03-27: Identified by security-sentinel agent during PR #2375 review.
+- 2026-09-06: Still present — `seedSocialVelocity` in `scripts/ais-relay.cjs` was storing `p.permalink` unvalidated. Applied Option A: skip any post whose `permalink` doesn't start with `/r/` (console.warn logged), before constructing/storing the URL. `node --check scripts/ais-relay.cjs` passes; `tests/social-velocity-seed-health.test.mjs` passes unchanged. Frontend-side non-https render guard (part of acceptance criteria) not verified — out of scope for this seeding-script pass.

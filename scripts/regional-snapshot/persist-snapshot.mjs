@@ -63,7 +63,12 @@ export async function persistSnapshot(snapshot) {
     ['DEL', liveKey],
   ];
 
-  const pipeRes = await fetch(`${url}/pipeline`, {
+  // /multi-exec (not /pipeline): these 6 writes span 3 state shapes (timestamp
+  // view, id view, latest pointer, index). /pipeline batches the round-trip
+  // but each command still commits independently, so a partial failure could
+  // leave e.g. the latest pointer referencing a snapshot id the index never
+  // recorded. MULTI/EXEC makes the write all-or-nothing (issue #184).
+  const pipeRes = await fetch(`${url}/multi-exec`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(pipeline),

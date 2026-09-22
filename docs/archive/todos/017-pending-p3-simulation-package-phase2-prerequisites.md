@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "017"
 tags: [code-review, deep-forecast, simulation-package, architecture]
@@ -57,3 +57,4 @@ Both options are Phase 2 work, not Phase 1 blockers.
 
 - 2026-03-24: Found by compound-engineering:review:agent-native-reviewer in PR #2204 review
 - Phase 1 only — do not block PR #2204 merge on this item
+- 2026-09-06: Already fixed (Phase 2 has since landed). `server/worldmonitor/forecast/v1/get-simulation-package.ts` implements `getSimulationPackage(runId)`, reads the `SIMULATION_PACKAGE_LATEST_KEY` Redis pointer, and returns `schemaVersion`/`theaterCount`/`generatedAt`; wired into `server/worldmonitor/forecast/v1/handler.ts` and `server/gateway.ts`. `writeSimulationPackage` in scripts/seed-forecasts.mjs (~line 13472) writes that Redis existence key (`SET SIMULATION_PACKAGE_LATEST_KEY {runId, pkgKey, schemaVersion, theaterCount, generatedAt}` with TTL) on successful write. No code change made (server/ is out of scope for this sweep per task boundaries, and it already exists).

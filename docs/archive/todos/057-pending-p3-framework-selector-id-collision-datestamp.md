@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "057"
 tags: [code-review, quality, analytical-frameworks]
@@ -35,3 +35,4 @@ Available globally in all browser targets and Vercel Edge runtime.
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by kieran-typescript-reviewer
+- 2026-09-06: Already fixed — both import handlers in `preferences-content.ts` use `id: crypto.randomUUID()`; no `Date.now()` id remains; no code change needed.

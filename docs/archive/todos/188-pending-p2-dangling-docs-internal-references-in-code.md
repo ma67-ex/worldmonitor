@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 188
 tags: [code-review, phase-0, regional-intelligence, docs, stale-references]
@@ -59,6 +59,20 @@ Files with dangling references:
 - [ ] Or update code comments to reference the actual location
 
 ## Work Log
+
+### 2026-09-06
+Fixed via Option 2, adjusted: `plans/pro-regional-intelligence-upgrade.md`
+(the todo's proposed fallback target) also does not exist in this worktree
+(confirmed via repo-wide find). Rather than point at a second nonexistent
+path, reworded all 6 comments (plus `regime-derivation.mjs:3`, scope+1 — same
+drift class, not in the todo's file list but touched while auditing) to
+describe the doc by name and note it ships to docs/internal/ in the main repo
+per the PR #2940 description, without asserting a broken worktree-relative
+path. Files touched: `seed-regional-snapshots.mjs`, `freshness.mjs`,
+`triggers.config.mjs`, `scenario-builder.mjs`, `balance-vector.mjs`,
+`shared/geography.js` (+ mirrored to `scripts/shared/geography.js`),
+`regime-derivation.mjs`.
+verified: `grep -rn "docs/internal/pro-regional" scripts/regional-snapshot/*.mjs scripts/seed-regional-snapshots.mjs shared/geography.js` — zero matches; `npx tsx --test tests/regional-snapshot.test.mjs tests/scripts-shared-mirror.test.mjs` — pass.
 
 ## Resources
 - PR #2940

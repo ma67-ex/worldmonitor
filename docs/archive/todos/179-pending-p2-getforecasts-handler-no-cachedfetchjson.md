@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 179
 tags: [code-review, phase-0, regional-intelligence, performance, redis, cache-stampede]
@@ -50,6 +50,20 @@ Cache key: `forecast:predictions:v2` (match the Redis key). In-process TTL: 30-6
 - [ ] Test: 10 parallel identical RPC calls produce 1 Redis GET.
 
 ## Work Log
+
+### 2026-09-06
+Fixed, with one deviation from the literal Option 1 text: wrapped the read in
+`cachedFetchJson` under a *separate* key (`forecast:predictions:v2:rpc-cache`,
+30s TTL), not the canonical `REDIS_KEY` itself. `cachedFetchJson` writes its
+fetcher's result back to whatever key you pass it with the TTL you pass —
+reusing the canonical key would have overwritten the seeder's own (much
+longer) TTL on every RPC call, silently shrinking the forecast data's
+lifetime to 30s. Confirmed this "outer key, distinct from raw source keys"
+pattern is the established convention by reading `server/worldmonitor/supply-
+chain/v1/get-country-cost-shock.ts`, which does the same thing. Repo-root
+`CLAUDE.md` referenced by this todo no longer exists in this worktree (see
+#188 — same doc-drift class), so verified the pattern from source instead.
+verified: `npx tsc --noEmit -p tsconfig.api.json` — pass, 0 errors.
 
 ## Resources
 

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "055"
 tags: [code-review, quality, analytical-frameworks]
@@ -42,3 +42,4 @@ Remove the `if panelId === 'insights'` branch from the constructor.
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by code-simplicity-reviewer
+- 2026-09-06: Already fixed — `FrameworkSelectorOptions` has `note?: string`, no `panelId === 'insights'` branch; InsightsPanel and DailyMarketBriefPanel both pass their own note text; no code change needed.

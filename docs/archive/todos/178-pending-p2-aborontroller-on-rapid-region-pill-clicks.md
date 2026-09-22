@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 178
 tags: [code-review, phase-0, regional-intelligence, performance, frontend]
@@ -65,6 +65,18 @@ Cache shape: `Map<regionId, { data: Forecast[]; ts: number }>` with a 60-second 
 - [ ] Cache entries honor a TTL and refresh on visibility change.
 
 ## Work Log
+
+### 2026-09-06
+Already fixed / moot — the premise no longer exists. `ForecastPanel.ts`'s
+region-pill click handler (`data-fc-region`) now only sets
+`this.selectedRegion` and calls `this.render()`; region filtering is 100%
+client-side against the already-loaded `this.forecasts` array (see the
+comment at `ForecastPanel.ts:20-27`). There is no `refetchForRegion` and no
+per-click RPC anywhere in the codebase (confirmed via repo-wide grep) — the
+architecture moved to client-side-only filtering, which eliminates the wasted-
+RPC problem entirely rather than needing an AbortController to mitigate it.
+No code change made.
+verified: `grep -rn "refetchForRegion" --include="*.ts" .` — zero matches; `npx tsc --noEmit -p tsconfig.json` — pass.
 
 ## Resources
 

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 172
 tags: [code-review, phase-0, regional-intelligence, performance, redis]
@@ -55,6 +55,20 @@ Pipeline API on the existing `redis.ts` helper supports batched GETs, so Option 
 - [ ] No regression in dedup/write semantics.
 
 ## Work Log
+
+### 2026-09-06
+Fixed via a Promise.all variant of Option 1. `readLatestSnapshot` is no
+longer called inside `computeSnapshot`; `main()` in
+`scripts/seed-regional-snapshots.mjs` now batch-reads every region's
+previous snapshot concurrently before the per-region loop
+(`Promise.all(REGIONS.map(...))`) and passes the result into
+`computeSnapshot(regionId, sources, metaSources, pre, previousSnapshot)`.
+16 serial round-trips become 16 concurrent ones instead of a literal 2-call
+pipeline batch (simpler diff, same wall-clock win — bounded by the slowest
+single GET rather than the sum). Left the per-region narrative LLM call
+itself sequential (see #173 work log) — that's the actual runtime bottleneck,
+not the Redis reads this issue targets.
+verified: `npx tsx --test tests/regional-snapshot.test.mjs tests/regional-snapshot-regime-history.test.mjs tests/scripts-shared-mirror.test.mjs` — pass (all green); `node --check scripts/seed-regional-snapshots.mjs` — pass.
 
 ## Resources
 

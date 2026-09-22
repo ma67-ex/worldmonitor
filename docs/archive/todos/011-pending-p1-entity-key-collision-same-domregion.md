@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p1
 issue_id: "011"
 tags: [code-review, deep-forecast, simulation-package, correctness]
@@ -53,3 +53,6 @@ Effort: Small | Risk: Medium (schema change)
 ## Work Log
 
 - 2026-03-24: Found by compound-engineering:review:kieran-typescript-reviewer in PR #2204 review
+
+## Work Log
+- 2026-09-06: Verified against current code — already fixed (fix landed since this issue was filed, tracker was stale). No code change needed.

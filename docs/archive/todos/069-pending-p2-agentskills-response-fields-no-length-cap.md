@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "069"
 tags: [code-review, security, ssrf, analytical-frameworks]
@@ -33,3 +33,4 @@ return Response.json({
 
 ## Work Log
 - 2026-03-28: Identified by security-sentinel during PR #2386 review
+- 2026-09-06: Fixed — `_fetch-agentskills.ts` now caps `name` at 200 chars and `description` at 500 chars before returning. `npx tsx --test tests/fetch-agentskills.test.mjs` (10/10 pass) and `npm run typecheck:api` pass.

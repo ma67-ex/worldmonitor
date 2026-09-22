@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "013"
 tags: [code-review, deep-forecast, simulation-package, security]
@@ -62,3 +62,6 @@ Effort: Small | Risk: Low
 ## Work Log
 
 - 2026-03-24: Found by compound-engineering:review:security-sentinel and compound-engineering:research:learnings-researcher in PR #2204 review
+
+## Work Log
+- 2026-09-06: Verified against current code — sanitizeForPrompt() already applied to label/route/topChannel/critTypes/event-seed text in buildSimulation* functions. Already fixed, tracker was stale.

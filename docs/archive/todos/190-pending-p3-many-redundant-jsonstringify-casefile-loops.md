@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: 190
 tags: [code-review, phase-0, regional-intelligence, performance, dry]
@@ -50,6 +50,28 @@ The fallback chain must be normalized across all callers.
 - [ ] Single consistent definition of what fields contribute to the searchable text
 
 ## Work Log
+
+### 2026-09-06
+Fixed, via a memoize-on-read helper rather than a required precompute pass —
+`actor-scoring.mjs`, `balance-vector.mjs`, and `scenario-builder.mjs` are unit
+-tested as pure functions in isolation (see `tests/regional-snapshot-
+envelope-unwrap.test.mjs`), so a design that *required* `main()` to have
+already set `f._caseFileText` broke those tests on first pass (a forecast
+fixture built directly, with no precompute step, produced `text = '{}'`).
+Added `getCaseFileText(f)` to `_helpers.mjs`: returns `f._caseFileText` if
+already memoized, otherwise computes-and-caches
+`JSON.stringify(f?.caseFile ?? f?.signals ?? {}).toLowerCase()` (wrapped in
+try/catch, falling back to `'{}'` — also closes #192 item #6). All 3 call
+sites now call `getCaseFileText(f)` instead of re-stringifying, and
+`seed-regional-snapshots.mjs`'s `main()` proactively calls it once per
+forecast before the region loop so the real pipeline still gets the ~560→14
+stringify reduction, while direct/unit-test callers still get a correct
+on-demand value. Also normalized the previously-inconsistent fallback chain:
+`balance-vector.mjs`'s alliance-cohesion check used to be `caseFile ?? {}`
+only (no `signals` fallback) vs. `actor-scoring.mjs`'s `caseFile ?? signals ??
+{}` — both now go through the same `getCaseFileText`, so the searchable text
+definition is single-sourced.
+verified: `npx tsx --test tests/regional-snapshot.test.mjs tests/regional-snapshot-envelope-unwrap.test.mjs` — pass (both green, including the test that caught the first, broken design).
 
 ## Resources
 - PR #2940

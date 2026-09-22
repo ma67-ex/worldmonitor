@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "029"
 tags: [code-review, performance, simulation-runner, llm]
@@ -36,3 +36,4 @@ This follows the exact pattern of every other named stage. No behavior change un
 ## Work Log
 
 - 2026-03-24: Found by compound-engineering:review:performance-oracle in PR #2220 review
+- 2026-09-06: Was still broken — `simulation_round_1`/`simulation_round_2` fell through to the generic `else` branch in `getForecastLlmCallOptions`. Added `FORECAST_LLM_SIMULATION_PROVIDER_ORDER` parse and an explicit case following the existing per-stage pattern (scripts/seed-forecasts.mjs:14755-14771). No behavior change when the env var is unset (falls back to `globalProviderOrder || defaultProviderOrder`, same as before). Verified with `node --check scripts/seed-forecasts.mjs`.

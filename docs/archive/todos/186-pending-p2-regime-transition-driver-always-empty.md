@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 186
 tags: [code-review, phase-0, regional-intelligence, dead-code, schema]
@@ -48,6 +48,19 @@ Function: `inferTriggerReason(diff)` - would populate the field.
 - [ ] OR document the field as Phase 2 and keep empty
 
 ## Work Log
+
+### 2026-09-06
+Already fixed (per PR #2981 review, referenced directly in code comments).
+`seed-regional-snapshots.mjs`'s `computeSnapshot` builds `regime` before the
+diff exists (empty driver, as the todo describes), but then backfills it
+after Step 15's diff/`inferTriggerReason`: `if (diff.regime_changed &&
+triggerReason !== 'scheduled_6h') { regime.transition_driver = triggerReason;
+tentativeSnapshot.regime = regime; }`. Both the persisted snapshot and the
+regime-history entry (via `recordRegimeTransition`) carry the real driver on
+an actual regime change. Covered by
+`tests/regional-snapshot-regime-history.test.mjs`'s "transition_driver from
+snapshot.regime (PR #2981 P2 #1)" suite. No code change made.
+verified: `npx tsx --test tests/regional-snapshot-regime-history.test.mjs` — pass (all green).
 
 ## Resources
 - PR #2940

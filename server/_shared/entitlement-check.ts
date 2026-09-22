@@ -144,12 +144,16 @@ export interface EntitlementCheckOptions {
  * Tier-2 here would have made the new gate stricter than the legacy one and
  * 403'd real Pro subscribers calling via Clerk session (no tester key).
  */
+// ponytail (task 08): no billing stack behind this fork (see gateway.ts's
+// needsLegacyProBearerGate comment) — a tier-1 entry here has no path to ever
+// carry a session with tier >= 1, so it 401s every anonymous caller forever.
+// list-sanctions-pressure dropped for that reason; the rest stay because
+// nothing else in the dashboard calls them anonymously.
 const ENDPOINT_ENTITLEMENTS: Record<string, number> = {
   '/api/intelligence/v1/classify-event': 1,
   '/api/intelligence/v1/get-country-intel-brief': 1,
   '/api/market/v1/analyze-stock': 1,
   '/api/market/v1/get-stock-analysis-history': 1,
-  '/api/sanctions/v1/list-sanctions-pressure': 1,
 };
 
 const CONVEX_INTERNAL_ENTITLEMENTS_PATH = '/api/internal-entitlements';

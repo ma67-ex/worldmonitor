@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "039"
 tags: [code-review, quality, i18n, font]
@@ -49,3 +49,6 @@ test('mono font removes data-font attribute entirely', () => {
 
 ## Work Log
 - 2026-03-27: Identified during PR #2318 review via kieran-typescript-reviewer
+
+## Work Log
+- 2026-09-06: Added tests/dom/font-settings.test.mts pinning the mono-absent / system-present dataset.font invariant. Both tests pass under vitest.dom.config.mts.

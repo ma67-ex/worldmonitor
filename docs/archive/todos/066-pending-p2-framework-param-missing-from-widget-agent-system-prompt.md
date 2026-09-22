@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "066"
 tags: [code-review, agent-native, analytical-frameworks]
@@ -27,3 +27,4 @@ Add `framework` to the param documentation for `get-country-intel-brief` in `WID
 
 ## Work Log
 - 2026-03-28: Identified by agent-native-reviewer during PR #2386 review
+- 2026-09-06: Fixed — added `framework` param doc to `get-country-intel-brief` in `WIDGET_PRO_SYSTEM_PROMPT` only (`scripts/ais-relay.cjs:12329`); basic `WIDGET_SYSTEM_PROMPT` entry left unchanged. Verified with `node -c scripts/ais-relay.cjs`.

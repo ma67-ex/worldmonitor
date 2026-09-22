@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p1
 issue_id: "035"
 tags: [code-review, security, auth, clerk, jwt]
@@ -50,3 +50,6 @@ const { payload } = await jwtVerify(token, jwks, {
 ## Work Log
 
 - 2026-03-26: Identified during PR #1812 security audit (security-sentinel agent). File: `server/auth-session.ts:43`.
+
+## Work Log
+- 2026-09-06: Verified against current code — already fixed (fix landed since this issue was filed, tracker was stale). No code change needed.

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "165"
 tags: [code-review, security, supply-chain, rate-limiting]
@@ -43,6 +43,7 @@ _Apply Option A in a follow-up. Not blocking — scenario endpoint is PRO-only a
 
 ## Work Log
 - 2026-04-10: Identified by security-sentinel during PR #2910 review
+- 2026-09-06: `api/scenario/v1/run.ts` no longer exists as an IP-keyed rate limiter — it's now an alias (`api/scenario/v1/_run.ts`) forwarding to the real handler `server/worldmonitor/scenario/v1/run-scenario.ts`, which has no `getClientIp`/rate-limit call at all: only a global (non-IP-keyed) queue-depth backpressure check (`LLEN` vs `MAX_QUEUE_DEPTH`) shared equally across all callers, plus `requirePremiumRpcAccess`. Grepped `domain-gateway/`, `server/alias-rewrite.ts`, and `server/_shared/premium-check.ts` for any generic IP-keyed limiter applied to this route — none found. No per-IP bucket exists to fix; issue no longer applies to current code.
 
 ## Resources
 - PR: #2910

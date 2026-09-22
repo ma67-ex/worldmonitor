@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p1
 issue_id: "042"
 tags: [code-review, security, premium-gating, analytical-frameworks]
@@ -50,3 +50,6 @@ Premium gate is UI-only. The feature degrades gracefully (free users just don't 
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by security-sentinel and architecture-strategist
+
+## Work Log
+- 2026-09-06: Verified against current code — already fixed (fix landed since this issue was filed, tracker was stale). No code change needed.

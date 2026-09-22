@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "014"
 tags: [code-review, deep-forecast, simulation-package, performance]
@@ -65,3 +65,4 @@ Effort: Tiny | Risk: Low
 ## Work Log
 
 - 2026-03-24: Found by compound-engineering:review:performance-oracle in PR #2204 review
+- 2026-09-06: Already fixed. `buildSimulationPackageEntities` builds `allForecastIdSet` (a `Set`) before the actor registry loop and uses `.some((id) => allForecastIdSet.has(id))` — Fix 1 confirmed at scripts/seed-forecasts.mjs:13038-13040. `isMaritimeChokeEnergyCandidate` no longer exists under that name; the equivalent bucket-membership check in `buildSimulationPackageConstraints` uses `bucketArr.includes(...)` (plain array), not `new Set` — Fix 2 pattern confirmed at scripts/seed-forecasts.mjs:13233-13236. No code change needed.

@@ -2,10 +2,10 @@
 // Actor scoring extracts ActorState entries from forecast case files.
 // Phase 0: lightweight extraction. Phase 1+ adds dedicated actor tracking.
 
-import { clip, num } from './_helpers.mjs';
+import { clip, num, round, getCaseFileText } from './_helpers.mjs';
 // Use scripts/shared mirror (not repo-root shared/): Railway service has
 // rootDirectory=scripts so ../../shared/ escapes the deploy root.
-import { REGIONS } from '../shared/geography.js';
+import { getRegion } from '../shared/geography.js';
 
 const ALIASES = {
   iran: 'Iran', irgc: 'IRGC', tehran: 'Iran',
@@ -26,8 +26,11 @@ const ALIASES = {
  * @returns {{ actors: import('../../shared/regions.types.js').ActorState[]; edges: import('../../shared/regions.types.js').LeverageEdge[] }}
  */
 export function scoreActors(regionId, sources) {
-  const region = REGIONS.find((r) => r.id === regionId);
-  if (!region) return { actors: [], edges: [] };
+  // Consistent contract across compute modules: throw on unknown region
+  // rather than silently returning empty — the seed orchestrator's per-region
+  // try/catch already counts this as a region failure (issue #182).
+  const region = getRegion(regionId);
+  if (!region) throw new Error(`Unknown region: ${regionId}`);
 
   const fc = sources['forecast:predictions:v2'];
   const forecasts = Array.isArray(fc?.predictions) ? fc.predictions : [];
@@ -38,7 +41,7 @@ export function scoreActors(regionId, sources) {
 
   const counts = new Map(); // canonical name -> { mentions, leverageDomains, evidenceIds }
   for (const f of inRegion) {
-    const text = JSON.stringify(f?.caseFile ?? f?.signals ?? {}).toLowerCase();
+    const text = getCaseFileText(f);
     for (const [needle, canonical] of Object.entries(ALIASES)) {
       if (text.includes(needle)) {
         const entry = counts.get(canonical) ?? { mentions: 0, domains: new Set(), evidence: [] };
@@ -90,8 +93,4 @@ function inferRole(name, entry) {
   if (stabilizers.has(name)) return 'stabilizer';
   if (entry.domains.has('diplomatic')) return 'broker';
   return 'swing';
-}
-
-function round(n) {
-  return Math.round(n * 1000) / 1000;
 }

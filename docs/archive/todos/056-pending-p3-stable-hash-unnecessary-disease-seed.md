@@ -45,3 +45,4 @@ Generate IDs from a truncated, URL-encoded version of the title + date without a
 ## Work Log
 
 - 2026-03-27: Identified by simplicity-reviewer agent during PR #2375 review.
+- 2026-09-06: Left pending — the codebase has since been refactored so `stableHash` and the ID-building logic (`mapItem`) no longer live in `scripts/seed-disease-outbreaks.mjs`; they were extracted to `scripts/_disease-outbreaks-helpers.mjs` for test coverage (see that file's header comment). `scripts/seed-disease-outbreaks.mjs` itself has no `stableHash` call to remove. This assignment's file scope was limited to `scripts/seed-disease-outbreaks.mjs` + `scripts/ais-relay.cjs`, so no edit was made to the helpers file. A real fix here needs a scoped pass on `scripts/_disease-outbreaks-helpers.mjs` (verify WHO link slugs are stable enough to key Redis dedup/history, and update its test file) — not done in this pass.

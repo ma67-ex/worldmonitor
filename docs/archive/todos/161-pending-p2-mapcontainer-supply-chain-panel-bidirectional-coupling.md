@@ -53,6 +53,7 @@ _Apply Option A in a follow-up PR after P1 issues (#155) are fixed. The coupling
 
 ## Work Log
 - 2026-04-10: Identified by architecture-strategist during PR #2910 review
+- 2026-09-06: Still present (dependency #155 not found in tracker — assessed standalone). `setSupplyChainPanel`/`supplyChainPanel` field/`showScenarioSummary`/`hideScenarioSummary` calls confirmed live in `MapContainer.ts` (~1644-1682), wired from `panel-layout.ts` (lines 2132-2142, 2776-2779). Skipped: Option A requires more than a callback restructure — `activateScenario` would need a return value threaded back through `panel-layout.ts` to preserve the free-user gate check (currently silently skips the panel update on gate-hit), and removing the eager `setSupplyChainPanel` re-wiring at line 2776 unwinds a documented load-ordering optimization (U3 #4459, see comment at panel-layout.ts:2040-2048) where the panel can be constructed before the map. Left pending — needs a real refactor pass, not a backlog sweep.
 
 ## Resources
 - PR: #2910

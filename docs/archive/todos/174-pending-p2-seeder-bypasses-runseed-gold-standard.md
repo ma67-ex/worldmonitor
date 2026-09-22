@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 174
 tags: [code-review, phase-0, regional-intelligence, seeder, redis, gold-standard]
@@ -68,6 +68,22 @@ The current seeder fails 1, 2, 3 above. The summary key at line 206 violates #1 
 - [ ] Health check still reports OK after a partial failure.
 
 ## Work Log
+
+### 2026-09-06
+Retrofitted per Option 1 (full `runSeed()` migration remains out of scope —
+this is still a genuinely multi-key seeder, see #174 Option 2 analysis,
+unchanged from the original assessment). Finding #2 (unconditional
+`writeExtraKeyWithMeta` on `persisted=0`) was already fixed prior to this
+sweep — the meta write already lives inside `if (failed === 0 && persisted >
+0)`. Fixed the remaining 3:
+1. Added `acquireLockSafely('regional-snapshots', runId, 4min)` /
+   `releaseLock` around all of `main()` (lock TTL exceeds the seed bundle's
+   own 180s per-script timeout so a timed-out run's lock self-clears).
+2. Bumped summary TTL from 12h (2x cron) to 24h (4x cron cadence).
+3. Added `extendExistingTtl` on each region's `:latest` key when that
+   region's compute throws, so a transient failure doesn't let good data
+   expire before the next 6h tick.
+verified: `npx tsx --test tests/regional-snapshot.test.mjs tests/regional-snapshot-regime-history.test.mjs` — pass; `node --check scripts/seed-regional-snapshots.mjs` — pass.
 
 ## Resources
 

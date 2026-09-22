@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "053"
 tags: [code-review, reliability, seeding, yahoo-finance, rate-limiting, pr-2375]
@@ -49,3 +49,4 @@ Isolate shipping stress seeding to its own process so it cannot interfere with m
 ## Work Log
 
 - 2026-03-27: Identified by code-review agents during PR #2375 review.
+- 2026-09-06: Confirmed no shared `yahooGate` existed anywhere in `scripts/ais-relay.cjs` (grepped, none found). Fixed at the root: `fetchYahooChartDirect` (the single function every Yahoo caller already routes through — market quotes, commodities, sector, china index, and shipping stress) now serializes all calls through one module-level promise chain, so no code changes were needed in any individual caller. `node --check scripts/ais-relay.cjs` passes; `tests/relay-boot-seed-freshness-guard.test.mjs` (covers ShippingStress boot-seed wiring) and `tests/china-country-stock-index-seed.test.mjs` (covers another `fetchYahooChartDirect` caller) both pass unchanged.

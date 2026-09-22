@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "067"
 tags: [code-review, performance, analytical-frameworks]
@@ -38,3 +38,4 @@ const isPremium = frameworkRaw ? await isCallerPremium(ctx.request) : false;
 
 ## Work Log
 - 2026-03-28: Identified by performance-oracle during PR #2386 review
+- 2026-09-06: Partial fix. `deduct-situation.ts:113-115` now gates `isCallerPremium` behind a non-empty `framework` field (the only use of `isPremium` in that handler). Left `summarize-article.ts` and `get-country-intel-brief.ts` unchanged: in both, `isPremium` is load-bearing beyond the field check — `summarize-article.ts` uses it for the `requiresPremium` billing-denial gate on every non-translate request, and `get-country-intel-brief.ts` uses it to decide whether to honor caller-supplied `context` too (not just `framework`). Gating those calls behind field-emptiness would skip required auth/billing checks — a behavior change beyond this issue's mechanical scope. `npx tsx --test tests/redis-caching.test.mjs` and `npm run typecheck:api` pass.

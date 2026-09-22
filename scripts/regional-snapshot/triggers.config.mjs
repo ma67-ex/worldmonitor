@@ -2,8 +2,9 @@
 // Trigger threshold configuration. Each trigger is a structured assertion
 // against a metric, evaluated by trigger-evaluator.mjs.
 //
-// See docs/internal/pro-regional-intelligence-appendix-scoring.md
-// "Trigger Threshold Examples" for the canonical table.
+// See the "Trigger Threshold Examples" table in the Regional Intelligence
+// scoring appendix (ships to docs/internal/ in the main repo; not present in
+// every worktree — see PR #2940 description).
 
 /** @type {Array<{
  *   id: string;
@@ -98,7 +99,7 @@ export const TRIGGER_DEFS = [
     regionId: 'europe',
     scenario_lane: 'escalation',
     threshold: {
-      metric: 'theater:eastern_europe:russia_vessel_count',
+      metric: 'theater:eastern-europe:russia_vessel_count',
       operator: 'delta_gt',
       value: 5,
       window_minutes: 1440,

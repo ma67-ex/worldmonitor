@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 173
 tags: [code-review, phase-0, regional-intelligence, performance, redis]
@@ -55,6 +55,19 @@ Each region's dedup key is namespaced by region, so there is no cross-region wri
 - [ ] Existing tests still pass.
 
 ## Work Log
+
+### 2026-09-06
+Fixed via Option 1. `main()` in `scripts/seed-regional-snapshots.mjs` now
+splits into two phases: Phase A computes every region's snapshot sequentially
+(kept sequential deliberately — each call makes one narrative LLM request,
+and firing 8 concurrently would raise provider rate-limit risk for a
+wall-clock win that doesn't matter since the LLM call, not persist, dominates
+runtime), then Phase B persists all successfully-computed snapshots via
+`Promise.allSettled(computed.map(({snapshot}) => persistSnapshot(snapshot)))`
+— region-scoped dedup + write keys make this safe. Rejected persists are
+counted as failures without blocking siblings; alert emission and
+regime-history recording moved into the Phase B loop, unchanged otherwise.
+verified: `npx tsx --test tests/regional-snapshot.test.mjs tests/regional-snapshot-regime-history.test.mjs tests/regional-snapshot-alerts.test.mjs` — pass (all green); `node --check scripts/seed-regional-snapshots.mjs` — pass.
 
 ## Resources
 

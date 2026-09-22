@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 187
 tags: [code-review, phase-0, regional-intelligence, dead-code, convention]
@@ -52,6 +52,19 @@ Files:
 - [ ] Or document why the mirror must exist forward-compatibly
 
 ## Work Log
+
+### 2026-09-06
+Already fixed — the premise is factually incorrect for the current import
+graph, not just stale docs. `scripts/regional-snapshot/*.mjs` import
+`../shared/geography.js`, which resolves to `scripts/shared/geography.js`
+(the mirror, per the Railway rootDirectory=scripts convention) — NOT the
+repo-root `shared/geography.js`. That mirrored `scripts/shared/geography.js`
+has its own `import iso2ToRegionData from './iso2-to-region.json'`, which
+resolves to `scripts/shared/iso2-to-region.json` — i.e. exactly the file this
+issue calls "orphaned" IS the runtime dependency of the geography mirror that
+Phase 0 actually loads on Railway. It is not orphaned; it's one level removed
+from the compute modules via the geography mirror. No code change made.
+verified: `head -30 scripts/shared/geography.js | grep iso2-to-region` — confirms the relative import; `npx tsx --test tests/scripts-shared-mirror.test.mjs` — pass (mirror still enforced and correct).
 
 ## Resources
 - PR #2940

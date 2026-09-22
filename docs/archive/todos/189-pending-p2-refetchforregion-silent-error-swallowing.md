@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 189
 tags: [code-review, phase-0, regional-intelligence, error-handling, ui]
@@ -56,6 +56,18 @@ Pattern to mirror: the initial load's setDataBadge call on the same file.
 - [ ] User sees a clear failed-to-load indicator
 
 ## Work Log
+
+### 2026-09-06
+Already fixed / moot — same root cause as #178. `ForecastPanel.ts` has no
+`refetchForRegion` method and region-pill clicks fire no RPC at all (region
+filtering is client-side against the already-loaded forecast list). The only
+network call in the file, `loadCaseFiles()`, already has non-empty error
+handling appropriate to its own context (leaves the dossier pane empty and
+clears the promise so a later expand can retry — it doesn't set a data badge
+because it's a per-row dossier fetch, not the panel's primary data source).
+There is no empty catch block silently swallowing a region-refetch error
+because there is no region-refetch. No code change made.
+verified: `grep -n "catch" src/components/ForecastPanel.ts` — only `loadCaseFiles()`'s non-empty catch remains; `npx tsc --noEmit -p tsconfig.json` — pass.
 
 ## Resources
 - PR #2940

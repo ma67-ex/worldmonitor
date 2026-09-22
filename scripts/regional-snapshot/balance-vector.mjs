@@ -1,18 +1,19 @@
 // @ts-check
 // Balance vector computation. Deterministic, no LLM.
-// Mirrors the per-axis formulas in
-// docs/internal/pro-regional-intelligence-appendix-scoring.md.
+// Mirrors the per-axis formulas in the Regional Intelligence scoring appendix
+// (ships to docs/internal/ in the main repo; not present in every worktree —
+// see PR #2940 description).
 
-import { clip, num, weightedAverage, percentile } from './_helpers.mjs';
+import { clip, num, round, weightedAverage, percentile, getCaseFileText } from './_helpers.mjs';
 import { sanitizeEvidenceString } from './_sanitize.mjs';
 import { CII_RISK_SCORE_CACHE_KEYS } from '../_cii-risk-cache-keys.mjs';
 // Use scripts/shared mirror (not repo-root shared/): Railway service has
 // rootDirectory=scripts so ../../shared/ escapes the deploy root. See #2954.
 import {
+  getRegion,
   getRegionCountries,
   getRegionCorridors,
   countryCriticality,
-  REGIONS,
   isSignalInRegion,
 } from '../shared/geography.js';
 import iso3ToIso2Raw from '../shared/iso3-to-iso2.json' with { type: 'json' };
@@ -36,7 +37,7 @@ export { SCORING_VERSION };
  * @returns {{ vector: import('../../shared/regions.types.js').BalanceVector }}
  */
 export function computeBalanceVector(regionId, sources) {
-  const region = REGIONS.find((r) => r.id === regionId);
+  const region = getRegion(regionId);
   if (!region) throw new Error(`Unknown region: ${regionId}`);
   const countries = new Set(getRegionCountries(regionId));
   const corridors = getRegionCorridors(regionId);
@@ -106,11 +107,15 @@ function computeCoercivePressure(region, sources, drivers) {
   }).length;
   const cForecast = clip(risingMilitary / 5, 0, 1);
 
-  // Vessel surge and conflict event surrogates default to mid-low when no data
-  const cVessel = 0;
   const cConflict = clip(inRegion.length / 50, 0, 1);
 
-  const score = 0.30 * cVessel + 0.30 * cSignal + 0.25 * cConflict + 0.15 * cForecast;
+  // Vessel surge surrogate isn't available in Phase 0 (no AIS coverage yet).
+  // Drop the term and renormalize the remaining weights (0.30+0.25+0.15=0.70)
+  // to sum to 1.0, so coercive_pressure can still reach thresholds like
+  // escalation_ladder's >0.8 without vessel data. The un-renormalized version
+  // capped coercive_pressure at 0.70, making escalation_ladder structurally
+  // unreachable (issue #191 #7).
+  const score = (0.30 * cSignal + 0.25 * cConflict + 0.15 * cForecast) / 0.70;
 
   if (cSignal > 0.05) {
     drivers.push({
@@ -299,13 +304,13 @@ function computeAllianceCohesion(regionId, sources, drivers) {
   // No headline classification yet (deferred to Phase 1 LLM batch tagging).
   const fc = sources['forecast:predictions:v2'];
   const forecasts = Array.isArray(fc?.predictions) ? fc.predictions : [];
-  const region = REGIONS.find((r) => r.id === regionId);
+  const region = getRegion(regionId);
   const inRegion = forecasts.filter((f) => {
     const fRegion = String(f?.region ?? '').toLowerCase();
     return fRegion.includes(String(region?.forecastLabel ?? '').toLowerCase());
   });
   const allianceRefs = inRegion.filter((f) => {
-    const cf = JSON.stringify(f?.caseFile ?? {}).toLowerCase();
+    const cf = getCaseFileText(f);
     return /alliance|treaty|coordination|coalition|nato|gcc/.test(cf);
   }).length;
 
@@ -390,8 +395,4 @@ function computeEnergyLeverage(countries, drivers) {
   });
 
   return clip(score, 0, 1);
-}
-
-function round(n) {
-  return Math.round(n * 1000) / 1000;
 }

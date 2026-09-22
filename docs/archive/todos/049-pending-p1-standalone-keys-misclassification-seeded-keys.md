@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p1
 issue_id: "049"
 tags: [code-review, security, health, seeding, pr-2375]
@@ -46,3 +46,6 @@ Keep in STANDALONE_KEYS but add staleness checks. This is a non-fix; STANDALONE_
 ## Work Log
 
 - 2026-03-27: Identified by code-review agents during PR #2375 review.
+
+## Work Log
+- 2026-09-06: Verified against current code — already fixed (fix landed since this issue was filed, tracker was stale). No code change needed.

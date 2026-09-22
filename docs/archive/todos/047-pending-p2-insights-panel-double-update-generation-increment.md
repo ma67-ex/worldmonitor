@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "047"
 tags: [code-review, quality, analytical-frameworks, insights-panel]
@@ -44,3 +44,4 @@ Restructure `updateInsights` to accept an optional gen parameter.
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by kieran-typescript-reviewer and performance-oracle
+- 2026-09-06: Already fixed — subscription handler at `InsightsPanel.ts:69-71` only calls `updateInsights()`, no manual `updateGeneration++`; no code change needed.

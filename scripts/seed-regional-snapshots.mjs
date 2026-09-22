@@ -13,9 +13,9 @@
  * 'global' region is skipped inside the generator. Provider + model flow
  * through SnapshotMeta.narrative_provider / narrative_model.
  *
- * Architecture: docs/internal/pro-regional-intelligence-upgrade.md
- * Engineering:  docs/internal/pro-regional-intelligence-appendix-engineering.md
- * Scoring:      docs/internal/pro-regional-intelligence-appendix-scoring.md
+ * Architecture, engineering, and scoring: the Regional Intelligence upgrade
+ * spec and its appendices (ship to docs/internal/ in the main repo; not
+ * present in every worktree — see PR #2940 description).
  *
  * Run via the seed bundle (recommended) or directly:
  *   node scripts/seed-regional-snapshots.mjs
@@ -23,12 +23,19 @@
 
 import { pathToFileURL } from 'node:url';
 
-import { loadEnvFile, getRedisCredentials, writeExtraKeyWithMeta } from './_seed-utils.mjs';
+import {
+  loadEnvFile,
+  getRedisCredentials,
+  writeExtraKeyWithMeta,
+  acquireLockSafely,
+  releaseLock,
+  extendExistingTtl,
+} from './_seed-utils.mjs';
 // Use scripts/shared mirror rather than the repo-root shared/ folder: the
 // Railway bundle service sets rootDirectory=scripts, so `../shared/` resolves
 // to filesystem / on deploy and the import fails with ERR_MODULE_NOT_FOUND.
 // scripts/shared/* is kept in sync with shared/* via tests.
-import { REGIONS, GEOGRAPHY_VERSION } from './shared/geography.js';
+import { REGIONS, GEOGRAPHY_VERSION, getRegion } from './shared/geography.js';
 
 import { computeBalanceVector, SCORING_VERSION } from './regional-snapshot/balance-vector.mjs';
 import { buildRegimeState } from './regional-snapshot/regime-derivation.mjs';
@@ -41,7 +48,7 @@ import { buildPreMeta, buildFinalMeta } from './regional-snapshot/snapshot-meta.
 import { diffRegionalSnapshot, inferTriggerReason } from './regional-snapshot/diff-snapshot.mjs';
 import { persistSnapshot, readLatestSnapshot } from './regional-snapshot/persist-snapshot.mjs';
 import { ALL_INPUT_KEYS, ALL_META_KEYS } from './regional-snapshot/freshness.mjs';
-import { generateSnapshotId, unwrapEnvelope } from './regional-snapshot/_helpers.mjs';
+import { generateSnapshotId, unwrapEnvelope, getCaseFileText } from './regional-snapshot/_helpers.mjs';
 import { generateRegionalNarrative, emptyNarrative } from './regional-snapshot/narrative.mjs';
 import { emitRegionalAlerts } from './regional-snapshot/alert-emitter.mjs';
 import { buildMobilityState } from './regional-snapshot/mobility.mjs';
@@ -101,7 +108,9 @@ async function readAllInputs() {
  * Run the full compute pipeline for one region in the canonical order.
  *
  *   1. (sources already read by caller)
- *   2. pre_meta
+ *   2. (pre_meta already computed once by caller — see main(); it depends
+ *      only on sources/metaSources, not regionId, so hoisting it out of this
+ *      per-region function avoids computing the identical value 8x)
  *   3. balance vector
  *   4. actors
  *   5. triggers (BEFORE scenarios)
@@ -110,18 +119,21 @@ async function readAllInputs() {
  *   8. mobility (v1 adapter — airports, airspace, reroute_intensity, NOTAMs)
  *   9. evidence
  *   10. snapshot_id
- *   11. read previous + derive regime
+ *   11. derive regime from the caller-supplied previous snapshot (batch-read
+ *       once for all regions in main() — see readAllInputs/main)
  *   12. build snapshot-for-prompt (no narrative yet)
  *   13. LLM narrative call (ship-empty on failure; skipped for 'global')
  *   14. splice narrative into tentative snapshot
  *   15. diff → trigger_reason
  *   16. final_meta with narrative_provider/narrative_model
+ *
+ * @param {string} regionId
+ * @param {Record<string, any>} sources
+ * @param {Record<string, any>} metaSources
+ * @param {ReturnType<typeof buildPreMeta>['pre']} pre - precomputed once in main()
+ * @param {import('../shared/regions.types.js').RegionalSnapshot | null} previousSnapshot - batch-read once in main()
  */
-async function computeSnapshot(regionId, sources, metaSources = {}) {
-  // Step 2: pre-meta (metaSources carries seed-meta:*.fetchedAt for inputs
-  // whose data payloads have no top-level timestamp — see freshness.mjs).
-  const { pre } = buildPreMeta(sources, SCORING_VERSION, GEOGRAPHY_VERSION, metaSources);
-
+async function computeSnapshot(regionId, sources, metaSources = {}, pre, previousSnapshot = null) {
   // Step 3: balance vector
   const { vector: balance } = computeBalanceVector(regionId, sources);
 
@@ -149,9 +161,10 @@ async function computeSnapshot(regionId, sources, metaSources = {}) {
   // Step 10: snapshot_id
   const snapshotId = generateSnapshotId();
 
-  // Step 11: read previous + derive regime. Must happen before narrative
+  // Step 11: derive regime from the previous snapshot (batch-read once for
+  // all regions in main() — see issue #172). Must happen before narrative
   // generation because the prompt consumes the regime label.
-  const previous = await readLatestSnapshot(regionId).catch(() => null);
+  const previous = previousSnapshot;
   const previousLabel = previous?.regime?.label ?? '';
   const regime = buildRegimeState(balance, previousLabel, '');
 
@@ -179,7 +192,7 @@ async function computeSnapshot(regionId, sources, metaSources = {}) {
   // Step 13: LLM narrative. Ship-empty on any failure — the snapshot remains
   // valuable without the narrative, and the narrative generator itself
   // never throws. 'global' is skipped inside the generator.
-  const region = REGIONS.find((r) => r.id === regionId);
+  const region = getRegion(regionId);
   const narrativeResult = region
     ? await generateRegionalNarrative(region, snapshotForPrompt, evidence)
     : { narrative: emptyNarrative(), provider: '', model: '' };
@@ -219,27 +232,124 @@ async function computeSnapshot(regionId, sources, metaSources = {}) {
   return { snapshot, diff };
 }
 
+const SNAPSHOT_LOCK_DOMAIN = 'regional-snapshots';
+// Covers worst-case sequential narrative-call runtime and exceeds the seed
+// bundle's own 180s per-script timeout, so a timed-out run's lock self-clears
+// before the next cron tick can be blocked by a stale holder (issue #174).
+const SNAPSHOT_LOCK_TTL_MS = 4 * 60 * 1000;
+// TTL for the summary key: 4x the 6h cron cadence (was 12h/2x — issue #174).
+const SUMMARY_TTL_SECONDS = 24 * 60 * 60;
+// Matches persist-snapshot.mjs's SNAPSHOT_TTL_SECONDS. Used to extend a
+// region's last-known-good `:latest` pointer when compute fails transiently,
+// so a single bad cron tick doesn't let good data expire (issue #174).
+const REGION_TTL_EXTEND_SECONDS = 90 * 24 * 60 * 60;
+
+/**
+ * Named-argument wrapper around writeExtraKeyWithMeta's positional signature
+ * `(key, data, ttlSec, recordCount, metaKey, metaTtlSec)`, where the ttlSec
+ * value is passed twice (slots 3 and 6) — a foot-gun for a future refactor
+ * that reorders args by position (issue #183). This is the only call site in
+ * this file, so both ttl slots always share one value.
+ */
+function writeSummaryWithMeta({ key, data, ttlSec, recordCount, metaKey }) {
+  return writeExtraKeyWithMeta(key, data, ttlSec, recordCount, metaKey, ttlSec);
+}
+
 async function main() {
   const t0 = Date.now();
   console.log(`[regional-snapshots] Starting compute for ${REGIONS.length} regions`);
 
-  // Step 1: read all inputs once (shared across regions), plus seed-meta
-  // companions for inputs whose payloads lack top-level timestamps.
-  const { sources, metaSources } = await readAllInputs();
-  const presentKeys = Object.entries(sources).filter(([, v]) => v !== null).length;
-  const presentMetaKeys = Object.entries(metaSources).filter(([, v]) => v !== null).length;
-  console.log(`[regional-snapshots] Read inputs: ${presentKeys}/${ALL_INPUT_KEYS.length} keys present, ${presentMetaKeys}/${ALL_META_KEYS.length} meta keys present`);
+  const runId = `${t0}-${Math.random().toString(16).slice(2, 8)}`;
+  const lockResult = await acquireLockSafely(SNAPSHOT_LOCK_DOMAIN, runId, SNAPSHOT_LOCK_TTL_MS);
+  if (!lockResult.locked) {
+    if (lockResult.skipped) {
+      console.warn('[regional-snapshots] Redis unavailable during lock acquisition; skipping run');
+    } else {
+      console.log('[regional-snapshots] Skipped: another run holds the lock');
+    }
+    return;
+  }
 
-  let persisted = 0;
-  let skipped = 0;
-  let failed = 0;
-  const summary = [];
-  const failedRegions = [];
+  try {
+    // Step 1: read all inputs once (shared across regions), plus seed-meta
+    // companions for inputs whose payloads lack top-level timestamps.
+    const { sources, metaSources } = await readAllInputs();
+    const presentKeys = Object.entries(sources).filter(([, v]) => v !== null).length;
+    const presentMetaKeys = Object.entries(metaSources).filter(([, v]) => v !== null).length;
+    console.log(`[regional-snapshots] Read inputs: ${presentKeys}/${ALL_INPUT_KEYS.length} keys present, ${presentMetaKeys}/${ALL_META_KEYS.length} meta keys present`);
 
-  for (const region of REGIONS) {
-    try {
-      const { snapshot, diff } = await computeSnapshot(region.id, sources, metaSources);
-      const result = await persistSnapshot(snapshot);
+    // Pre-meta depends only on sources/metaSources, not regionId — compute
+    // once instead of 8x inside the per-region loop (issue #192).
+    const { pre } = buildPreMeta(sources, SCORING_VERSION, GEOGRAPHY_VERSION, metaSources);
+
+    // Precompute the searchable case-file text once per forecast (not once
+    // per region per compute module) — actor-scoring, balance-vector, and
+    // scenario-builder all substring-search the same text via
+    // getCaseFileText(), which memoizes onto f._caseFileText (issue #190).
+    const fc = sources['forecast:predictions:v2'];
+    if (Array.isArray(fc?.predictions)) {
+      for (const f of fc.predictions) getCaseFileText(f);
+    }
+
+    // Batch-read every region's previous snapshot in parallel instead of
+    // sequentially inside the per-region loop — regions are independent
+    // (region-scoped keys), so 16 serial round-trips become concurrent
+    // (issue #172).
+    const previousByRegion = new Map();
+    await Promise.all(REGIONS.map(async (region) => {
+      const prev = await readLatestSnapshot(region.id).catch(() => null);
+      previousByRegion.set(region.id, prev);
+    }));
+
+    let persisted = 0;
+    let skipped = 0;
+    let failed = 0;
+    const summary = [];
+    const failedRegions = [];
+
+    // Phase A: compute every region's snapshot. Sequential on purpose — each
+    // call makes one narrative LLM request, and firing all 8 concurrently
+    // would multiply provider rate-limit risk for a wall-clock win that
+    // doesn't matter (the LLM call dominates runtime, not the Redis I/O
+    // parallelized below).
+    const computed = [];
+    for (const region of REGIONS) {
+      try {
+        const { snapshot, diff } = await computeSnapshot(region.id, sources, metaSources, pre, previousByRegion.get(region.id));
+        computed.push({ region, snapshot, diff });
+      } catch (err) {
+        failed += 1;
+        failedRegions.push({ region: region.id, error: String(/** @type {any} */ (err)?.message ?? err) });
+        console.error(`[${region.id}] FAILED: ${/** @type {any} */ (err)?.message ?? err}`);
+        // Best-effort: extend this region's last-known-good TTL so a
+        // transient compute failure doesn't let good data expire before the
+        // next cron tick (issue #174).
+        await extendExistingTtl([`intelligence:snapshot:v1:${region.id}:latest`], REGION_TTL_EXTEND_SECONDS);
+      }
+    }
+
+    // Phase B: persist all successfully computed snapshots in parallel — each
+    // region's dedup key and write keys are region-scoped, so writes are
+    // fully independent (issue #173).
+    const persistOutcomes = await Promise.allSettled(
+      computed.map(async ({ region, snapshot, diff }) => ({
+        region,
+        snapshot,
+        diff,
+        result: await persistSnapshot(snapshot),
+      })),
+    );
+
+    for (const outcome of persistOutcomes) {
+      if (outcome.status === 'rejected') {
+        failed += 1;
+        const reason = /** @type {any} */ (outcome.reason);
+        failedRegions.push({ region: '?', error: String(reason?.message ?? reason) });
+        console.error(`[regional-snapshots] persist threw: ${reason?.message ?? reason}`);
+        continue;
+      }
+
+      const { region, snapshot, diff, result } = outcome.value;
       if (result.persisted) {
         persisted += 1;
         summary.push({
@@ -280,55 +390,51 @@ async function main() {
         skipped += 1;
         console.log(`[${region.id}] skipped: ${result.reason}`);
       }
-    } catch (err) {
-      failed += 1;
-      failedRegions.push({ region: region.id, error: String(/** @type {any} */ (err)?.message ?? err) });
-      console.error(`[${region.id}] FAILED: ${/** @type {any} */ (err)?.message ?? err}`);
     }
-  }
 
-  // Health policy:
-  //   1. persisted > 0 && failed === 0: write the fresh summary + seed-meta.
-  //   2. persisted === 0 && failed === 0: all regions dedup-skipped (e.g., a
-  //      retry within the 15min idempotency bucket). Preserve the prior good
-  //      summary by skipping the write entirely. api/health.js classifies an
-  //      empty `regions: []` + `recordCount: 0` as EMPTY_DATA which flips the
-  //      overall health to red, so overwriting on a no-op retry is actively
-  //      harmful. The 12h maxStaleMin budget lets the next full run refresh
-  //      the payload naturally.
-  //   3. failed > 0: skip the meta write so /api/health flips to STALE after
-  //      the maxStaleMin budget on persistent degradation instead of silently
-  //      reporting OK. The bundle runner's freshness gate retries next cycle.
-  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-  if (failed === 0 && persisted > 0) {
-    const ttlSec = 12 * 60 * 60; // 12h, 2x the 6h cron cadence
-    await writeExtraKeyWithMeta(
-      `intelligence:regional-snapshots:summary:v1`,
-      { regions: summary, generatedAt: Date.now() },
-      ttlSec,
-      persisted,
-      `seed-meta:${SEED_META_KEY}`,
-      ttlSec,
-    );
-    console.log(`[regional-snapshots] Done in ${elapsed}s: persisted=${persisted} skipped=${skipped} failed=0`);
-    return;
-  }
+    // Health policy:
+    //   1. persisted > 0 && failed === 0: write the fresh summary + seed-meta.
+    //   2. persisted === 0 && failed === 0: all regions dedup-skipped (e.g., a
+    //      retry within the 15min idempotency bucket). Preserve the prior good
+    //      summary by skipping the write entirely. api/health.js classifies an
+    //      empty `regions: []` + `recordCount: 0` as EMPTY_DATA which flips the
+    //      overall health to red, so overwriting on a no-op retry is actively
+    //      harmful. The SUMMARY_TTL_SECONDS budget lets the next full run
+    //      refresh the payload naturally.
+    //   3. failed > 0: skip the meta write so /api/health flips to STALE after
+    //      the maxStaleMin budget on persistent degradation instead of silently
+    //      reporting OK. The bundle runner's freshness gate retries next cycle.
+    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+    if (failed === 0 && persisted > 0) {
+      await writeSummaryWithMeta({
+        key: 'intelligence:regional-snapshots:summary:v1',
+        data: { regions: summary, generatedAt: Date.now() },
+        ttlSec: SUMMARY_TTL_SECONDS,
+        recordCount: persisted,
+        metaKey: `seed-meta:${SEED_META_KEY}`,
+      });
+      console.log(`[regional-snapshots] Done in ${elapsed}s: persisted=${persisted} skipped=${skipped} failed=0`);
+      return;
+    }
 
-  if (failed === 0) {
-    // All regions dedup-skipped. Preserve the prior summary and return cleanly.
-    console.log(`[regional-snapshots] Done in ${elapsed}s: persisted=0 skipped=${skipped} failed=0 (all dedup-skipped, prior summary preserved)`);
-    return;
-  }
+    if (failed === 0) {
+      // All regions dedup-skipped. Preserve the prior summary and return cleanly.
+      console.log(`[regional-snapshots] Done in ${elapsed}s: persisted=0 skipped=${skipped} failed=0 (all dedup-skipped, prior summary preserved)`);
+      return;
+    }
 
-  console.error(`[regional-snapshots] Done in ${elapsed}s: persisted=${persisted} skipped=${skipped} failed=${failed}`);
-  for (const f of failedRegions) {
-    console.error(`  [${f.region}] ${f.error}`);
+    console.error(`[regional-snapshots] Done in ${elapsed}s: persisted=${persisted} skipped=${skipped} failed=${failed}`);
+    for (const f of failedRegions) {
+      console.error(`  [${f.region}] ${f.error}`);
+    }
+    console.error('[regional-snapshots] Skipping seed-meta write due to partial failure. /api/health will reflect degradation after the stale budget.');
+    // Throw instead of process.exit(1) so callers (e.g. seed-bundle-regional.mjs)
+    // can catch and continue with other seeders. The isDirectRun guard below still
+    // calls process.exit(1) for standalone invocations.
+    throw new Error(`regional-snapshots: ${failed} region(s) failed`);
+  } finally {
+    await releaseLock(SNAPSHOT_LOCK_DOMAIN, runId);
   }
-  console.error('[regional-snapshots] Skipping seed-meta write due to partial failure. /api/health will reflect degradation after 12h.');
-  // Throw instead of process.exit(1) so callers (e.g. seed-bundle-regional.mjs)
-  // can catch and continue with other seeders. The isDirectRun guard below still
-  // calls process.exit(1) for standalone invocations.
-  throw new Error(`regional-snapshots: ${failed} region(s) failed`);
 }
 
 const isDirectRun = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

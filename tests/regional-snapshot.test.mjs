@@ -412,6 +412,29 @@ describe('evaluateTriggers', () => {
   });
 });
 
+// ────────────────────────────────────────────────────────────────────────────
+// Unknown-region contract (issue #182): every compute module throws instead
+// of some throwing and others silently returning empty.
+// ────────────────────────────────────────────────────────────────────────────
+
+describe('unknown region contract', () => {
+  it('computeBalanceVector throws on unknown region', () => {
+    assert.throws(() => computeBalanceVector('nowhere', {}), /Unknown region/);
+  });
+
+  it('scoreActors throws on unknown region', () => {
+    assert.throws(() => scoreActors('nowhere', {}), /Unknown region/);
+  });
+
+  it('buildScenarioSets throws on unknown region', () => {
+    assert.throws(() => buildScenarioSets('nowhere', {}, { active: [], watching: [], dormant: [] }), /Unknown region/);
+  });
+
+  it('collectEvidence throws on unknown region', () => {
+    assert.throws(() => collectEvidence('nowhere', {}), /Unknown region/);
+  });
+});
+
 describe('isCloseToThreshold', () => {
   it('treats lt thresholds as watching only before the breach', () => {
     assert.equal(isCloseToThreshold(0.28, { operator: 'lt', value: 0.3 }), false);
@@ -521,7 +544,7 @@ describe('resolveTransmissions', () => {
       dormant: [],
     };
     const out = resolveTransmissions('mena', triggers);
-    assert.equal(out.length, 0); // Taiwan template doesn't list MENA in affected regions... let's check actual output
+    assert.equal(out.length, 0); // Taiwan template doesn't list MENA in its affected regions
 
     const eastAsia = resolveTransmissions('east-asia', triggers);
     assert.ok(eastAsia.length > 0);

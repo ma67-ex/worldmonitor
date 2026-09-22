@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "074"
 tags: [code-review, quality, analytical-frameworks]
@@ -20,3 +20,4 @@ Import the shared constant in `fetch-agentskills.ts`. Note: edge functions (`api
 
 ## Work Log
 - 2026-03-28: Identified by architecture-strategist during PR #2386 review
+- 2026-09-06: Fixed — extracted `MAX_INSTRUCTIONS_LEN` to `shared/analysis-framework-limits.ts` (accessible from both `api/` and `src/`, matching the existing `shared/` pattern used elsewhere in the repo); both `analysis-framework-store.ts` and `_fetch-agentskills.ts` now import it. `npx tsx --test tests/fetch-agentskills.test.mjs` (10/10 pass), `npm run typecheck` and `npm run typecheck:api` pass.

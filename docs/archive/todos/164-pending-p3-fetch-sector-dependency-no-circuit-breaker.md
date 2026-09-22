@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "164"
 tags: [code-review, quality, supply-chain, reliability]
@@ -54,6 +54,7 @@ _Combine A + B: timeout + in-flight dedup. Low-effort, prevents worst-case pile-
 
 ## Work Log
 - 2026-04-10: Identified by kieran-typescript-reviewer during PR #2910 review
+- 2026-09-06: Fixed. Still broken as described. Wrapped `fetchSectorDependency` with a `createCircuitBreaker` instance (same helper already used by `fetchShippingRates`/`fetchChokepointStatus`/`fetchCriticalMinerals` in this file, and by `fetchGlobalTenders` in `global-tenders.ts` for the identical per-request cacheKey pattern), keyed by `${iso2}:${hs2}`, plus `AbortSignal.timeout(3_000)` on the gRPC call (same idiom as `global-tenders.ts`). After 2 failures the breaker cools down and short-circuits further live attempts, satisfying both acceptance criteria without a bespoke timeout/dedup implementation. `npm run typecheck` passes.
 
 ## Resources
 - PR: #2910

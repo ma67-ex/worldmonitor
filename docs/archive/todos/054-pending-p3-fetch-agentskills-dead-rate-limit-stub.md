@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "054"
 tags: [code-review, quality, analytical-frameworks]
@@ -39,3 +39,4 @@ Add a Vercel Firewall rule in the dashboard capping requests per IP per minute f
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by code-simplicity-reviewer
+- 2026-09-06: Already fixed — `api/skills/_fetch-agentskills.ts` has real rate limiting via `checkScopedRateLimit` (no `void ip` stub) and the error string reads "not supported" with no "phase 1" language; no code change needed.

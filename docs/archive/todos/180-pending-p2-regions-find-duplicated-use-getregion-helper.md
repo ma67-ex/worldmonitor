@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 180
 tags: [code-review, phase-0, regional-intelligence, refactor, dry]
@@ -54,6 +54,16 @@ export function getRegion(regionId) { ... }
 - [ ] Tests still pass
 
 ## Work Log
+
+### 2026-09-06
+Fixed. Replaced all inline `REGIONS.find((r) => r.id === regionId)` calls
+with `getRegion(regionId)` in `balance-vector.mjs` (both call sites),
+`evidence-collector.mjs`, `actor-scoring.mjs`, and `scenario-builder.mjs`, and
+dropped the now-unused `REGIONS` import from each. Also fixed the same
+pattern at `scripts/seed-regional-snapshots.mjs`'s narrative call site
+(scope+1, mechanical, same drift class, touched anyway while restructuring
+that function for #172/#173).
+verified: `npx tsx --test tests/regional-snapshot.test.mjs` — pass (90/90); `grep -rn "REGIONS.find" scripts/regional-snapshot/*.mjs scripts/seed-regional-snapshots.mjs` — zero matches.
 
 ## Resources
 - PR #2940

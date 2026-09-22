@@ -6,6 +6,7 @@
 // fills in the final fields after compute completes.
 
 import { classifyInputs, FRESHNESS_REGISTRY, resolveInputTimestamp } from './freshness.mjs';
+import { round } from './_helpers.mjs';
 
 export const MODEL_VERSION = '0.1.0';
 
@@ -142,8 +143,4 @@ export function buildFinalMeta(preMeta, finalFields) {
     narrative_provider: finalFields.narrative_provider ?? '',
     narrative_model: finalFields.narrative_model ?? '',
   };
-}
-
-function round(n) {
-  return Math.round(n * 1000) / 1000;
 }

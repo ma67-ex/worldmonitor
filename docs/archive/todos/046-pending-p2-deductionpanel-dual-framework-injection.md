@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "046"
 tags: [code-review, quality, analytical-frameworks]
@@ -50,3 +50,4 @@ framework: '', // TODO #041: pass fw?.systemPromptAppend here once cache key is 
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by kieran-typescript-reviewer
+- 2026-09-06: Already fixed — `handleSubmit()` passes `framework: fw?.systemPromptAppend ?? ''` via the dedicated field with no `geoContext` append; no code change needed.

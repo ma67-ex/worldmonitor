@@ -1,6 +1,7 @@
 // @ts-check
-// Rule-based regime derivation. Mirrors the rule table in
-// docs/internal/pro-regional-intelligence-upgrade.md.
+// Rule-based regime derivation. Mirrors the rule table in the Regional
+// Intelligence upgrade spec (ships to docs/internal/ in the main repo; not
+// present in every worktree — see PR #2940 description).
 // Pure function: takes a balance vector, returns a regime label.
 
 /**

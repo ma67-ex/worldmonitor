@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "015"
 tags: [code-review, deep-forecast, simulation-package, correctness]
@@ -74,3 +74,4 @@ Effort: Small | Risk: Low
 ## Work Log
 
 - 2026-03-24: Found by compound-engineering:review:kieran-typescript-reviewer in PR #2204 review
+- 2026-09-06: Fixes 1 and 2 already present — `buildSimulationPackageEvaluationTargets` warns via `console.warn` when candidate is undefined (scripts/seed-forecasts.mjs:13325-13327), and `label` fallback `c.candidateStateLabel || c.dominantRegion || 'unknown theater'` is applied at scripts/seed-forecasts.mjs:13392. Fix 3 (`buildSimulationStructuralWorld` macroRegion array handling) was still missing — `theaterRegions.has(s.macroRegion)` did not handle array-shaped `macroRegion`. Applied the array-aware filter from Proposed Solutions at scripts/seed-forecasts.mjs:13353-13358. Verified with `node --check scripts/seed-forecasts.mjs`.

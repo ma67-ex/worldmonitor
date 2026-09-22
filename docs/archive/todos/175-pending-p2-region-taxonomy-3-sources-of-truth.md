@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 175
 tags: [code-review, phase-0, regional-intelligence, dry, taxonomy]
@@ -59,6 +59,24 @@ The `scripts/seed-forecasts.mjs` `MACRO_REGION_MAP` is a fourth source but its j
 - [ ] `MACRO_REGION_MAP` in `seed-forecasts.mjs` references `REGIONS` for the region IDs.
 
 ## Work Log
+
+### 2026-09-06
+Already fixed, via a different (better) route than either option this todo
+proposed. The codebase now has a dedicated `shared/forecast-macro-regions.js`
+module (Option 2 in spirit) that classifies `Forecast.region` free text via a
+3-stage lookup (theater/geo-label map → country-name → ISO2 → region), fixing
+the actual classification-drift bug this issue was about — the earlier
+"forecastLabel substring match" approach silently dropped most rows. `api/
+mcp.ts` no longer has any region-enumeration text to drift ("Asia Pacific" vs
+"East Asia" no longer exists in that file). `ForecastPanel.ts`'s
+`FORECAST_REGIONS` constant is UI pill *display* labels only (e.g. "MENA",
+"LatAm" — deliberately terser than `geography.js`'s `forecastLabel` field)
+and is no longer involved in classification, so importing `REGIONS` there
+per the original Option 1 would conflate two different concerns (display
+copy vs. classification) rather than fix anything. `scripts/seed-forecasts.
+mjs`'s `MACRO_REGION_MAP` is out of this sweep's scope (another agent's
+cluster). No code change made.
+verified: `grep -n "region" api/mcp.ts` — no matches (stale reference gone); `npx tsc --noEmit -p tsconfig.json` — pass, 0 errors.
 
 ## Resources
 

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "050"
 tags: [code-review, performance, analytical-frameworks]
@@ -49,3 +49,4 @@ Pass an `AbortSignal` to the RPC and cancel it when a new framework change fires
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by performance-oracle
+- 2026-09-06: Already fixed — `country-intel.ts:110-120` debounces the framework-change RPC 400ms via `_fwDebounce`, cleared on `destroy()`; no code change needed.

@@ -82,6 +82,19 @@ At module load, `freshness.mjs` can assert `Object.keys(FRESHNESS_REGISTRY)` equ
 
 ## Work Log
 
+### 2026-09-06
+Skipped — left pending. Confirmed the problem still exists (hardcoded
+`sources['...']` key literals remain in balance-vector.mjs, trigger-
+evaluator.mjs, evidence-collector.mjs, actor-scoring.mjs, scenario-builder.mjs,
+in parallel with `FRESHNESS_REGISTRY`). Option 2 (extract `sources-
+adapter.mjs` with typed accessors + a load-time registry/adapter invariant
+assertion) is the right fix per the todo's own analysis, but it's a genuine
+multi-hour refactor: it touches all 5 compute modules' call sites, requires
+inventing one accessor per registry entry (17 keys), and needs care not to
+change freshness/classification behavior. That's larger than a mechanical,
+low-risk backlog-sweep fix. Recommend a dedicated follow-up PR rather than a
+partial adapter landed here.
+
 ## Resources
 
 - PR #2940
