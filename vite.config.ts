@@ -885,6 +885,8 @@ const GATEWAY_ROUTE_HANDLERS: Record<string, () => Promise<{ default: (req: Requ
   // Read-only (GET-only handler, enforced above) — same gap, feeds
   // AI Insights, Canada alerts, and other bootstrap-key consumers.
   'bootstrap': () => import('./api/_bootstrap'),
+  // Read-only status endpoint — feeds the health-freshness poll loop.
+  'health': () => import('./api/_health'),
 };
 function gatewayRouteDevPlugin(): Plugin {
   return {
