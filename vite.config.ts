@@ -1063,6 +1063,7 @@ export default defineConfig(({ mode }) => {
       gpsjamDevPlugin(),
       sanctionsOfacProxyDevPlugin(),
       hormuzTrackerDevPlugin(),
+      gatewayRouteDevPlugin(),
       sebufApiPlugin(),
       brotliPrecompressPlugin(),
       VitePWA({
