@@ -3,6 +3,13 @@
   "schema_version": 1,
   "exceptions": [
     {
+      "path": "api/equity-india.js",
+      "category": "deferred",
+      "reason": "India equity terminal market-wide summaries (FII/DII flows, bulk/block deals, NSE indices, results calendar). Shipped as a plain Edge Function reading four Redis keys directly because make generate is currently blocked on an unrelated OpenAPI-docs-drift fix in progress on this fork; migrates to an equity/v1 sebuf RPC once that lands (see docs/plans/2026-09-24-global-equity-terminal-plan.md, gitignored).",
+      "owner": "@SebastienMelki",
+      "removal_issue": "TBD"
+    },
+    {
       "path": "api/mcp.ts",
       "category": "external-protocol",
       "reason": "MCP streamable-HTTP transport — JSON-RPC 2.0 envelope dictated by the Model Context Protocol spec, not something we can or should redefine as proto. After the api/mcp.ts → api/mcp/ structural split, this file is a thin re-export shim that preserves the Vercel edge route URL and the public export surface; the actual handler and supporting modules live under api/mcp/ (each listed below).",
