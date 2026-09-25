@@ -225,6 +225,11 @@ export interface MarketData {
   price: number | null;
   change: number | null;
   sparkline?: number[];
+  dayHigh?: number;
+  dayLow?: number;
+  volume?: number;
+  fiftyTwoWeekHigh?: number;
+  fiftyTwoWeekLow?: number;
 }
 
 export interface CryptoData {

@@ -20,6 +20,11 @@ export interface MarketQuote {
   price: number;
   change: number;
   sparkline: number[];
+  dayHigh?: number;
+  dayLow?: number;
+  volume?: number;
+  fiftyTwoWeekHigh?: number;
+  fiftyTwoWeekLow?: number;
 }
 
 export interface MarketQuoteUnavailable {

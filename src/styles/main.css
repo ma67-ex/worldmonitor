@@ -7133,6 +7133,61 @@ body.playback-mode .status-dot {
   height: auto;
 }
 
+.quote-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 12px 0 0;
+  background: var(--border-strong);
+  border: 1px solid var(--border-strong);
+}
+
+.quote-stats-cell {
+  background: var(--bg-panel);
+  padding: 8px 10px;
+  min-width: 0;
+}
+
+.quote-stats dt {
+  color: var(--text-dim);
+  font-size: calc(10px * var(--wm-panel-effective-scale, 1));
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.quote-stats dd {
+  margin: 2px 0 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quote-stats-bar {
+  position: relative;
+  height: 3px;
+  margin-top: 6px;
+  background: var(--surface-active);
+  border-radius: 2px;
+}
+
+.stock-research-room .quote-stats {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.stock-research-room .quote-stats-cell {
+  background: var(--surface);
+}
+
+.quote-stats-bar span {
+  position: absolute;
+  top: -2px;
+  width: 2px;
+  height: 7px;
+  margin-left: -1px;
+  background: var(--text);
+}
+
 .market-info {
   display: flex;
   flex-direction: column;
@@ -21970,6 +22025,93 @@ body.has-breaking-alert .panels-grid {
 
 .change-neutral {
   color: var(--text-muted);
+}
+
+.india-markets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px;
+}
+
+.india-section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: calc(11px * var(--wm-panel-effective-scale, 1));
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.india-section-date {
+  font-weight: 400;
+  text-transform: none;
+  color: var(--text-muted);
+}
+
+.india-indices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 6px;
+}
+
+.india-index-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  background: var(--surface);
+  border-radius: 6px;
+}
+
+.india-index-name {
+  font-size: calc(10px * var(--wm-panel-effective-scale, 1));
+  color: var(--text-dim);
+}
+
+.india-index-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.india-flow-row,
+.india-deal-row,
+.india-calendar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--overlay-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.india-flow-label {
+  font-weight: 600;
+  color: var(--text-dim);
+  min-width: 28px;
+}
+
+.india-flow-streak {
+  font-size: calc(10px * var(--wm-panel-effective-scale, 1));
+  color: var(--text-muted);
+}
+
+.india-deal-symbol,
+.india-calendar-symbol {
+  font-weight: 600;
+}
+
+.india-deal-side {
+  font-size: calc(10px * var(--wm-panel-effective-scale, 1));
+}
+
+.india-calendar-date {
+  color: var(--text-muted);
+  font-size: calc(10px * var(--wm-panel-effective-scale, 1));
 }
 
 .runtime-config-summary {

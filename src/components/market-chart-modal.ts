@@ -11,6 +11,7 @@ import { formatPrice, formatChange, getChangeClass } from '@/utils';
 import { escapeHtml } from '@/utils/sanitize';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 import { terminalChart } from '@/utils/terminal-chart';
+import { renderQuoteStats } from './market-quote-stats';
 import {
   createMarketChartFocusController,
   type MarketChartFocusController,
@@ -76,6 +77,7 @@ export function openMarketChartModal(stock: MarketData): void {
           </div>
         </div>
         <div class="market-chart-canvas">${chart}</div>
+        ${renderQuoteStats(stock)}
       </div>
     `,
       'generated terminal-chart SVG + escaped ticker fields',

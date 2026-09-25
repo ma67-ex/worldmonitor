@@ -41,14 +41,19 @@ const emptyOtherTokensFallback: ListOtherTokensResponse = { tokens: [] };
 
 // ---- Proto -> legacy adapters ----
 
-function toMarketData(proto: ProtoMarketQuote, meta?: { name?: string; display?: string }): MarketData {
+export function toMarketData(proto: ProtoMarketQuote, meta?: { name?: string; display?: string }): MarketData {
   return {
     symbol: proto.symbol,
     name: meta?.name || proto.name,
     display: meta?.display || proto.display || proto.symbol,
     price: proto.price != null ? proto.price : null,
     change: proto.change ?? null,
-    sparkline: proto.sparkline.length > 0 ? proto.sparkline : undefined,
+    sparkline: proto.sparkline?.length > 0 ? proto.sparkline : undefined,
+    dayHigh: proto.dayHigh,
+    dayLow: proto.dayLow,
+    volume: proto.volume,
+    fiftyTwoWeekHigh: proto.fiftyTwoWeekHigh,
+    fiftyTwoWeekLow: proto.fiftyTwoWeekLow,
   };
 }
 

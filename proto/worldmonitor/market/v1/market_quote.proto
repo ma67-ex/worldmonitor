@@ -21,6 +21,16 @@ message MarketQuote {
   double change = 5;
   // Sparkline data points (recent price history).
   repeated double sparkline = 6;
+  // Session high. Absent when the provider does not report it.
+  optional double day_high = 7;
+  // Session low. Absent when the provider does not report it.
+  optional double day_low = 8;
+  // Session volume. Absent when the provider does not report it.
+  optional double volume = 9;
+  // 52-week high. Absent when the provider does not report it.
+  optional double fifty_two_week_high = 10;
+  // 52-week low. Absent when the provider does not report it.
+  optional double fifty_two_week_low = 11;
 }
 
 // MarketQuoteUnavailableReason explains why a requested symbol produced no quote.

@@ -35,6 +35,13 @@ describe('toSeedQuote', () => {
       { symbol: 'AAPL', name: 'Apple', display: 'AAPL', price: 1, change: 2, sparkline: [1, 2] },
     );
   });
+
+  it('passes through positive finite stats and drops missing or zero ones', () => {
+    assert.deepEqual(
+      toSeedQuote('AAPL', { price: 1, change: 2, sparkline: [], dayHigh: 3, dayLow: 0, volume: NaN, fiftyTwoWeekHigh: 5 }),
+      { symbol: 'AAPL', name: 'AAPL', display: 'AAPL', price: 1, change: 2, sparkline: [], dayHigh: 3, fiftyTwoWeekHigh: 5 },
+    );
+  });
 });
 
 describe('fetchFinnhubEquityQuote', () => {
@@ -45,7 +52,7 @@ describe('fetchFinnhubEquityQuote', () => {
         headers: { 'Content-Type': 'application/json' },
       });
     const q = await fetchFinnhubEquityQuote('AAPL', 'k');
-    assert.deepEqual(q, { price: 10, change: 0.5, sparkline: [] });
+    assert.deepEqual(q, { price: 10, change: 0.5, sparkline: [], dayHigh: 11, dayLow: 9 });
   });
 
   it('returns null on malformed JSON (errors are not thrown as quotes)', async () => {

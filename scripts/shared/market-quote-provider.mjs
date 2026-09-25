@@ -41,9 +41,13 @@ export function hasSufficientFreshQuoteCoverage(
 }
 
 /**
- * @typedef {{ price: number; change: number; sparkline: number[] }} NormalizedQuote
- * @typedef {{ symbol: string; name: string; display: string; price: number; change: number; sparkline: number[] }} SeedQuote
+ * @typedef {{ dayHigh?: number; dayLow?: number; volume?: number; fiftyTwoWeekHigh?: number; fiftyTwoWeekLow?: number }} QuoteStats
+ * @typedef {{ price: number; change: number; sparkline: number[] } & QuoteStats} NormalizedQuote
+ * @typedef {{ symbol: string; name: string; display: string; price: number; change: number; sparkline: number[] } & QuoteStats} SeedQuote
  */
+
+/** @type {ReadonlyArray<keyof QuoteStats>} */
+const QUOTE_STAT_KEYS = ['dayHigh', 'dayLow', 'volume', 'fiftyTwoWeekHigh', 'fiftyTwoWeekLow'];
 
 /**
  * @param {string} symbol
@@ -52,7 +56,8 @@ export function hasSufficientFreshQuoteCoverage(
  * @returns {SeedQuote}
  */
 export function toSeedQuote(symbol, q, meta = {}) {
-  return {
+  /** @type {SeedQuote} */
+  const out = {
     symbol,
     name: meta.name || symbol,
     display: meta.display || symbol,
@@ -60,6 +65,12 @@ export function toSeedQuote(symbol, q, meta = {}) {
     change: q.change,
     sparkline: Array.isArray(q.sparkline) ? q.sparkline : [],
   };
+  // Providers report different subsets; a missing or zero stat stays absent rather than rendering as 0.
+  for (const key of QUOTE_STAT_KEYS) {
+    const v = q[key];
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) out[key] = v;
+  }
+  return out;
 }
 
 /**
@@ -92,11 +103,15 @@ export async function fetchFinnhubEquityQuote(symbol, apiKey, opts = {}) {
     if (!data || typeof data !== 'object') return null;
     if (data.c === 0 && data.h === 0 && data.l === 0) return null;
     if (!Number.isFinite(data.c) || data.c <= 0) return null;
-    return {
+    /** @type {NormalizedQuote} */
+    const quote = {
       price: data.c,
       change: Number.isFinite(data.dp) ? data.dp : 0,
       sparkline: [],
     };
+    if (Number.isFinite(data.h) && data.h > 0) quote.dayHigh = data.h;
+    if (Number.isFinite(data.l) && data.l > 0) quote.dayLow = data.l;
+    return quote;
   } catch (err) {
     console.warn(`  [Finnhub] ${symbol} error: ${err.message}`);
     return null;

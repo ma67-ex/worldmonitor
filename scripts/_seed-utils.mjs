@@ -1869,7 +1869,18 @@ export function parseYahooChart(data, symbol) {
   const closes = result.indicators?.quote?.[0]?.close;
   const sparkline = roundSparkline(Array.isArray(closes) ? closes.filter((v) => v != null) : []);
 
-  return { symbol, name: symbol, display: symbol, price, change: +change.toFixed(2), sparkline };
+  const quote = { symbol, name: symbol, display: symbol, price, change: +change.toFixed(2), sparkline };
+  const stats = {
+    dayHigh: meta.regularMarketDayHigh,
+    dayLow: meta.regularMarketDayLow,
+    volume: meta.regularMarketVolume,
+    fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh,
+    fiftyTwoWeekLow: meta.fiftyTwoWeekLow,
+  };
+  for (const [k, v] of Object.entries(stats)) {
+    if (Number.isFinite(v) && v > 0) quote[k] = v;
+  }
+  return quote;
 }
 
 /**

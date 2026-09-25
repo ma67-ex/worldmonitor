@@ -2164,7 +2164,7 @@ export class DataLoaderManager implements AppModule {
       return;
     }
     const {
-      fetchMultipleStocks, fetchCommodityQuotes, fetchSectors, warmCommodityCache, warmSectorCache,
+      fetchMultipleStocks, toMarketData, fetchCommodityQuotes, fetchSectors, warmCommodityCache, warmSectorCache,
       fetchCrypto, fetchCryptoSectors, fetchDefiTokens, fetchAiTokens, fetchOtherTokens,
     } = marketMod;
     try {
@@ -2192,14 +2192,7 @@ export class DataLoaderManager implements AppModule {
       );
       if (selectedHydratedQuotes) {
         const symbolMetaMap = new Map(effectiveSymbols.map((s) => [s.symbol, s]));
-        const data = selectedHydratedQuotes.map((q) => ({
-          symbol: q.symbol,
-          name: symbolMetaMap.get(q.symbol)?.name || q.name,
-          display: symbolMetaMap.get(q.symbol)?.display || q.display || q.symbol,
-          price: q.price != null ? q.price : null,
-          change: q.change ?? null,
-          sparkline: q.sparkline?.length > 0 ? q.sparkline : undefined,
-        }));
+        const data = selectedHydratedQuotes.map((q) => toMarketData(q, symbolMetaMap.get(q.symbol)));
         if (isCurrent()) {
           this.ctx.latestMarkets = data;
           marketsPanel?.renderMarkets(data);
