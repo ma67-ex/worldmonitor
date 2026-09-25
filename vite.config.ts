@@ -105,6 +105,7 @@ const PANEL_CLUSTER: Record<string, PanelChunkName> = {
   MarketBreadth: 'panels-markets', MarketImplications: 'panels-markets',
   NewsMarketCorrelation: 'panels-markets',
   Positioning: 'panels-markets', Stablecoin: 'panels-markets',
+  IndiaMarkets: 'panels-markets', GlobalMarkets: 'panels-markets',
   StockAnalysis: 'panels-markets', StockBacktest: 'panels-markets',
   WsbTickerScanner: 'panels-markets', YieldCurve: 'panels-markets',
   // Energy / commodities / supply infra
