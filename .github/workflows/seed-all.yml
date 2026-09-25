@@ -67,6 +67,7 @@ jobs:
           RELIEFWEB_APPNAME: ${{ secrets.RELIEFWEB_APPNAME }}
           WORLDMONITOR_SEED_REFRESH_KEY: ${{ secrets.WORLDMONITOR_SEED_REFRESH_KEY }}
           PROXY_URL: ${{ secrets.PROXY_URL }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           set -o pipefail
           mapfile -t scripts < <(ls scripts/seed-*.mjs | xargs -n1 basename \

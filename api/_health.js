@@ -499,6 +499,16 @@ const STANDALONE_KEYS = {
   forecastBets:                  'forecast:bets:history:v1',
   forecastFunnel:                'forecast:funnel:health:v1',
   researchArxivHnTrending:       'research:arxiv:v1:cs.AI::50',
+  // Equity terminal, India (NSE). Market-wide summaries; per-company detail lives in
+  // equity:<dataset>:v1:IN:<SYMBOL> and is read on demand, never via bootstrap.
+  equityInShareholding:      'equity:shareholding:v1:IN',
+  equityInFinancials:        'equity:financials:v1:IN',
+  equityInInsider:           'equity:insider:v1:IN',
+  equityInFilings:           'equity:filings:v1:IN',
+  equityInFlows:             'equity:flows:v1:IN',
+  equityInDeals:             'equity:deals:v1:IN',
+  equityInIndices:           'equity:indices:v1:IN',
+  equityInCalendar:          'equity:calendar:v1:IN',
   // #5736 — historical-intelligence ingest health, one record per collector.
   // These are NOT the collectors' canonical keys: scripts/_seed-history.mjs
   // appends to the Convex intel-history store fail-open, so a permanently
@@ -998,6 +1008,17 @@ const SEED_META = {
     },
   },
   webcams:                 { key: 'seed-meta:webcam:cameras:geo',                   maxStaleMin: 1440 }, // seed-webcams writes 24h geo/meta keys plus a 30h active pointer; stale at 24h before the layer goes blank.
+  // Equity terminal, India: seed-all.yml runs these every 3h. Per-company datasets rotate
+  // through the NIFTY 50 but re-stamp the summary on every run; flows and deals are
+  // once per trading day, so they get a weekend-sized budget.
+  equityInShareholding:      { key: 'seed-meta:equity:shareholding-in',  maxStaleMin: 1440 },
+  equityInFinancials:        { key: 'seed-meta:equity:financials-in',    maxStaleMin: 1440 },
+  equityInInsider:           { key: 'seed-meta:equity:insider-in',       maxStaleMin: 1440 },
+  equityInFilings:           { key: 'seed-meta:equity:filings-in',       maxStaleMin: 1440 },
+  equityInFlows:             { key: 'seed-meta:equity:flows-in',         maxStaleMin: 2880 },
+  equityInDeals:             { key: 'seed-meta:equity:deals-in',         maxStaleMin: 2880 },
+  equityInIndices:           { key: 'seed-meta:equity:indices-in',       maxStaleMin: 720 },
+  equityInCalendar:          { key: 'seed-meta:equity:calendar-in',      maxStaleMin: 1440 },
   // #5736 — history-ingest freshness per collector. `fetchedAt` here is the
   // last HEALTHY append (success, or a correctly-detected unconfigured run),
   // NEVER the last attempt, so a relay that rejects every chunk ages this out

@@ -1,0 +1,372 @@
+{
+ "as_on_date": "24-Sep-2026",
+ "BULK_DEALS_DATA": [
+  {
+   "buySell": "BUY",
+   "clientName": "PURE BROKING PRIVATE LIMITED",
+   "date": "24-Sep-2026",
+   "name": "Hero Motors Limited",
+   "qty": "2117178",
+   "remarks": "-",
+   "symbol": "HEROMOTORS",
+   "watp": "113.43"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "JUNOMONETA FINSOL PRIVATE LIMITED",
+   "date": "24-Sep-2026",
+   "name": "H.G.Infra Engineering Ltd",
+   "qty": "350543",
+   "remarks": "-",
+   "symbol": "HGINFRA",
+   "watp": "483.58"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "IRAGE BROKING SERVICES LLP",
+   "date": "24-Sep-2026",
+   "name": "H.G.Infra Engineering Ltd",
+   "qty": "464764",
+   "remarks": "-",
+   "symbol": "HGINFRA",
+   "watp": "485.06"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "MICROCURVES TRADING PRIVATE LIMITED",
+   "date": "24-Sep-2026",
+   "name": "H.G.Infra Engineering Ltd",
+   "qty": "885986",
+   "remarks": "-",
+   "symbol": "HGINFRA",
+   "watp": "483.42"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "NK SECURITIES RESEARCH PRIVATE LIMITED",
+   "date": "24-Sep-2026",
+   "name": "H.G.Infra Engineering Ltd",
+   "qty": "501175",
+   "remarks": "-",
+   "symbol": "HGINFRA",
+   "watp": "489.26"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "ARYAMAN CAPITAL MARKETS LIMITED",
+   "date": "24-Sep-2026",
+   "name": "Integrity Infrabuild De L",
+   "qty": "27600",
+   "remarks": "-",
+   "symbol": "INTEGRITY",
+   "watp": "170"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "BLITZQUANT RESEARCH LLP",
+   "date": "24-Sep-2026",
+   "name": "Jagsonpal Pharma Ltd.",
+   "qty": "331971",
+   "remarks": "-",
+   "symbol": "JAGSNPHARM",
+   "watp": "242.6"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "NK SECURITIES RESEARCH PRIVATE LIMITED",
+   "date": "24-Sep-2026",
+   "name": "Jagsonpal Pharma Ltd.",
+   "qty": "423870",
+   "remarks": "-",
+   "symbol": "JAGSNPHARM",
+   "watp": "241.03"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "SMC GLOBAL SECURITIES LIMITED",
+   "date": "24-Sep-2026",
+   "name": "Kheria Autocomp Limited",
+   "qty": "436800",
+   "remarks": "-",
+   "symbol": "KHERIAAUTO",
+   "watp": "104.73"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "PARDEEP KUMAR AGGARWAL HUF",
+   "date": "24-Sep-2026",
+   "name": "Kaushalya Logistics Ltd",
+   "qty": "19200",
+   "remarks": "-",
+   "symbol": "KLL",
+   "watp": "45.71"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "IRAGE BROKING SERVICES LLP",
+   "date": "24-Sep-2026",
+   "name": "Kaveri Seed Company Limit",
+   "qty": "461410",
+   "remarks": "-",
+   "symbol": "KSCL",
+   "watp": "794.87"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "BLITZQUANT RESEARCH LLP",
+   "date": "24-Sep-2026",
+   "name": "Kaveri Seed Company Limit",
+   "qty": "568371",
+   "remarks": "-",
+   "symbol": "KSCL",
+   "watp": "800.72"
+  }
+ ],
+ "BULK_DEALS": "226",
+ "SHORT_DEALS": "91",
+ "BLOCK_DEALS": "30",
+ "SHORT_DEALS_DATA": [
+  {
+   "buySell": null,
+   "clientName": null,
+   "date": "23-Sep-2026",
+   "name": "ADANI PORT & SEZ LTD",
+   "qty": "1056",
+   "remarks": null,
+   "symbol": "ADANIPORTS",
+   "watp": null
+  },
+  {
+   "buySell": null,
+   "clientName": null,
+   "date": "23-Sep-2026",
+   "name": "DR AGARWALS HEALTH CARE L",
+   "qty": "23",
+   "remarks": null,
+   "symbol": "AGARWALEYE",
+   "watp": null
+  },
+  {
+   "buySell": null,
+   "clientName": null,
+   "date": "23-Sep-2026",
+   "name": "AMBER ENTERPRISES (I) LTD",
+   "qty": "20",
+   "remarks": null,
+   "symbol": "AMBER",
+   "watp": null
+  },
+  {
+   "buySell": null,
+   "clientName": null,
+   "date": "23-Sep-2026",
+   "name": "ANANT RAJ LIMITED",
+   "qty": "2000",
+   "remarks": null,
+   "symbol": "ANANTRAJ",
+   "watp": null
+  },
+  {
+   "buySell": null,
+   "clientName": null,
+   "date": "23-Sep-2026",
+   "name": "APOLLO HOSPITALS ENTERPRISE LIMITED",
+   "qty": "60",
+   "remarks": null,
+   "symbol": "APOLLOHOSP",
+   "watp": null
+  },
+  {
+   "buySell": null,
+   "clientName": null,
+   "date": "23-Sep-2026",
+   "name": "ASHOK LEYLAND LTD",
+   "qty": "150",
+   "remarks": null,
+   "symbol": "ASHOKLEY",
+   "watp": null
+  },
+  {
+   "buySell": null,
+   "clientName": null,
+   "date": "23-Sep-2026",
+   "name": "ASIAN PAINTS LIMITED",
+   "qty": "110",
+   "remarks": null,
+   "symbol": "ASIANPAINT",
+   "watp": null
+  },
+  {
+   "buySell": null,
+   "clientName": null,
+   "date": "23-Sep-2026",
+   "name": "BAJAJ CONSUMER CARE LTD",
+   "qty": "35",
+   "remarks": null,
+   "symbol": "BAJAJCON",
+   "watp": null
+  },
+  {
+   "buySell": null,
+   "clientName": null,
+   "date": "23-Sep-2026",
+   "name": "BAJAJ FINANCE LIMITED",
+   "qty": "66",
+   "remarks": null,
+   "symbol": "BAJFINANCE",
+   "watp": null
+  },
+  {
+   "buySell": null,
+   "clientName": null,
+   "date": "23-Sep-2026",
+   "name": "BANDHAN BANK LIMITED",
+   "qty": "1803",
+   "remarks": null,
+   "symbol": "BANDHANBNK",
+   "watp": null
+  },
+  {
+   "buySell": null,
+   "clientName": null,
+   "date": "23-Sep-2026",
+   "name": "BELRISE INDUSTRIES LTD",
+   "qty": "1",
+   "remarks": null,
+   "symbol": "BELRISE",
+   "watp": null
+  },
+  {
+   "buySell": null,
+   "clientName": null,
+   "date": "23-Sep-2026",
+   "name": "BHARAT FORGE LTD",
+   "qty": "169",
+   "remarks": null,
+   "symbol": "BHARATFORG",
+   "watp": null
+  }
+ ],
+ "BLOCK_DEALS_DATA": [
+  {
+   "buySell": "BUY",
+   "clientName": "SANOFI HEALTHCARE INDIA PRIVATE LIMITED",
+   "date": "24-Sep-2026",
+   "name": "Aventis Pharma Limited",
+   "qty": "3500000",
+   "remarks": null,
+   "symbol": "SANOFI",
+   "watp": "3052"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "GOVERNMENT OF SINGAPORE",
+   "date": "24-Sep-2026",
+   "name": "SEDEMAC Mechatronics Ltd",
+   "qty": "1023299",
+   "remarks": null,
+   "symbol": "SEDEMAC",
+   "watp": "3010"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "T Rowe Price Emerging Markets Discovery Equities",
+   "date": "24-Sep-2026",
+   "name": "SEDEMAC Mechatronics Ltd",
+   "qty": "289",
+   "remarks": null,
+   "symbol": "SEDEMAC",
+   "watp": "3010"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "T ROWE PRICE NEW ASIA FUND",
+   "date": "24-Sep-2026",
+   "name": "SEDEMAC Mechatronics Ltd",
+   "qty": "167026",
+   "remarks": null,
+   "symbol": "SEDEMAC",
+   "watp": "3010"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "T ROWE PRICE INTERNATIONAL SMALLCAP EQUITY TRUST",
+   "date": "24-Sep-2026",
+   "name": "SEDEMAC Mechatronics Ltd",
+   "qty": "51952",
+   "remarks": null,
+   "symbol": "SEDEMAC",
+   "watp": "3010"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "T ROWE PRICE INTERNATIONAL DISCOVERY FUND",
+   "date": "24-Sep-2026",
+   "name": "SEDEMAC Mechatronics Ltd",
+   "qty": "231768",
+   "remarks": null,
+   "symbol": "SEDEMAC",
+   "watp": "3010"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "T ROWE PRICE GLOBAL ALLOCATION FUND INC",
+   "date": "24-Sep-2026",
+   "name": "SEDEMAC Mechatronics Ltd",
+   "qty": "890",
+   "remarks": null,
+   "symbol": "SEDEMAC",
+   "watp": "3010"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "T ROWE PRICE FUNDS SICAV ASIAN EX JAPAN EQUITY FUND",
+   "date": "24-Sep-2026",
+   "name": "SEDEMAC Mechatronics Ltd",
+   "qty": "11191",
+   "remarks": null,
+   "symbol": "SEDEMAC",
+   "watp": "3010"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "MONETARY AUTHORITY OF SINGAPORE",
+   "date": "24-Sep-2026",
+   "name": "SEDEMAC Mechatronics Ltd",
+   "qty": "236922",
+   "remarks": null,
+   "symbol": "SEDEMAC",
+   "watp": "3010"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "ICICI PRUDENTIAL MUTUAL FUND",
+   "date": "24-Sep-2026",
+   "name": "SEDEMAC Mechatronics Ltd",
+   "qty": "149923",
+   "remarks": null,
+   "symbol": "SEDEMAC",
+   "watp": "3010"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "AMANSA HOLDINGS PRIVATE LIMITED",
+   "date": "24-Sep-2026",
+   "name": "SEDEMAC Mechatronics Ltd",
+   "qty": "463116",
+   "remarks": null,
+   "symbol": "SEDEMAC",
+   "watp": "3010"
+  },
+  {
+   "buySell": "BUY",
+   "clientName": "ADITYA BIRLA SUN LIFE MUTUAL FUND",
+   "date": "24-Sep-2026",
+   "name": "SEDEMAC Mechatronics Ltd",
+   "qty": "299003",
+   "remarks": null,
+   "symbol": "SEDEMAC",
+   "watp": "3010"
+  }
+ ]
+}

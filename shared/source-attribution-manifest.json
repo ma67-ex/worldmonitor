@@ -4743,6 +4743,20 @@
       ]
     },
     {
+      "host": "nsearchives.nseindia.com",
+      "provider": "National Stock Exchange of India (NSE) archives",
+      "kind": "structured",
+      "observed": true,
+      "license": "NSE website terms of use; company disclosures filed under SEBI regulations. Verify before redistribution",
+      "attribution": "National Stock Exchange of India (NSE), filing archives (XBRL, index constituents).",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "scripts/refresh-equity-universe.mjs"
+        }
+      ]
+    },
+    {
       "host": "oauth.reddit.com",
       "provider": "oauth.reddit.com",
       "kind": "structured",
@@ -9453,6 +9467,20 @@
         },
         {
           "path": "src/config/feeds.ts"
+        }
+      ]
+    },
+    {
+      "host": "www.nseindia.com",
+      "provider": "National Stock Exchange of India (NSE)",
+      "kind": "structured",
+      "observed": true,
+      "license": "NSE website terms of use; company disclosures filed under SEBI regulations. Verify before redistribution",
+      "attribution": "National Stock Exchange of India (NSE), corporate filings and market data.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "scripts/shared/equity/nse-client.mjs"
         }
       ]
     },

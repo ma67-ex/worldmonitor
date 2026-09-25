@@ -64,7 +64,7 @@ export function orderServerFeedEntries<T extends {
   const roundRobin: T[] = [];
   for (let rank = 0; roundRobin.length < entries.length - prioritized.length; rank++) {
     for (const bucket of categoryBuckets) {
-      if (rank < bucket.length) roundRobin.push(bucket[rank]);
+      if (rank < bucket.length) roundRobin.push(bucket[rank]!);
     }
   }
 

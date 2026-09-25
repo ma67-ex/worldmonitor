@@ -14,7 +14,7 @@
     "energy": 20
   },
   "variantCount": 6,
-  "componentTopLevelTsFiles": 184,
+  "componentTopLevelTsFiles": 185,
   "serviceTopLevelEntries": 240,
   "apiEndpointEntries": 23,
   "panelClasses": 109,
@@ -85,26 +85,29 @@
     "railway-reconcile-manual-recovery.yml",
     "scenario-worker-drain.yml",
     "security-audit.yml",
+    "seed-all.yml",
+    "seed-commodities.yml",
     "seed-freshness-monitor.yml",
+    "seed-nasa-firms.yml",
     "test-linux-app.yml",
     "test.yml",
     "typecheck.yml",
     "umami-storage-monitor.yml"
   ],
-  "workflowCount": 35,
+  "workflowCount": 38,
   "freshnessSources": 39,
   "freshnessRequiredForRisk": 2,
   "feedDefinitions": 658,
   "sourceAttribution": {
-    "activeHosts": 548,
-    "structuredHosts": 297,
+    "activeHosts": 554,
+    "structuredHosts": 303,
     "feedHosts": 279,
     "operationalStatusHosts": 30,
-    "providerCount": 546,
-    "observedHosts": 666,
-    "reviewNeeded": 519
+    "providerCount": 552,
+    "observedHosts": 672,
+    "reviewNeeded": 525
   },
-  "sourceAttributionHosts": 548,
+  "sourceAttributionHosts": 554,
   "airportCount": 115,
   "stockExchangeCount": 29,
   "centralBankInstitutionCount": 14,
@@ -319,7 +322,7 @@
   },
   "healthProbedKeys": {
     "bootstrap": 109,
-    "standalone": 154,
-    "total": 263
+    "standalone": 162,
+    "total": 271
   }
 }

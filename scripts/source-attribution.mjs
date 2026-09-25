@@ -142,6 +142,18 @@ const PROVIDER_OVERRIDES = {
     attribution: 'Financial Industry Regulatory Authority (FINRA); link to the original notice.',
     status: 'terms-review',
   },
+  'www.nseindia.com': {
+    provider: 'National Stock Exchange of India (NSE)',
+    license: 'NSE website terms of use; company disclosures filed under SEBI regulations. Verify before redistribution',
+    attribution: 'National Stock Exchange of India (NSE), corporate filings and market data.',
+    status: 'terms-review',
+  },
+  'nsearchives.nseindia.com': {
+    provider: 'National Stock Exchange of India (NSE) archives',
+    license: 'NSE website terms of use; company disclosures filed under SEBI regulations. Verify before redistribution',
+    attribution: 'National Stock Exchange of India (NSE), filing archives (XBRL, index constituents).',
+    status: 'terms-review',
+  },
   'data.sec.gov': {
     provider: 'SEC EDGAR',
     license: 'U.S. government public data; SEC terms apply',

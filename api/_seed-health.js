@@ -280,6 +280,15 @@ const SEED_DOMAINS = {
     intervalMin: 360,
     activationKey: 'seed-activated:intel-history:energy:intelligence',
   },
+  // Equity terminal, India (NSE); intervalMin = maxStaleMin / 2, matching api/health.js.
+  'equity:shareholding-in':    { key: 'seed-meta:equity:shareholding-in',  intervalMin: 720 },
+  'equity:financials-in':      { key: 'seed-meta:equity:financials-in',    intervalMin: 720 },
+  'equity:insider-in':         { key: 'seed-meta:equity:insider-in',       intervalMin: 720 },
+  'equity:filings-in':         { key: 'seed-meta:equity:filings-in',       intervalMin: 720 },
+  'equity:flows-in':           { key: 'seed-meta:equity:flows-in',         intervalMin: 1440 },
+  'equity:deals-in':           { key: 'seed-meta:equity:deals-in',         intervalMin: 1440 },
+  'equity:indices-in':         { key: 'seed-meta:equity:indices-in',       intervalMin: 360 },
+  'equity:calendar-in':        { key: 'seed-meta:equity:calendar-in',      intervalMin: 720 },
 };
 
 // Iran-events sunset (war ended 2026-07); mirrors api/health.js. Default OFF:

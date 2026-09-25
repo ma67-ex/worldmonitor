@@ -36,6 +36,7 @@ export const REFRESH_INTERVALS = {
   stockBacktest: 4 * 60 * 60 * 1000,
   serviceStatus: 3 * 60 * 1000,
   stablecoins: 15 * 60 * 1000,
+  indiaMarkets: 15 * 60 * 1000,
   etfFlows: 15 * 60 * 1000,
   macroSignals: 15 * 60 * 1000,
   fearGreed: 30 * 60 * 1000,

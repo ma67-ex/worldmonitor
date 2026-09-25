@@ -396,6 +396,26 @@ const EXCLUDED_FROM_MCP = new Map([
     'operational: consumer-price market/retailer completion and validator-rejection coverage published for /api/health; the underlying price observations are exposed through get_consumer_prices, while this health snapshot is not a queryable MCP slice (#5945).'],
   ['consumer-prices:coverage:us',
     'operational: consumer-price market/retailer completion and validator-rejection coverage published for /api/health; the underlying price observations are exposed through get_consumer_prices, while this health snapshot is not a queryable MCP slice (#5945).'],
+
+  // ===========================================================================
+  // Equity terminal, India (NSE): seeded before its RPC/MCP surface exists
+  // ===========================================================================
+  ['equity:shareholding:v1:IN',
+    'staged rollout: India equity-terminal summary seeded ahead of its consumer. The GetCompany RPC and company page (plan phase 2) read it first; an MCP tool follows once that RPC exists, and this exclusion is removed then.'],
+  ['equity:financials:v1:IN',
+    'staged rollout: India equity-terminal summary seeded ahead of its consumer. The GetCompany RPC and company page (plan phase 2) read it first; an MCP tool follows once that RPC exists, and this exclusion is removed then.'],
+  ['equity:insider:v1:IN',
+    'staged rollout: India equity-terminal summary seeded ahead of its consumer. The GetCompany RPC and company page (plan phase 2) read it first; an MCP tool follows once that RPC exists, and this exclusion is removed then.'],
+  ['equity:filings:v1:IN',
+    'staged rollout: India equity-terminal summary seeded ahead of its consumer. The GetCompany RPC and company page (plan phase 2) read it first; an MCP tool follows once that RPC exists, and this exclusion is removed then.'],
+  ['equity:flows:v1:IN',
+    'staged rollout: India equity-terminal summary seeded ahead of its consumer. The GetCompany RPC and company page (plan phase 2) read it first; an MCP tool follows once that RPC exists, and this exclusion is removed then.'],
+  ['equity:deals:v1:IN',
+    'staged rollout: India equity-terminal summary seeded ahead of its consumer. The GetCompany RPC and company page (plan phase 2) read it first; an MCP tool follows once that RPC exists, and this exclusion is removed then.'],
+  ['equity:indices:v1:IN',
+    'staged rollout: India equity-terminal summary seeded ahead of its consumer. The GetCompany RPC and company page (plan phase 2) read it first; an MCP tool follows once that RPC exists, and this exclusion is removed then.'],
+  ['equity:calendar:v1:IN',
+    'staged rollout: India equity-terminal summary seeded ahead of its consumer. The GetCompany RPC and company page (plan phase 2) read it first; an MCP tool follows once that RPC exists, and this exclusion is removed then.'],
 ]);
 
 const EDUCATION_EXCLUSION_REASON = EXCLUDED_FROM_MCP.get('resilience:education-attainment:v1');
