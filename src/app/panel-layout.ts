@@ -2502,6 +2502,7 @@ export class PanelLayoutManager implements AppModule {
     this.lazyDefaultPanel('etf-flows', () => import('@/components/ETFFlowsPanel'), 'ETFFlowsPanel');
     this.lazyDefaultPanel('stablecoins', () => import('@/components/StablecoinPanel'), 'StablecoinPanel');
     this.lazyDefaultPanel('india-markets', () => import('@/components/IndiaMarketsPanel'), 'IndiaMarketsPanel');
+    this.lazyDefaultPanel('global-markets', () => import('@/components/GlobalMarketsPanel'), 'GlobalMarketsPanel');
 
     if (this.ctx.isDesktopApp) {
       this.lazyImportedPanel('runtime-config', () => import('@/components/RuntimeConfigPanel'), 'RuntimeConfigPanel', (RuntimeConfigPanel) => new RuntimeConfigPanel({ mode: 'alert' }));

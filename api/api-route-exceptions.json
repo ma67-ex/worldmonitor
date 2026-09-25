@@ -3,6 +3,13 @@
   "schema_version": 1,
   "exceptions": [
     {
+      "path": "api/global-markets.js",
+      "category": "deferred",
+      "reason": "All-country primary stock index list (45 countries) for the Global Markets panel — reads the existing GetCountryStockIndex RPC's Railway-seeded Redis keys in one pipeline instead of 45 sequential RPC calls. Migrates to a ListCountryStockIndexes sebuf RPC once make generate is unblocked (see docs/plans/2026-09-24-global-equity-terminal-plan.md, gitignored).",
+      "owner": "@SebastienMelki",
+      "removal_issue": "TBD"
+    },
+    {
       "path": "api/equity-india.js",
       "category": "deferred",
       "reason": "India equity terminal market-wide summaries (FII/DII flows, bulk/block deals, NSE indices, results calendar). Shipped as a plain Edge Function reading four Redis keys directly because make generate is currently blocked on an unrelated OpenAPI-docs-drift fix in progress on this fork; migrates to an equity/v1 sebuf RPC once that lands (see docs/plans/2026-09-24-global-equity-terminal-plan.md, gitignored).",

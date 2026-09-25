@@ -73,6 +73,7 @@ import type { ServiceStatusPanel } from '@/components/ServiceStatusPanel';
 import type { MonitorPanel } from '@/components/MonitorPanel';
 import type { StablecoinPanel } from '@/components/StablecoinPanel';
 import type { IndiaMarketsPanel } from '@/components/IndiaMarketsPanel';
+import type { GlobalMarketsPanel } from '@/components/GlobalMarketsPanel';
 import type { EnergyCrisisPanel } from '@/components/EnergyCrisisPanel';
 import type { ETFFlowsPanel } from '@/components/ETFFlowsPanel';
 import type { MacroSignalsPanel } from '@/components/MacroSignalsPanel';
@@ -699,6 +700,10 @@ export class App {
     if (shouldPrime('india-markets')) {
       const panel = this.state.panels['india-markets'] as IndiaMarketsPanel | undefined;
       if (panel) primeTask('india-markets', () => panel.fetchData());
+    }
+    if (shouldPrime('global-markets')) {
+      const panel = this.state.panels['global-markets'] as GlobalMarketsPanel | undefined;
+      if (panel) primeTask('global-markets', () => panel.fetchData());
     }
     if (shouldPrime('energy-crisis')) {
       const panel = this.state.panels['energy-crisis'] as EnergyCrisisPanel | undefined;
@@ -3148,6 +3153,12 @@ export class App {
       () => (this.state.panels['india-markets'] as IndiaMarketsPanel).fetchData(),
       REFRESH_INTERVALS.indiaMarkets,
       () => this.isPanelNearViewport('india-markets')
+    );
+    this.refreshScheduler.scheduleRefresh(
+      'global-markets',
+      () => (this.state.panels['global-markets'] as GlobalMarketsPanel).fetchData(),
+      REFRESH_INTERVALS.globalMarkets,
+      () => this.isPanelNearViewport('global-markets')
     );
     this.refreshScheduler.scheduleRefresh(
       'energy-crisis',

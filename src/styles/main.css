@@ -22027,6 +22027,18 @@ body.has-breaking-alert .panels-grid {
   color: var(--text-muted);
 }
 
+/* Terminal (Bloomberg-style) theme: pure black background, amber-orange text.
+   Scoped to the India Markets and Global Markets panels only. Up/down change
+   colors stay green/red — the one signal that must never turn orange. */
+.india-markets,
+.global-markets-list {
+  --terminal-bg: #000000;
+  --terminal-orange: #ff9900;
+  --terminal-orange-dim: #b36e00;
+  background: var(--terminal-bg);
+  color: var(--terminal-orange);
+}
+
 .india-markets {
   display: flex;
   flex-direction: column;
@@ -22040,7 +22052,7 @@ body.has-breaking-alert .panels-grid {
   justify-content: space-between;
   font-size: calc(11px * var(--wm-panel-effective-scale, 1));
   font-weight: 600;
-  color: var(--text-dim);
+  color: var(--terminal-orange);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 4px;
@@ -22049,7 +22061,7 @@ body.has-breaking-alert .panels-grid {
 .india-section-date {
   font-weight: 400;
   text-transform: none;
-  color: var(--text-muted);
+  color: var(--terminal-orange-dim);
 }
 
 .india-indices {
@@ -22063,18 +22075,20 @@ body.has-breaking-alert .panels-grid {
   flex-direction: column;
   gap: 2px;
   padding: 6px 8px;
-  background: var(--surface);
+  background: #0a0a0a;
+  border: 1px solid #2a1c00;
   border-radius: 6px;
 }
 
 .india-index-name {
   font-size: calc(10px * var(--wm-panel-effective-scale, 1));
-  color: var(--text-dim);
+  color: var(--terminal-orange-dim);
 }
 
 .india-index-value {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
+  color: var(--terminal-orange);
 }
 
 .india-flow-row,
@@ -22085,24 +22099,25 @@ body.has-breaking-alert .panels-grid {
   justify-content: space-between;
   gap: 8px;
   padding: 4px 8px;
-  border-bottom: 1px solid var(--overlay-light);
+  border-bottom: 1px solid #2a1c00;
   font-variant-numeric: tabular-nums;
 }
 
 .india-flow-label {
   font-weight: 600;
-  color: var(--text-dim);
+  color: var(--terminal-orange);
   min-width: 28px;
 }
 
 .india-flow-streak {
   font-size: calc(10px * var(--wm-panel-effective-scale, 1));
-  color: var(--text-muted);
+  color: var(--terminal-orange-dim);
 }
 
 .india-deal-symbol,
 .india-calendar-symbol {
   font-weight: 600;
+  color: var(--terminal-orange);
 }
 
 .india-deal-side {
@@ -22110,8 +22125,56 @@ body.has-breaking-alert .panels-grid {
 }
 
 .india-calendar-date {
-  color: var(--text-muted);
+  color: var(--terminal-orange-dim);
   font-size: calc(10px * var(--wm-panel-effective-scale, 1));
+}
+
+.global-markets-list {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.global-market-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto 56px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-bottom: 1px solid #2a1c00;
+  font-variant-numeric: tabular-nums;
+}
+
+.global-market-row--unavailable {
+  opacity: 0.5;
+}
+
+.global-market-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--terminal-orange);
+}
+
+.global-market-index {
+  color: var(--terminal-orange-dim);
+  font-size: calc(10px * var(--wm-panel-effective-scale, 1));
+  white-space: nowrap;
+}
+
+.global-market-price {
+  color: var(--terminal-orange-dim);
+  font-size: calc(11px * var(--wm-panel-effective-scale, 1));
+  white-space: nowrap;
+}
+
+.global-market-unavailable {
+  grid-column: 3 / span 2;
+  color: var(--terminal-orange-dim);
+  font-size: calc(10px * var(--wm-panel-effective-scale, 1));
+  text-align: right;
 }
 
 .runtime-config-summary {
