@@ -1,0 +1,29 @@
+# Cloudflare Worker config for redis-d1-proxy.
+# Deployed via `wrangler deploy` (manual) or wired into .github/workflows/deploy-worker.yml
+# alongside the other workers/ entries once this is ready to ship. CF account_id
+# comes from the CLOUDFLARE_ACCOUNT_ID env var so this file stays publishable;
+# CLOUDFLARE_API_TOKEN supplies auth.
+
+name = "redis-d1-proxy"
+main = "src/index.js"
+compatibility_date = "2025-05-01"
+
+[observability]
+enabled = true
+
+# Bind the D1 database created with:
+#   wrangler d1 create redis-d1-proxy
+# then apply schema.sql:
+#   wrangler d1 execute redis-d1-proxy --remote --file=schema.sql
+[[d1_databases]]
+binding = "DB"
+database_name = "redis-d1-proxy"
+database_id = "c8744c75-5a3f-4fb7-a74a-c9920b770ae7"
+
+# Sweeps expired keys (D1 has no native TTL — see src/index.js scheduled()).
+[triggers]
+crons = ["*/15 * * * *"]
+
+# REDIS_TOKEN is the Bearer token every request must carry, and the value
+# Vercel/Railway send as UPSTASH_REDIS_REST_TOKEN. Set as a secret, not a var:
+#   wrangler secret put REDIS_TOKEN
