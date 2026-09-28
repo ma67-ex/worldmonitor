@@ -142,6 +142,29 @@ test('EVAL is rejected with the exact message limitWithFallback detects', async 
   assert.equal(body.error, 'Command not allowed: EVAL');
 });
 
+test('INCR on a key whose TTL passed (but the cron sweep has not run yet) starts a fresh window instead of adding to the stale value', async () => {
+  const env = makeEnv();
+  // Simulate a rate-limit counter that already hit 5 in the previous window,
+  // then expired 1ms ago via PX — the row still physically exists until the
+  // next scheduled() sweep, exactly like a live 60s window between cron runs.
+  await worker.fetch(req('/', { method: 'POST', body: ['SET', 'stale-counter', '5', 'PX', '1'] }), env);
+  await new Promise((r) => setTimeout(r, 5));
+  const res = await worker.fetch(req('/', { method: 'POST', body: ['INCR', 'stale-counter'] }), env);
+  assert.deepEqual(await res.json(), { result: 1 });
+  // The fresh window must also be able to get a new TTL — a leftover non-null
+  // expires_at here would permanently block EXPIRE NX until the next sweep.
+  const ttl = await worker.fetch(req('/', { method: 'POST', body: ['TTL', 'stale-counter'] }), env);
+  assert.deepEqual(await ttl.json(), { result: -1 });
+});
+
+test('SET on an existing key overwrites its TTL (removes it when no EX given), matching Redis', async () => {
+  const env = makeEnv();
+  await worker.fetch(req('/', { method: 'POST', body: ['SET', 'k', 'v1', 'EX', '999'] }), env);
+  await worker.fetch(req('/', { method: 'POST', body: ['SET', 'k', 'v2'] }), env);
+  const ttl = await worker.fetch(req('/', { method: 'POST', body: ['TTL', 'k'] }), env);
+  assert.deepEqual(await ttl.json(), { result: -1 });
+});
+
 test('scheduled() sweeps expired keys', async () => {
   const db = makeFakeD1();
   const env = makeEnv({ db });

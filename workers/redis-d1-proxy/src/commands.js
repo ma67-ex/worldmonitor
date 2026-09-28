@@ -28,9 +28,19 @@ async function getMeta(db, key) {
   return row;
 }
 
+// Preserves an existing key's TTL across a value-only mutation (INCR, HSET,
+// LPUSH, ...) — matches Redis, where only SET-family commands touch expiry.
 async function touchMeta(db, key, type, expiresAt = null) {
   await db.prepare(
     'INSERT INTO meta (key, type, expires_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET type = excluded.type',
+  ).bind(key, type, expiresAt).run();
+}
+
+// SET-family commands must overwrite any existing TTL (to the new one, or to
+// no TTL at all) rather than preserve it — the opposite of touchMeta above.
+async function setMetaAndExpiry(db, key, type, expiresAt) {
+  await db.prepare(
+    'INSERT INTO meta (key, type, expires_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET type = excluded.type, expires_at = excluded.expires_at',
   ).bind(key, type, expiresAt).run();
 }
 
@@ -65,22 +75,32 @@ function parseExpireFlags(rest) {
 
 // --- string ---
 
+// Single JOIN instead of a meta lookup + a separate str lookup — GET is the
+// hottest command in the whole system (every cache read goes through it).
 async function cmdGet(db, [key]) {
-  const meta = await getMeta(db, key);
-  if (!meta || meta.type !== 'string') return null;
-  const row = await db.prepare('SELECT value FROM str WHERE key = ?').bind(key).first();
-  return row ? row.value : null;
+  const row = await db.prepare(
+    'SELECT s.value AS value, m.type AS type, m.expires_at AS expires_at FROM str s JOIN meta m ON m.key = s.key WHERE s.key = ?',
+  ).bind(key).first();
+  if (!row || row.type !== 'string') return null;
+  if (row.expires_at != null && row.expires_at <= now()) return null;
+  return row.value;
 }
 
 async function cmdSet(db, [key, value, ...rest]) {
   const { expiresAt, nx, xx } = parseExpireFlags(rest);
-  const existing = await getMeta(db, key);
-  if (nx && existing) return null;
-  if (xx && !existing) return null;
-  await touchMeta(db, key, 'string', expiresAt);
-  await db.prepare(
-    'INSERT INTO str (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
-  ).bind(key, String(value)).run();
+  if (nx || xx) {
+    const existing = await getMeta(db, key);
+    if (nx && existing) return null;
+    if (xx && !existing) return null;
+  }
+  // SET must overwrite any existing TTL (Redis semantics) — setMetaAndExpiry,
+  // not touchMeta, and the two writes are independent so they run in parallel.
+  await Promise.all([
+    setMetaAndExpiry(db, key, 'string', expiresAt),
+    db.prepare(
+      'INSERT INTO str (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+    ).bind(key, String(value)).run(),
+  ]);
   return 'OK';
 }
 
@@ -130,14 +150,33 @@ async function cmdMset(db, args) {
   return 'OK';
 }
 
+// Atomic single-statement increment (SQLite does the arithmetic, not a JS
+// read-modify-write) instead of a separate GET + computed SET: fixes a real
+// lost-update race under concurrent callers to the same key — the exact
+// shape the rate-limit fallback's INCR hits on every request. Still needs
+// ONE read first: a key whose TTL passed but the 15-min cron sweep hasn't
+// reclaimed yet must start a fresh window (value=by, no stale TTL carried
+// forward), not add to the old value sitting in `str` — that table has no
+// idea it's logically expired, only `meta` does. Cuts the hot path from 5
+// sequential round-trips (original) to 1 read + 2 writes run in parallel.
 async function cmdIncrby(db, [key, byRaw]) {
   const by = Number(byRaw ?? 1);
-  const existing = await cmdGet(db, [key]);
-  const next = (existing == null ? 0 : Number(existing)) + by;
+  if (!Number.isFinite(by)) throw new Error('value is not an integer or out of range');
+  const meta = await getMeta(db, key); // null: missing OR lazily expired — either way, fresh window
+  const [, row] = await Promise.all([
+    meta ? touchMeta(db, key, 'string', null) : setMetaAndExpiry(db, key, 'string', null),
+    meta
+      ? db.prepare(
+          `INSERT INTO str (key, value) VALUES (?, ?)
+           ON CONFLICT(key) DO UPDATE SET value = CAST(str.value AS INTEGER) + ?
+           RETURNING value`,
+        ).bind(key, String(by), by).first()
+      : db.prepare(
+          'INSERT INTO str (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value RETURNING value',
+        ).bind(key, String(by)).first(),
+  ]);
+  const next = Number(row.value);
   if (!Number.isFinite(next)) throw new Error('value is not an integer or out of range');
-  await touchMeta(db, key, 'string', (await getMeta(db, key))?.expires_at ?? null);
-  await db.prepare('INSERT INTO str (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
-    .bind(key, String(next)).run();
   return next;
 }
 
@@ -173,13 +212,18 @@ async function cmdTtl(db, [key]) {
   return Math.max(0, Math.ceil((meta.expires_at - now()) / 1000));
 }
 
+// Single conditional UPDATE instead of a read-then-write: 0 rows affected
+// covers both "key doesn't exist" and "NX blocked by an existing TTL" in one
+// round-trip — the same fixedWindowLimit hot path as INCR above.
 async function cmdExpire(db, [key, secondsRaw, ...flags]) {
-  const meta = await getMeta(db, key);
-  if (!meta) return 0;
-  if (flags.map((f) => String(f).toUpperCase()).includes('NX') && meta.expires_at != null) return 0;
+  const nx = flags.map((f) => String(f).toUpperCase()).includes('NX');
   const expiresAt = now() + Number(secondsRaw) * 1000;
-  await db.prepare('UPDATE meta SET expires_at = ? WHERE key = ?').bind(expiresAt, key).run();
-  return 1;
+  const res = await db.prepare(
+    nx
+      ? 'UPDATE meta SET expires_at = ? WHERE key = ? AND expires_at IS NULL'
+      : 'UPDATE meta SET expires_at = ? WHERE key = ?',
+  ).bind(expiresAt, key).run();
+  return res.meta?.rows_written ? 1 : 0;
 }
 
 async function cmdPexpire(db, [key, msRaw, ...flags]) {
@@ -189,7 +233,7 @@ async function cmdPexpire(db, [key, msRaw, ...flags]) {
 // --- hash ---
 
 async function cmdHset(db, [key, ...fieldValues]) {
-  await touchMeta(db, key, 'hash', (await getMeta(db, key))?.expires_at ?? null);
+  await touchMeta(db, key, 'hash', null);
   let added = 0;
   for (let i = 0; i < fieldValues.length; i += 2) {
     const res = await db.prepare(
@@ -266,7 +310,7 @@ async function getBounds(db, key) {
 }
 
 async function cmdLpush(db, [key, ...values]) {
-  await touchMeta(db, key, 'list', (await getMeta(db, key))?.expires_at ?? null);
+  await touchMeta(db, key, 'list', null);
   let { head, tail } = await getBounds(db, key);
   for (const value of values) {
     head -= 1;
@@ -279,7 +323,7 @@ async function cmdLpush(db, [key, ...values]) {
 }
 
 async function cmdRpush(db, [key, ...values]) {
-  await touchMeta(db, key, 'list', (await getMeta(db, key))?.expires_at ?? null);
+  await touchMeta(db, key, 'list', null);
   let { head, tail } = await getBounds(db, key);
   for (const value of values) {
     await db.prepare('INSERT INTO list (key, pos, value) VALUES (?, ?, ?)').bind(key, tail, String(value)).run();
@@ -348,7 +392,7 @@ async function cmdLrem(db, [key, countRaw, value]) {
 // --- set ---
 
 async function cmdSadd(db, [key, ...members]) {
-  await touchMeta(db, key, 'set', (await getMeta(db, key))?.expires_at ?? null);
+  await touchMeta(db, key, 'set', null);
   let added = 0;
   for (const member of members) {
     const res = await db.prepare('INSERT OR IGNORE INTO set_member (key, member) VALUES (?, ?)').bind(key, member).run();
@@ -384,7 +428,7 @@ async function cmdScard(db, [key]) {
 // --- zset ---
 
 async function cmdZadd(db, [key, ...scoreMembers]) {
-  await touchMeta(db, key, 'zset', (await getMeta(db, key))?.expires_at ?? null);
+  await touchMeta(db, key, 'zset', null);
   let added = 0;
   for (let i = 0; i < scoreMembers.length; i += 2) {
     const res = await db.prepare(
@@ -451,7 +495,7 @@ function sliceRedisRange(items, startRaw, stopRaw) {
 const KM_PER_DEGREE_LAT = 110.574;
 
 async function cmdGeoadd(db, [key, ...lonLatMembers]) {
-  await touchMeta(db, key, 'geo', (await getMeta(db, key))?.expires_at ?? null);
+  await touchMeta(db, key, 'geo', null);
   let added = 0;
   for (let i = 0; i < lonLatMembers.length; i += 3) {
     const res = await db.prepare(
