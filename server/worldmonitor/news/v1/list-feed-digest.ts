@@ -414,11 +414,9 @@ interface ParseResult {
 const CACHE_TTL_HEALTHY_S = 3600;
 const CACHE_TTL_EMPTY_S = 300;
 
-async function fetchAndParseRss(
-  feed: ServerFeed,
-  variant: string,
-  signal: AbortSignal,
-): Promise<ParseResult> {
+// Shared with buildDigest's pre-batch getCachedJsonBatch() call below — both
+// must compute the identical key for the batch pre-warm to actually land.
+function feedCacheKey(variant: string, feed: ServerFeed): string {
   // v5 cache shape: identical struct to v4 but a new prefix invalidates
   // every pre-fix entry on deploy. v4 entries cached pre-PR contain
   // ParsedItems without the new isEphemeralLiveCoverage field. If a cache hit
@@ -442,9 +440,30 @@ async function fetchAndParseRss(
   // v7→v8: extend the same exclusion policy to duration-led anniversary
   // explainers ("10 years on from …"). Warm v7 rows already carry an
   // authoritative isOpinion="0", so force another cold parse on rollout.
-  const cacheKey = `rss:feed:v8:${variant}:${feed.url}`;
+  return `rss:feed:v8:${variant}:${feed.url}`;
+}
+
+async function fetchAndParseRss(
+  feed: ServerFeed,
+  variant: string,
+  signal: AbortSignal,
+  // Result of ONE getCachedJsonBatch() call across every feed in this build,
+  // made once up front in buildDigest instead of each feed independently
+  // paying its own cache-read round-trip. On a cold cache (a fresh Redis
+  // backend, or the first request after a deploy bumps the key prefix) that
+  // used to mean N feeds x N sequential round-trips before any fetching even
+  // started, competing with the fetches themselves for the 14s digest
+  // deadline (OVERALL_DEADLINE_MS). A miss in this map falls through to the
+  // individual getCachedJson read below unchanged, so behavior is identical
+  // to before this parameter existed — this is purely a warm-path shortcut.
+  prefetchedCache?: Map<string, unknown>,
+): Promise<ParseResult> {
+  const cacheKey = feedCacheKey(variant, feed);
 
   try {
+    const prefetched = prefetchedCache?.get(cacheKey) as ParseResult | undefined;
+    if (prefetched) return prefetched;
+
     // Read cache unconditionally — the v5 prefix guarantees pre-fix
     // poisoning can't reach this read, so we don't need a parsedTotal
     // bypass. Honoring cached zero-from-zero entries IS the throttle:
@@ -1332,6 +1351,15 @@ async function buildDigest(variant: string, lang: string): Promise<ListFeedDiges
   try {
     const { allEntries, batches } = buildDigestFeedBatches(variant, lang);
 
+    // One pipelined read for every feed's cache entry instead of each feed
+    // paying its own round-trip before fetching even starts — see the
+    // prefetchedCache param comment on fetchAndParseRss. Best-effort: a
+    // failure here just means every feed falls through to its own
+    // individual getCachedJson read, identical to pre-batching behavior.
+    const prefetchedCache = await getCachedJsonBatch(
+      allEntries.map(({ feed }) => feedCacheKey(variant, feed)),
+    ).catch(() => new Map<string, unknown>());
+
     const results = new Map<string, ParsedItem[]>();
     // Track feeds that actually completed (with or without items) so we can
     // distinguish a genuine timeout (never ran) from a successful empty fetch.
@@ -1342,7 +1370,7 @@ async function buildDigest(variant: string, lang: string): Promise<ListFeedDiges
 
       const settled = await Promise.allSettled(
         batch.map(async ({ category, feed }) => {
-          const result = await fetchAndParseRss(feed, variant, deadlineController.signal);
+          const result = await fetchAndParseRss(feed, variant, deadlineController.signal, prefetchedCache);
           completedFeeds.add(feed.name);
           // Classify per-feed status. 'all-undated' is the silent-zeroing
           // failure mode (every parsed item dropped for missing/unparseable
