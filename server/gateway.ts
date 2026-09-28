@@ -480,6 +480,10 @@ export const RELAY_WARM_PING_PATHS = new Set<string>([
   '/api/infrastructure/v1/list-temporal-anomalies',
   '/api/intelligence/v1/get-risk-scores',
   '/api/supply-chain/v1/get-chokepoint-status',
+  // Cacheable, non-premium (no entitlement check in the handler), 'slow'-tier
+  // per the cache-tier map above — matches this allowlist's own criteria.
+  // seed-insights.mjs warms this via the relay key instead of WORLDMONITOR_VALID_KEYS.
+  '/api/news/v1/list-feed-digest',
 ]);
 
 /**
