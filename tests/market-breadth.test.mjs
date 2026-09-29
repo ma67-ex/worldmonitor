@@ -44,10 +44,15 @@ describe('Market breadth seed script', () => {
     assert.match(seedSrc, /2592000/);
   });
 
-  it('fetches all three Barchart breadth symbols', () => {
-    assert.match(seedSrc, /S5TW/);
-    assert.match(seedSrc, /S5FI/);
-    assert.match(seedSrc, /S5TH/);
+  it('computes breadth from S&P 500 constituents via Yahoo, not Barchart scraping', () => {
+    // Barchart's breadth symbols went behind an AWS WAF JS challenge (confirmed
+    // live 2026-09-29) — no proxy or IP change gets past it, since it requires
+    // executing JS to mint a token. Replaced with: live constituent list +
+    // per-symbol SMA computed from this repo's existing Yahoo chart helper.
+    assert.match(seedSrc, /List_of_S%26P_500_companies/);
+    assert.match(seedSrc, /fetchYahooJson/);
+    assert.match(seedSrc, /SMA_WINDOWS/);
+    assert.doesNotMatch(seedSrc, /barchart\.com/i);
   });
 
   it('maintains rolling 252-day history', () => {
@@ -138,9 +143,11 @@ describe('Market breadth null-vs-zero handling', () => {
   const handlerSrc = readFileSync(join(root, 'server', 'worldmonitor', 'market', 'v1', 'get-market-breadth-history.ts'), 'utf-8');
   const seedSrc = readFileSync(join(root, 'scripts', 'seed-market-breadth.mjs'), 'utf-8');
 
-  it('seed preserves null for failed Barchart fetches', () => {
-    // readings[field] = val where val can be null; must NOT coerce to 0
-    assert.match(seedSrc, /readings\[field\]\s*=\s*val/);
+  it('seed preserves null when a field has no valid readings (no 0 coercion)', () => {
+    // readings[field] is null when validCount is 0 for that field (e.g. every
+    // fetch failed) — must not coerce to 0, which would misreport "0% above
+    // SMA" as a real reading instead of "no data".
+    assert.match(seedSrc, /valid > 0 \? Math\.round\(\(above \/ valid\) \* 1000\) \/ 10 : null/);
     assert.doesNotMatch(seedSrc, /pctAbove20d:\s*readings\.pctAbove20d\s*\|\|\s*0/);
   });
 

@@ -12,6 +12,13 @@ name: Seed all data sources (prod Redis)
 # workflow (seed-nasa-firms.yml) and is excluded here to avoid two crons
 # racing for the same Redis lock.
 #
+# market-breadth is excluded for a different reason: it fetches ~500 S&P 500
+# constituents from Yahoo (one per symbol, staggered) to compute breadth
+# itself now that Barchart's breadth symbols sit behind an AWS WAF JS
+# challenge. That takes several minutes, blowing this workflow's 90s-per-
+# script budget every single run for no benefit — its own 30-day TTL means
+# the dedicated daily seed-market-breadth.yml is already more than enough.
+#
 # The shard list is computed at runtime (`ls scripts/seed-*.mjs`), not
 # hardcoded — adding or removing a seed script never requires touching this
 # file.
@@ -71,7 +78,7 @@ jobs:
         run: |
           set -o pipefail
           mapfile -t scripts < <(ls scripts/seed-*.mjs | xargs -n1 basename \
-            | grep -vE '^seed-(fire-detections|thermal-escalation)\.mjs$' \
+            | grep -vE '^seed-(fire-detections|thermal-escalation|market-breadth)\.mjs$' \
             | awk -v shard="${{ matrix.shard }}" -v n="$SHARD_COUNT" 'NR % n == shard')
           echo "Shard ${{ matrix.shard }}: ${#scripts[@]} script(s)"
           fail=0
