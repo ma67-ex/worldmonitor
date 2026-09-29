@@ -25,6 +25,7 @@ import {
   checkEndpointRateLimit,
   checkFailClosedScopedIpRateLimit,
   hasEndpointRatePolicy,
+  getClientIp,
 } from './_shared/rate-limit';
 import {
   drainResponseHeaders,
@@ -73,6 +74,7 @@ import {
 import {
   DIRECT_LLM_DAILY_QUOTA_LIMIT,
   DIRECT_LLM_GATEWAY_QUOTA_PATHS,
+  DIRECT_LLM_UNVERIFIED_DAILY_QUOTA_LIMIT,
   resolveActiveDirectLlmLimit,
   reserveDirectLlmQuota,
 } from './_shared/direct-llm-quota';
@@ -1888,44 +1890,65 @@ export function createDomainGateway(
 
     if (requiresDirectLlmQuota && !isEnterpriseAuth) {
       if (!sessionUserId) {
-        emitRequest(401, 'auth_401', null);
-        return createGatewayAuthErrorResponse(401, 'Pro authentication required', corsHeaders);
-      }
-
-      // Tier-1 legacy Clerk-role grants intentionally bypass the ordinary
-      // entitlement lookup. Re-read the cached row when available so Pro
-      // Business/API plans still receive their catalog-specific dashboard-AI
-      // allowance.
-      const ent = quotaEntitlements ?? (
-        userKeyEntitlement !== undefined
-          ? userKeyEntitlement
-          : await getEntitlements(sessionUserId)
-      );
-      if (ent) recordUsageEntitlement(ent);
-      // resolveActiveDirectLlmLimit — NOT the raw catalog read — decides this.
-      // A caller we cannot confirm as actively paid (free tier, lapsed row, no
-      // row, or a verification outage) must land on the unverified floor, never
-      // on the paid default: this endpoint spends real provider budget, and
-      // two of the DIRECT_LLM_GATEWAY_QUOTA_PATHS carry no tier gate at all.
-      directLlmDailyLimit = resolveActiveDirectLlmLimit(ent);
-
-      // Enterprise subscription rows carry an explicit null allowance. Do not
-      // hit Redis for those unlimited callers; static enterprise keys already
-      // bypass this block above.
-      if (directLlmDailyLimit !== null) {
-        const reservation = await reserveDirectLlmQuota({
-          userId: sessionUserId,
-          limit: directLlmDailyLimit,
+        // Depaywall mission: no sign-in required anywhere. But these routes
+        // spend real provider budget per call (OpenRouter, Finnhub, etc.), so
+        // an anonymous caller still needs SOME bound — reuse the exact same
+        // Redis-backed daily-quota mechanism signed-in callers get below,
+        // just keyed by IP instead of account, at the same unverified-tier
+        // ceiling. A determined caller can rotate IPs to get more than the
+        // ceiling; this stops casual/accidental runaway cost, not a
+        // determined attacker — the same tradeoff every anonymous-IP limit
+        // in this codebase already makes.
+        const anonReservation = await reserveDirectLlmQuota({
+          userId: `anon-ip:${getClientIp(request)}`,
+          limit: DIRECT_LLM_UNVERIFIED_DAILY_QUOTA_LIMIT,
           pipeline: (cmds) => runRedisPipeline(cmds, true),
         });
-        if (!reservation.ok) {
-          const response = createDirectLlmQuotaFailureResponse(reservation, corsHeaders);
+        if (!anonReservation.ok) {
+          const response = createDirectLlmQuotaFailureResponse(anonReservation, corsHeaders);
           emitRequest(
             response.status,
             response.status === 429 ? 'rate_limit_429_direct_llm' : 'rate_limit_degraded',
             null,
           );
           return response;
+        }
+      } else {
+        // Tier-1 legacy Clerk-role grants intentionally bypass the ordinary
+        // entitlement lookup. Re-read the cached row when available so Pro
+        // Business/API plans still receive their catalog-specific dashboard-AI
+        // allowance.
+        const ent = quotaEntitlements ?? (
+          userKeyEntitlement !== undefined
+            ? userKeyEntitlement
+            : await getEntitlements(sessionUserId)
+        );
+        if (ent) recordUsageEntitlement(ent);
+        // resolveActiveDirectLlmLimit — NOT the raw catalog read — decides this.
+        // A caller we cannot confirm as actively paid (free tier, lapsed row, no
+        // row, or a verification outage) must land on the unverified floor, never
+        // on the paid default: this endpoint spends real provider budget, and
+        // two of the DIRECT_LLM_GATEWAY_QUOTA_PATHS carry no tier gate at all.
+        directLlmDailyLimit = resolveActiveDirectLlmLimit(ent);
+
+        // Enterprise subscription rows carry an explicit null allowance. Do not
+        // hit Redis for those unlimited callers; static enterprise keys already
+        // bypass this block above.
+        if (directLlmDailyLimit !== null) {
+          const reservation = await reserveDirectLlmQuota({
+            userId: sessionUserId,
+            limit: directLlmDailyLimit,
+            pipeline: (cmds) => runRedisPipeline(cmds, true),
+          });
+          if (!reservation.ok) {
+            const response = createDirectLlmQuotaFailureResponse(reservation, corsHeaders);
+            emitRequest(
+              response.status,
+              response.status === 429 ? 'rate_limit_429_direct_llm' : 'rate_limit_degraded',
+              null,
+            );
+            return response;
+          }
         }
       }
     }
