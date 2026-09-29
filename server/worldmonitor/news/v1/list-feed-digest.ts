@@ -1348,7 +1348,12 @@ function buildDigestFeedBatches(variant: string, lang: string): {
   return { allEntries, batches };
 }
 
-async function buildDigest(variant: string, lang: string): Promise<ListFeedDigestResponse> {
+// overallDeadlineMs defaults to OVERALL_DEADLINE_MS (the live Vercel Edge
+// path's budget, unchanged). scripts/seed-news-digest.mts is the only other
+// caller and passes a much longer value: it runs as a Railway child process
+// with no platform response-time ceiling, so it can afford to actually wait
+// out every feed on a cold cache instead of returning partial coverage.
+export async function buildDigest(variant: string, lang: string, overallDeadlineMs: number = OVERALL_DEADLINE_MS): Promise<ListFeedDigestResponse> {
   const feedStatuses: Record<string, string> = {};
   // #4920 coverage ledger: count every silent drop gate so "how much did
   // we NOT show" is a queryable number instead of a feeling.
@@ -1356,7 +1361,7 @@ async function buildDigest(variant: string, lang: string): Promise<ListFeedDiges
   const categories: Record<string, CategoryBucket> = {};
 
   const deadlineController = new AbortController();
-  const deadlineTimeout = setTimeout(() => deadlineController.abort(), OVERALL_DEADLINE_MS);
+  const deadlineTimeout = setTimeout(() => deadlineController.abort(), overallDeadlineMs);
 
   try {
     const { allEntries, batches } = buildDigestFeedBatches(variant, lang);

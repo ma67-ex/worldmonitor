@@ -1,0 +1,59 @@
+name: Seed news digest (prod Redis)
+
+# buildDigest() fetches/parses 50-100+ RSS feeds. On a cold cache (a fresh
+# Redis backend, or the first request after a deploy bumps the feed cache-key
+# prefix), that legitimately takes longer than Vercel's request-time budget
+# (OVERALL_DEADLINE_MS, 10s) -- verified live: batching the per-feed cache
+# reads and doubling fetch concurrency both shipped as real improvements but
+# neither closed it, because the digest is fetch-bound across many feeds, not
+# cache-bound. This runs scripts/seed-news-digest.mts on a schedule instead --
+# a GitHub Actions runner has no platform response-time ceiling, so it can
+# afford to actually wait out every feed once and write the finished digest
+# straight to the same cache key the live RPC reads. A local run took ~48s
+# cold; per-feed caches are then warm for their own 1h TTL, so subsequent
+# runs within that window are much faster.
+#
+# Separate from seed-all.yml (which fans scripts/seed-*.mjs out across
+# shards): this script is .mts and needs tsx, and needs a much shorter
+# interval than that workflow's 3h cron to keep the 15-min digest TTL from
+# lapsing.
+#
+# Runs via `npx tsx`, not the seed-all.yml pattern of plain `node scripts/$f`:
+# this script imports server/worldmonitor/news/v1/list-feed-digest.ts, whose
+# own relative imports have no explicit .ts extensions (normal TS-codebase
+# style) -- Node's native type-stripping can erase the syntax but doesn't do
+# TypeScript-style extensionless module resolution, so plain `node` would
+# fail with ERR_MODULE_NOT_FOUND partway through the import graph. tsx wraps
+# resolution specifically to handle this (same reason this repo's own tests
+# run via `tsx --test`, not `node --test`, for anything importing server/).
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: seed-news-digest
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      - run: npm ci
+
+      - name: Build and cache the news digest
+        env:
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+        run: npx tsx scripts/seed-news-digest.mts
