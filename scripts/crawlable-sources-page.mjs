@@ -95,6 +95,12 @@ const SOURCE_DOMAIN_MATCHERS = [
 // Keep ambiguous structured providers explicit so a new unmatched provider
 // fails the build instead of silently becoming "geopolitics".
 const SOURCE_DOMAIN_OVERRIDES = new Map([
+  // Barchart's only remaining reference (scripts/seed-fear-greed.mjs) has
+  // nothing in its path/provider/host text that matches a domain pattern
+  // below -- surfaced by market-breadth's own Barchart usage being removed
+  // (2026-09-29, AWS WAF blocked it), which was the reference that used to
+  // make this entry classify via a "market"-ish path match.
+  ['Barchart', 'finance'],
   ['Hyperliquid', 'finance'],
   ['api.rainviewer.com', 'environment'],
   ['apewisdom.io', 'finance'],
