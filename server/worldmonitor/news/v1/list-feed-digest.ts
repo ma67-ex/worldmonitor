@@ -56,7 +56,17 @@ const DIGEST_RESPONSE_TIMEOUT_MS = 14_000;
 const POST_FETCH_HEADROOM_MS = 15_000;
 const RESPONSE_GUARD_BAND_MS = 3_000;
 const OVERALL_DEADLINE_MS = VERCEL_INITIAL_RESPONSE_LIMIT_MS - POST_FETCH_HEADROOM_MS;
-const BATCH_CONCURRENCY = 20;
+// 20 -> 40: on a cold cache (fresh Redis backend, or first request after a
+// deploy bumps the feed cache-key prefix), most feeds are misses and the
+// digest is fetch-bound, not cache-bound (verified live: batching the cache
+// reads alone didn't fix empty digests -- raw fetch time across ~50-100
+// feeds under the 10s OVERALL_DEADLINE_MS did). Doubling batch width lets
+// each attempt get through roughly twice as many feeds before the deadline,
+// so full coverage across all feeds converges in about half as many
+// requests. Spread across ~15-20 distinct hostnames (mostly Google News
+// redirects plus the Railway relay's own RSS_RATE_LIMIT_MAX=300/window), so
+// this isn't concentrated load on any single upstream.
+const BATCH_CONCURRENCY = 40;
 
 type DigestFeedEntry = { category: string; feed: ServerFeed };
 
