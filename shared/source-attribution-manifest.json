@@ -3356,6 +3356,9 @@
           "path": "api/_sanctions-ofac-proxy.ts"
         },
         {
+          "path": "scripts/build-alt-data.mjs"
+        },
+        {
           "path": "scripts/generate-airline-codes.mjs"
         },
         {
@@ -3806,6 +3809,20 @@
       "references": [
         {
           "path": "scripts/seed-security-advisories.mjs"
+        }
+      ]
+    },
+    {
+      "host": "ix.cnn.io",
+      "provider": "ix.cnn.io",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit ix.cnn.io and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "scripts/build-alt-data.mjs"
         }
       ]
     },
@@ -5440,6 +5457,9 @@
       "references": [
         {
           "path": "scripts/ais-relay.cjs"
+        },
+        {
+          "path": "scripts/build-alt-data.mjs"
         },
         {
           "path": "scripts/fetch-country-boundary-overrides.mjs"
