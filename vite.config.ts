@@ -97,6 +97,8 @@ const LAZY_HTML_PRELOAD_RE = new RegExp(
 const PANEL_CLUSTER: Record<string, PanelChunkName> = {
   // Markets / equities / crypto positioning
   AAIISentiment: 'panels-markets', CotPositioning: 'panels-markets',
+  CongressTrading: 'panels-markets', PotusTracker: 'panels-markets',
+  MiningMonitor: 'panels-markets', StaticJson: 'panels-markets',
   ETFFlows: 'panels-markets', EarningsCalendar: 'panels-markets',
   EconomicCalendar: 'panels-markets', FearGreed: 'panels-markets',
   Fx: 'panels-markets',
