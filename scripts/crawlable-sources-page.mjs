@@ -131,6 +131,7 @@ const SOURCE_DOMAIN_OVERRIDES = new Map([
   ['overpass-api.de', 'military'],
   ['pitchbook.com', 'technology'],
   ['production.dataviz.cnn.io', 'finance'],
+  ['ix.cnn.io', 'news'],
   ['schema.org', 'technology'],
   ['wabi-europe-north-b-api.analysis.windows.net', 'infrastructure'],
   ['web.archive.org', 'geopolitics'],
