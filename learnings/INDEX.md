@@ -4,3 +4,4 @@
 - [Bloomberg-style quote stats](2026-09-24-bloomberg-quote-stats-section.md) — Yahoo chart meta already had day/52W range + volume; parser dropped them
 - [NSE equity data layer](2026-09-24-nse-equity-data-layer.md) — India terminal seeding: probe from the prod runner, XBRL is the real source, rotation + skipWhenEmpty per-company keys
 - [docs:check drift vs a dirty tree](2026-09-24-docs-stats-drift-dirty-tree.md) — take count baselines from HEAD in a scratch worktree, not from a tree carrying another session's uncommitted work
+- [Congress/POTUS/Mining panels](2026-09-30-static-json-panels-from-open-datasets.md) — no free API exists; slim kadoa + CNN static files via build script, refresh with a GH Action

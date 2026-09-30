@@ -1,0 +1,30 @@
+name: Refresh Congress / POTUS / Mining data
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/build-alt-data.mjs
+      - name: Commit if changed
+        run: |
+          # generatedAt changes every run, so compare content without it.
+          if git diff --quiet -I'"generatedAt"' -- public/data/congress.json public/data/potus.json public/data/mining.json; then
+            echo "no data changes"; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data/congress.json public/data/potus.json public/data/mining.json
+          git commit -m "Refresh congress/potus/mining data"
+          git push

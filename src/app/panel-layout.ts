@@ -2486,6 +2486,9 @@ export class PanelLayoutManager implements AppModule {
       this.importPanel('macro-signals', () => import('@/components/MacroSignalsPanel'), 'MacroSignalsPanel', (MacroSignalsPanel) => new MacroSignalsPanel()),
     );
     this.lazyDefaultPanel('fear-greed', () => import('@/components/FearGreedPanel'), 'FearGreedPanel');
+    this.lazyDefaultPanel('congress-trading', () => import('@/components/CongressTradingPanel'), 'CongressTradingPanel');
+    this.lazyDefaultPanel('potus-tracker', () => import('@/components/PotusTrackerPanel'), 'PotusTrackerPanel');
+    this.lazyDefaultPanel('mining-monitor', () => import('@/components/MiningMonitorPanel'), 'MiningMonitorPanel');
     this.lazyDefaultPanel('aaii-sentiment', () => import('@/components/AAIISentimentPanel'), 'AAIISentimentPanel');
     this.lazyDefaultPanel('market-breadth', () => import('@/components/MarketBreadthPanel'), 'MarketBreadthPanel');
     this.lazyDefaultPanel('news-market-correlation', () => import('@/components/NewsMarketCorrelationPanel'), 'NewsMarketCorrelationPanel');
