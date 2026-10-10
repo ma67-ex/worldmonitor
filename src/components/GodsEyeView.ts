@@ -49,7 +49,7 @@ const OPENFREEMAP_TILEJSON = 'https://tiles.openfreemap.org/planet';
 const ESRI_LABELS = 'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer';
 const ESRI_ROADS = 'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer';
 const BUILDING_ZOOM = 14;
-const MAX_BUILDING_TILES = 60;
+const MAX_BUILDING_TILES = 40;
 const ESRI_STREETS = 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer';
 const CREDITS: Record<MapStyle, string> = {
   satellite: 'Imagery \u00a9 Esri, Maxar, Earthstar Geographics',
@@ -69,6 +69,39 @@ export function heightToZoom(height: number, lat: number, viewportPx: number): n
 }
 
 type CesiumNS = typeof import('cesium');
+type Poly = { ring: [number, number][]; top: number; base: number };
+type TileEntry = { polys: Poly[]; ground: number[] };
+
+// Survive close/reopen: parsed building tiles and the TileJSON template.
+const TILE_CACHE = new Map<string, TileEntry>();
+const TILE_CACHE_MAX = 160;
+const TILEJSON_KEY = 'gev:openfreemap-template';
+const GROUND_GRID = 9;
+const BYTE_CACHE = 'gev-building-tiles-v1';
+
+function rememberTile(key: string, entry: TileEntry): void {
+  TILE_CACHE.delete(key);
+  TILE_CACHE.set(key, entry);
+  if (TILE_CACHE.size > TILE_CACHE_MAX) TILE_CACHE.delete(TILE_CACHE.keys().next().value as string);
+}
+
+/** Vector tile bytes, persisted in the Cache API so repeat visits skip the network. */
+async function fetchTileBytes(url: string): Promise<Uint8Array> {
+  let cache: Cache | null = null;
+  try {
+    cache = await caches.open(BYTE_CACHE);
+    const hit = await cache.match(url);
+    if (hit) return new Uint8Array(await hit.arrayBuffer());
+  } catch {
+    cache = null;
+  }
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`tile ${res.status}`);
+  if (cache) void cache.put(url, res.clone()).catch(() => undefined);
+  return new Uint8Array(await res.arrayBuffer());
+}
+
+const nextTask = () => new Promise<void>((r) => setTimeout(r, 0));
 
 export class GodsEyeView {
   private readonly root = document.createElement('div');
@@ -81,9 +114,11 @@ export class GodsEyeView {
   private baseLayer: import('cesium').ImageryLayer | null = null;
   private roadLayer: import('cesium').ImageryLayer | null = null;
   private overlayLayers: import('cesium').ImageryLayer[] = [];
-  private readonly tileData = new Map<string, { polys: { ring: [number, number][]; top: number; base: number }[]; ground: number[] }>();
   private readonly tilePrims = new Map<string, import('cesium').Primitive>();
   private tileTemplate: string | null = null;
+  private lastHud = 0;
+  private moveTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly pointEntities = new Map<string, import('cesium').Entity>();
   private readonly builtTiles = new Set<string>();
   private pointTimer: ReturnType<typeof setInterval> | null = null;
   private closed = false;
@@ -136,16 +171,27 @@ export class GodsEyeView {
         infoBox: false,
         selectionIndicator: false,
         creditContainer: document.createElement('div'), // our own attribution line below replaces Cesium's widget
-        requestRenderMode: false,
+        requestRenderMode: true,
+        maximumRenderTimeChange: Number.POSITIVE_INFINITY,
         msaaSamples: 1,
       }));
-      viewer.scene.globe.depthTestAgainstTerrain = true;
+      const { scene } = viewer;
+      scene.globe.depthTestAgainstTerrain = true;
+      scene.globe.maximumScreenSpaceError = 3;
+      scene.globe.tileCacheSize = 400;
+      scene.postProcessStages.fxaa.enabled = false;
+      scene.highDynamicRange = false;
+      viewer.useBrowserRecommendedResolution = false;
+      viewer.resolutionScale = Math.min(1, 1.5 / (window.devicePixelRatio || 1));
       this.baseLayer = viewer.imageryLayers.get(0) ?? null;
       void this.addStreetLayer(Cesium, viewer);
       void this.addReferenceLayers(Cesium, viewer);
       this.placeCamera(Cesium, viewer);
       void this.loadBuildings();
-      viewer.camera.moveEnd.addEventListener(() => void this.loadBuildings());
+      viewer.camera.moveEnd.addEventListener(() => {
+        if (this.moveTimer) clearTimeout(this.moveTimer);
+        this.moveTimer = setTimeout(() => void this.loadBuildings(), 300);
+      });
       this.pointTimer = setInterval(() => this.syncPoints(), 5000);
       this.syncPoints();
       viewer.scene.postRender.addEventListener(() => this.updateHud());
@@ -162,6 +208,7 @@ export class GodsEyeView {
     const view = this.currentView();
     document.removeEventListener('keydown', this.onKey);
     if (this.pointTimer) clearInterval(this.pointTimer);
+    if (this.moveTimer) clearTimeout(this.moveTimer);
     try {
       this.viewer?.destroy(); // releases the WebGL context
     } catch {
@@ -224,9 +271,21 @@ export class GodsEyeView {
 
   private async tileUrl(z: number, x: number, y: number): Promise<string | null> {
     if (!this.tileTemplate) {
+      try {
+        this.tileTemplate = localStorage.getItem(TILEJSON_KEY);
+      } catch {
+        /* storage blocked */
+      }
+    }
+    if (!this.tileTemplate) {
       const res = await fetch(OPENFREEMAP_TILEJSON);
       const json = (await res.json()) as { tiles?: string[] };
       this.tileTemplate = json.tiles?.[0] ?? null;
+      try {
+        if (this.tileTemplate) localStorage.setItem(TILEJSON_KEY, this.tileTemplate);
+      } catch {
+        /* storage blocked */
+      }
     }
     return this.tileTemplate?.replace('{z}', String(z)).replace('{x}', String(x)).replace('{y}', String(y)) ?? null;
   }
@@ -236,55 +295,108 @@ export class GodsEyeView {
     const C = this.cesium;
     const viewer = this.viewer;
     if (!C || !viewer || viewer.isDestroyed()) return;
-    const { camera } = viewer;
-    if (camera.positionCartographic.height > 20_000) return;
+    if (viewer.camera.positionCartographic.height > 20_000) return;
     const { lat, lon } = this.currentView();
     const n = 2 ** BUILDING_ZOOM;
     const cx = Math.floor(((lon + 180) / 360) * n);
     const latRad = (lat * Math.PI) / 180;
     const cy = Math.floor(((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n);
-    for (let dx = -2; dx <= 2; dx++) {
-      for (let dy = -2; dy <= 2; dy++) {
-        const key = `${cx + dx}/${cy + dy}`;
-        if (this.builtTiles.has(key) || this.builtTiles.size >= MAX_BUILDING_TILES) continue;
+    const wanted: { x: number; y: number; d: number }[] = [];
+    for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) wanted.push({ x: cx + dx, y: cy + dy, d: dx * dx + dy * dy });
+    wanted.sort((a, b) => a.d - b.d);
+    const queue = wanted.filter((t) => !this.builtTiles.has(`${t.x}/${t.y}`));
+    // Nearest tiles first, three at a time, so the main thread never stalls on a burst.
+    const worker = async () => {
+      for (let t = queue.shift(); t; t = queue.shift()) {
+        if (this.closed || viewer.isDestroyed()) return;
+        const key = `${t.x}/${t.y}`;
+        this.evictTiles(viewer);
         this.builtTiles.add(key);
-        void this.buildTile(C, viewer, cx + dx, cy + dy).catch(() => this.builtTiles.delete(key));
+        try {
+          await this.buildTile(C, viewer, t.x, t.y);
+        } catch {
+          this.builtTiles.delete(key);
+          this.tileTemplate = null; // template may have rotated; refetch next time
+          try {
+            localStorage.removeItem(TILEJSON_KEY);
+          } catch {
+            /* storage blocked */
+          }
+        }
+        await nextTask();
+      }
+    };
+    await Promise.all([worker(), worker(), worker()]);
+  }
+
+  private evictTiles(viewer: import('cesium').Viewer): void {
+    while (this.builtTiles.size >= MAX_BUILDING_TILES) {
+      const oldest = this.builtTiles.values().next().value as string;
+      this.builtTiles.delete(oldest);
+      const prim = this.tilePrims.get(oldest);
+      if (prim) {
+        viewer.scene.primitives.remove(prim);
+        this.tilePrims.delete(oldest);
       }
     }
   }
 
   private async buildTile(C: CesiumNS, viewer: import('cesium').Viewer, x: number, y: number): Promise<void> {
-    const url = await this.tileUrl(BUILDING_ZOOM, x, y);
-    if (!url) return;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`tile ${res.status}`);
-    const layer = new VectorTile(new Protobuf(new Uint8Array(await res.arrayBuffer()))).layers.building;
-    if (!layer) return;
-    type Ring = [number, number][];
-    const polys: { ring: Ring; top: number; base: number }[] = [];
-    for (let i = 0; i < layer.length && polys.length < 2500; i++) {
-      const f = layer.feature(i);
-      if (f.type !== 3) continue;
-      const geo = f.toGeoJSON(x, y, BUILDING_ZOOM).geometry;
-      const coords = geo.coordinates as number[][][] | number[][][][];
-      const outers = geo.type === 'Polygon' ? [(coords as number[][][])[0]] : geo.type === 'MultiPolygon' ? (coords as number[][][][]).map((poly) => poly[0]) : [];
-      const top = Number(f.properties.render_height) || 8;
-      const base = Number(f.properties.render_min_height) || 0;
-      for (const ring of outers) if (ring && ring.length >= 4) polys.push({ ring: ring as Ring, top, base });
+    const key = `${x}/${y}`;
+    let entry = TILE_CACHE.get(key);
+    if (!entry) {
+      const url = await this.tileUrl(BUILDING_ZOOM, x, y);
+      if (!url) return;
+      const layer = new VectorTile(new Protobuf(await fetchTileBytes(url))).layers.building;
+      if (!layer) return;
+      const polys: Poly[] = [];
+      for (let i = 0; i < layer.length && polys.length < 1800; i++) {
+        const f = layer.feature(i);
+        if (f.type !== 3) continue;
+        const geo = f.toGeoJSON(x, y, BUILDING_ZOOM).geometry;
+        const coords = geo.coordinates as number[][][] | number[][][][];
+        const outers = geo.type === 'Polygon' ? [(coords as number[][][])[0]] : geo.type === 'MultiPolygon' ? (coords as number[][][][]).map((poly) => poly[0]) : [];
+        const top = Number(f.properties.render_height) || 8;
+        const base = Number(f.properties.render_min_height) || 0;
+        for (const ring of outers) if (ring && ring.length >= 4) polys.push({ ring: ring as [number, number][], top, base });
+      }
+      if (!polys.length) return;
+      const ground = await this.sampleGround(C, viewer, x, y, polys);
+      entry = { polys, ground };
+      rememberTile(key, entry);
     }
-    if (!polys.length || this.closed || viewer.isDestroyed()) return;
-    // Sit each building on the terrain under its first vertex.
-    const carto = polys.map((p) => C.Cartographic.fromDegrees(p.ring[0]?.[0] ?? 0, p.ring[0]?.[1] ?? 0));
-    let ground = carto;
+    if (this.closed || viewer.isDestroyed()) return;
+    this.renderTile(C, viewer, key, entry);
+  }
+
+  /** One coarse terrain grid per tile (81 samples) instead of one sample per building. */
+  private async sampleGround(C: CesiumNS, viewer: import('cesium').Viewer, x: number, y: number, polys: Poly[]): Promise<number[]> {
+    const n = 2 ** BUILDING_ZOOM;
+    const lonOf = (tx: number) => (tx / n) * 360 - 180;
+    const latOf = (ty: number) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * ty) / n))) * 180) / Math.PI;
+    const west = lonOf(x);
+    const east = lonOf(x + 1);
+    const north = latOf(y);
+    const south = latOf(y + 1);
+    const g = GROUND_GRID;
+    const pts: import('cesium').Cartographic[] = [];
+    for (let j = 0; j < g; j++) for (let i = 0; i < g; i++) pts.push(C.Cartographic.fromDegrees(west + ((east - west) * i) / (g - 1), north + ((south - north) * j) / (g - 1)));
+    let h = new Array<number>(g * g).fill(0);
     try {
-      ground = await C.sampleTerrainMostDetailed(viewer.terrainProvider, carto);
+      h = (await C.sampleTerrainMostDetailed(viewer.terrainProvider, pts)).map((p) => p.height || 0);
     } catch {
       /* flat terrain: height 0 */
     }
-    if (this.closed || viewer.isDestroyed()) return;
-    const key = `${x}/${y}`;
-    this.tileData.set(key, { polys, ground: ground.map((g) => g.height || 0) });
-    this.renderTile(C, viewer, key);
+    return polys.map((p) => {
+      const u = Math.min(Math.max(((p.ring[0]?.[0] ?? west) - west) / (east - west), 0), 1) * (g - 1);
+      const v = Math.min(Math.max(((p.ring[0]?.[1] ?? north) - north) / (south - north), 0), 1) * (g - 1);
+      const i0 = Math.min(Math.floor(u), g - 2);
+      const j0 = Math.min(Math.floor(v), g - 2);
+      const fu = u - i0;
+      const fv = v - j0;
+      const at = (i: number, j: number) => h[j * g + i] ?? 0;
+      return at(i0, j0) * (1 - fu) * (1 - fv) + at(i0 + 1, j0) * fu * (1 - fv) + at(i0, j0 + 1) * (1 - fu) * fv + at(i0 + 1, j0 + 1) * fu * fv;
+    });
   }
 
   /** Building colour per map style: muted grey-blue over imagery, warm map-app palette on the road map. */
@@ -295,14 +407,14 @@ export class GodsEyeView {
       : C.Color.fromHsl(0.58, 0.18 + tint * 0.2, 0.62 + tint * 0.18, 0.95);
   }
 
-  private renderTile(C: CesiumNS, viewer: import('cesium').Viewer, key: string): void {
-    const data = this.tileData.get(key);
-    if (!data || viewer.isDestroyed()) return;
+  private renderTile(C: CesiumNS, viewer: import('cesium').Viewer, key: string, data: TileEntry): void {
+    if (viewer.isDestroyed()) return;
     const old = this.tilePrims.get(key);
     if (old) viewer.scene.primitives.remove(old);
     const instances = data.polys.map((p, i) => {
       const g = data.ground[i] ?? 0;
       return new C.GeometryInstance({
+        id: i,
         geometry: new C.PolygonGeometry({
           polygonHierarchy: new C.PolygonHierarchy(C.Cartesian3.fromDegreesArray(p.ring.flat())),
           height: g + p.base,
@@ -312,9 +424,33 @@ export class GodsEyeView {
         attributes: { color: C.ColorGeometryInstanceAttribute.fromColor(this.buildingColor(C, p.top, this.mapStyle)) },
       });
     });
-    const prim = new C.Primitive({ geometryInstances: instances, appearance: new C.PerInstanceColorAppearance({ flat: true, translucent: false }), asynchronous: true });
+    const prim = new C.Primitive({ geometryInstances: instances, appearance: new C.PerInstanceColorAppearance({ flat: true, translucent: false }), asynchronous: true, releaseGeometryInstances: true });
     viewer.scene.primitives.add(prim);
     this.tilePrims.set(key, prim);
+    viewer.scene.requestRender();
+  }
+
+  /** Recolour in place via per-instance attributes: no geometry rebuild. */
+  private recolorTiles(C: CesiumNS, viewer: import('cesium').Viewer): void {
+    for (const [key, prim] of this.tilePrims) {
+      const data = TILE_CACHE.get(key);
+      if (!data) continue;
+      if (!prim.ready) {
+        this.renderTile(C, viewer, key, data);
+        continue;
+      }
+      const byTop = new Map<number, Uint8Array>();
+      data.polys.forEach((p, i) => {
+        let rgba = byTop.get(p.top);
+        if (!rgba) {
+          rgba = C.ColorGeometryInstanceAttribute.toValue(this.buildingColor(C, p.top, this.mapStyle));
+          byTop.set(p.top, rgba);
+        }
+        const attrs = prim.getGeometryInstanceAttributes(i);
+        if (attrs) attrs.color = rgba;
+      });
+    }
+    viewer.scene.requestRender();
   }
 
   private setMapStyle(style: MapStyle): void {
@@ -326,7 +462,7 @@ export class GodsEyeView {
     if (this.baseLayer) this.baseLayer.show = style === 'satellite';
     if (this.roadLayer) this.roadLayer.show = style === 'road';
     for (const l of this.overlayLayers) l.show = style === 'satellite';
-    for (const key of this.tileData.keys()) this.renderTile(C, viewer, key);
+    this.recolorTiles(C, viewer);
   }
 
   private placeCamera(C: CesiumNS, viewer: import('cesium').Viewer): void {
@@ -362,38 +498,59 @@ export class GodsEyeView {
     const C = this.cesium;
     const viewer = this.viewer;
     if (!C || !viewer || viewer.isDestroyed()) return;
-    const pts = this.opts.points();
-    viewer.entities.removeAll();
-    for (const p of pts) {
+    const seen = new Set<string>();
+    viewer.entities.suspendEvents();
+    for (const p of this.opts.points()) {
       if (!Number.isFinite(p.lat) || !Number.isFinite(p.lon)) continue;
-      viewer.entities.add({
-        id: `${p.kind}:${p.id}`,
-        position: C.Cartesian3.fromDegrees(p.lon, p.lat, p.altM ?? 0),
-        point: {
-          pixelSize: p.size ?? 7,
-          color: C.Color.fromCssColorString(KIND_COLOR[p.kind]),
-          outlineColor: C.Color.BLACK.withAlpha(0.7),
-          outlineWidth: 1,
-          disableDepthTestDistance: p.kind === 'quake' ? 0 : Number.POSITIVE_INFINITY,
-        },
-        label: {
-          text: p.label,
-          font: '11px monospace',
-          fillColor: C.Color.WHITE,
-          style: C.LabelStyle.FILL_AND_OUTLINE,
-          outlineWidth: 2,
-          pixelOffset: new C.Cartesian2(0, -14),
-          distanceDisplayCondition: new C.DistanceDisplayCondition(0, 60_000),
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        },
-      });
+      const id = `${p.kind}:${p.id}`;
+      seen.add(id);
+      const position = C.Cartesian3.fromDegrees(p.lon, p.lat, p.altM ?? 0);
+      const existing = this.pointEntities.get(id);
+      if (existing) {
+        existing.position = position as never;
+        continue;
+      }
+      this.pointEntities.set(
+        id,
+        viewer.entities.add({
+          id,
+          position,
+          point: {
+            pixelSize: p.size ?? 7,
+            color: C.Color.fromCssColorString(KIND_COLOR[p.kind]),
+            outlineColor: C.Color.BLACK.withAlpha(0.7),
+            outlineWidth: 1,
+            disableDepthTestDistance: p.kind === 'quake' ? 0 : Number.POSITIVE_INFINITY,
+          },
+          label: {
+            text: p.label,
+            font: '11px monospace',
+            fillColor: C.Color.WHITE,
+            style: C.LabelStyle.FILL_AND_OUTLINE,
+            outlineWidth: 2,
+            pixelOffset: new C.Cartesian2(0, -14),
+            distanceDisplayCondition: new C.DistanceDisplayCondition(0, 60_000),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+        }),
+      );
     }
+    for (const [id, entity] of this.pointEntities) {
+      if (seen.has(id)) continue;
+      viewer.entities.remove(entity);
+      this.pointEntities.delete(id);
+    }
+    viewer.entities.resumeEvents();
+    viewer.scene.requestRender();
   }
 
   private updateHud(): void {
     const C = this.cesium;
     const viewer = this.viewer;
     if (!C || !viewer || viewer.isDestroyed()) return;
+    const now = performance.now();
+    if (now - this.lastHud < 250) return;
+    this.lastHud = now;
     const c = viewer.camera.positionCartographic;
     const lat = C.Math.toDegrees(c.latitude);
     const lon = C.Math.toDegrees(c.longitude);
