@@ -3365,13 +3365,7 @@
           "path": "scripts/seed-research.mjs"
         },
         {
-          "path": "src/app/desktop-updater.ts"
-        },
-        {
           "path": "src/services/analytics.ts"
-        },
-        {
-          "path": "src/services/preferences-content.ts"
         }
       ]
     },
@@ -5919,6 +5913,20 @@
       ]
     },
     {
+      "host": "services.arcgisonline.com",
+      "provider": "services.arcgisonline.com",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit services.arcgisonline.com and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "src/components/GodsEyeView.ts"
+        }
+      ]
+    },
+    {
       "host": "services7.arcgis.com",
       "provider": "services7.arcgis.com",
       "kind": "structured",
@@ -6476,6 +6484,20 @@
       ]
     },
     {
+      "host": "terrain.reearth.land",
+      "provider": "terrain.reearth.land",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit terrain.reearth.land and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "src/components/GodsEyeView.ts"
+        }
+      ]
+    },
+    {
       "host": "test",
       "provider": "test",
       "kind": "structured",
@@ -6657,6 +6679,20 @@
       ]
     },
     {
+      "host": "tile.openstreetmap.org",
+      "provider": "tile.openstreetmap.org",
+      "kind": "structured",
+      "observed": true,
+      "license": "Provider terms for this upstream API/dataset; verify before redistribution",
+      "attribution": "Credit tile.openstreetmap.org and link to the original upstream API/dataset.",
+      "status": "terms-review",
+      "references": [
+        {
+          "path": "src/components/GodsEyeView.ts"
+        }
+      ]
+    },
+    {
       "host": "tiles.openfreemap.org",
       "provider": "tiles.openfreemap.org",
       "kind": "structured",
@@ -6665,6 +6701,9 @@
       "attribution": "Excluded from the external-provider count: not an ingested upstream dataset.",
       "status": "excluded",
       "references": [
+        {
+          "path": "src/components/GodsEyeView.ts"
+        },
         {
           "path": "src/config/basemap.ts"
         }
