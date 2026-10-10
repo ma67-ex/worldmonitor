@@ -123,6 +123,7 @@ export const LAYER_REGISTRY: Record<keyof MapLayers, LayerDefinition> = {
   // without `deckGLOnly` once both renderers gain real support.
   storageFacilities:        def('storageFacilities',        '&#127959;', 'storageFacilities',        'Storage Facilities', ['flat'], undefined, true),
   fuelShortages:            def('fuelShortages',            '&#9881;',   'fuelShortages',            'Fuel Shortages', ['flat'], undefined, true),
+  airports:                 def('airports',                 '&#9992;',   'airports',                 'Airports', ['flat'], undefined, true),
   liveTankers:              def('liveTankers',              '&#128674;', 'liveTankers',              'Live Tanker Positions', ['flat'], undefined, true),
 };
 
@@ -347,7 +348,7 @@ const VARIANT_LAYER_ORDER: Record<MapVariant, Array<keyof MapLayers>> = {
     'iranAttacks', 'hotspots', 'conflicts',
     'bases', 'nuclear', 'irradiators', 'radiationWatch', 'spaceports',
     'cables', 'pipelines', 'storageFacilities', 'fuelShortages', 'datacenters', 'military',
-    'ais', 'tradeRoutes', 'flights', 'protests',
+    'ais', 'tradeRoutes', 'flights', 'airports', 'protests',
     'ucdpEvents', 'displacement', 'climate', 'weather', 'canadaRoads', 'canadaAlerts',
     'outages', 'cyberThreats', 'natural', 'fires',
     'waterways', 'economic', 'minerals', 'gpsJamming',

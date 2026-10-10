@@ -733,6 +733,8 @@ export interface MapLayers {
   // across all other variants remain valid without touching them).
   storageFacilities?: boolean;
   fuelShortages?: boolean;
+  /** Worldwide airports (public/data/airports.json), hover shows local time. */
+  airports?: boolean;
   /** Live tanker positions (AIS ship type 80-89) inside chokepoint bboxes.
    *  Refreshed every 60s via getVesselSnapshot. Energy Atlas parity-push. */
   liveTankers?: boolean;

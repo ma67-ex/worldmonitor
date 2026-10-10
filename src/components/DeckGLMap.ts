@@ -41,6 +41,7 @@ import type {
 import { fetchMilitaryBases, type MilitaryBaseCluster as ServerBaseCluster } from '@/services/military-bases';
 import type { AirportDelayAlert, PositionSample } from '@/services/aviation';
 import { fetchAircraftPositions } from '@/services/aviation';
+import { loadWorldAirports, airportLocalTime, type WorldAirport } from '@/services/airports-layer';
 import { type IranEvent, getIranEventColor, getIranEventRadius } from '@/services/conflict';
 import { getMilitaryBaseColor } from '@/config/military-base-colors';
 import { getMineralColor } from '@/config/mineral-colors';
@@ -269,6 +270,7 @@ const LAYER_ZOOM_THRESHOLDS: Partial<Record<keyof MapLayers, { minZoom: number; 
   datacenters: { minZoom: 5 },
   irradiators: { minZoom: 4 },
   spaceports: { minZoom: 3 },
+  airports: { minZoom: 2 },
   gulfInvestments: { minZoom: 2, showLabels: 5 },
 };
 // Export for external use
@@ -822,6 +824,8 @@ export class DeckGLMap {
   private debouncedRebuildLayers: (() => void) & { cancel(): void };
   private debouncedFetchBases: (() => void) & { cancel(): void };
   private debouncedFetchAircraft: (() => void) & { cancel(): void };
+  private worldAirports: WorldAirport[] = [];
+  private worldAirportsRequested = false;
   private rafUpdateLayers: (() => void) & { cancel(): void };
   private handleThemeChange: () => void;
   private handleMapThemeChange: () => void;
@@ -1959,6 +1963,17 @@ export class DeckGLMap {
       layers.push(this.createIrradiatorsLayer());
     }
 
+    if (mapLayers.airports && this.isLayerVisible('airports')) {
+      if (!this.worldAirportsRequested) {
+        this.worldAirportsRequested = true;
+        void loadWorldAirports().then((rows) => {
+          this.worldAirports = rows;
+          this.updateLayers();
+        }).catch(() => { this.worldAirportsRequested = false; });
+      }
+      if (this.worldAirports.length) layers.push(this.createAirportsLayer());
+    }
+
     // Spaceports layer — hidden at low zoom
     if (mapLayers.spaceports && this.isLayerVisible('spaceports')) {
       layers.push(this.createSpaceportsLayer());
@@ -3021,6 +3036,22 @@ export class DeckGLMap {
       getFillColor: [255, 100, 255, 180] as [number, number, number, number], // Magenta
       radiusMinPixels: 4,
       radiusMaxPixels: 10,
+      pickable: true,
+    });
+  }
+
+  private createAirportsLayer(): ScatterplotLayer<WorldAirport> {
+    return new ScatterplotLayer<WorldAirport>({
+      id: 'airports-layer',
+      data: this.worldAirports,
+      getPosition: (d) => [d.lon, d.lat],
+      getRadius: 4000,
+      getFillColor: [90, 200, 255, 190],
+      getLineColor: [255, 255, 255, 160],
+      stroked: true,
+      lineWidthMinPixels: 1,
+      radiusMinPixels: 2.5,
+      radiusMaxPixels: 8,
       pickable: true,
     });
   }
@@ -4927,6 +4958,11 @@ export class DeckGLMap {
         const confidence = String(obj.confidence || 'low').toUpperCase();
         const corroboration = obj.corroborated ? 'CONFIRMED' : obj.conflictingSources ? 'CONFLICTING' : confidence;
         return { html: `<div class="deckgl-tooltip"><strong>${severityLabel}</strong><br/>${text(obj.location)}<br/>${Number(obj.value).toFixed(1)} ${text(obj.unit)} · ${delta >= 0 ? '+' : ''}${delta.toFixed(1)} vs baseline<br/>${text(corroboration)}</div>` };
+      }
+      case 'airports-layer': {
+        const a = obj as WorldAirport;
+        const lt = airportLocalTime(a.tz);
+        return { html: `<div class="deckgl-tooltip"><strong>✈ ${text(a.name)}</strong><br/>${text(a.iata)}${a.icao ? ` / ${text(a.icao)}` : ''} · ${text(a.city)}, ${text(a.country)}<br/>${lt.isDay ? '☀' : '☾'} ${text(lt.time)} local · ${text(lt.date)} · ${text(lt.offset)}<br/>${text(a.tz)} · ${a.elevFt.toLocaleString()} ft</div>` };
       }
       case 'spaceports-layer':
         return { html: `<div class="deckgl-tooltip"><strong>${text(obj.name)}</strong><br/>${text(obj.country || t('components.deckgl.layers.spaceports'))}</div>` };
