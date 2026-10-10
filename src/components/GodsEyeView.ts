@@ -117,6 +117,8 @@ export class GodsEyeView {
   private readonly tilePrims = new Map<string, import('cesium').Primitive>();
   private tileTemplate: string | null = null;
   private lastHud = 0;
+  private orbitOff: (() => void) | null = null;
+  private orbitBtn: HTMLButtonElement | null = null;
   private moveTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly pointEntities = new Map<string, import('cesium').Entity>();
   private readonly builtTiles = new Set<string>();
@@ -181,6 +183,12 @@ export class GodsEyeView {
       scene.globe.tileCacheSize = 400;
       scene.postProcessStages.fxaa.enabled = false;
       scene.highDynamicRange = false;
+      scene.globe.enableLighting = true;
+      scene.globe.showGroundAtmosphere = true;
+      scene.fog.enabled = true;
+      scene.screenSpaceCameraController.minimumZoomDistance = 12;
+      if (viewer.camera.frustum instanceof Cesium.PerspectiveFrustum) viewer.camera.frustum.fov = Cesium.Math.toRadians(52);
+      this.setGoldenHour(Cesium, viewer);
       viewer.useBrowserRecommendedResolution = false;
       viewer.resolutionScale = Math.min(1, 1.5 / (window.devicePixelRatio || 1));
       this.baseLayer = viewer.imageryLayers.get(0) ?? null;
@@ -209,6 +217,7 @@ export class GodsEyeView {
     document.removeEventListener('keydown', this.onKey);
     if (this.pointTimer) clearInterval(this.pointTimer);
     if (this.moveTimer) clearTimeout(this.moveTimer);
+    this.orbitOff?.();
     try {
       this.viewer?.destroy(); // releases the WebGL context
     } catch {
@@ -399,12 +408,14 @@ export class GodsEyeView {
     });
   }
 
-  /** Building colour per map style: muted grey-blue over imagery, warm map-app palette on the road map. */
-  private buildingColor(C: CesiumNS, top: number, style: MapStyle) {
-    const tint = Math.min(top / 120, 1);
+  /** Building colour per map style, with a stable per-building shade so blocks read as individual buildings. */
+  private buildingColor(C: CesiumNS, p: Poly, style: MapStyle) {
+    const tint = Math.min(p.top / 120, 1);
+    const seed = Math.abs(Math.sin((p.ring[0]?.[0] ?? 0) * 12.9898 + (p.ring[0]?.[1] ?? 0) * 78.233)) % 1;
+    const j = (seed - 0.5) * 0.14;
     return style === 'road'
-      ? C.Color.fromHsl(0.07 - tint * 0.04, 0.45 + tint * 0.25, 0.8 - tint * 0.25, 0.97)
-      : C.Color.fromHsl(0.58, 0.18 + tint * 0.2, 0.62 + tint * 0.18, 0.95);
+      ? C.Color.fromHsl(0.07 - tint * 0.04, 0.35 + tint * 0.2, Math.min(0.85, Math.max(0.5, 0.74 - tint * 0.15 + j)), 1)
+      : C.Color.fromHsl(0.1 + tint * 0.48 - seed * 0.04, 0.08 + tint * 0.3, Math.min(0.85, Math.max(0.4, 0.62 + j)), 1);
   }
 
   private renderTile(C: CesiumNS, viewer: import('cesium').Viewer, key: string, data: TileEntry): void {
@@ -419,12 +430,12 @@ export class GodsEyeView {
           polygonHierarchy: new C.PolygonHierarchy(C.Cartesian3.fromDegreesArray(p.ring.flat())),
           height: g + p.base,
           extrudedHeight: g + Math.max(p.top, p.base + 3),
-          vertexFormat: C.PerInstanceColorAppearance.FLAT_VERTEX_FORMAT,
+          vertexFormat: C.PerInstanceColorAppearance.VERTEX_FORMAT,
         }),
-        attributes: { color: C.ColorGeometryInstanceAttribute.fromColor(this.buildingColor(C, p.top, this.mapStyle)) },
+        attributes: { color: C.ColorGeometryInstanceAttribute.fromColor(this.buildingColor(C, p, this.mapStyle)) },
       });
     });
-    const prim = new C.Primitive({ geometryInstances: instances, appearance: new C.PerInstanceColorAppearance({ flat: true, translucent: false }), asynchronous: true, releaseGeometryInstances: true });
+    const prim = new C.Primitive({ geometryInstances: instances, appearance: new C.PerInstanceColorAppearance({ flat: false, translucent: false, closed: true }), asynchronous: true, releaseGeometryInstances: true });
     viewer.scene.primitives.add(prim);
     this.tilePrims.set(key, prim);
     viewer.scene.requestRender();
@@ -439,15 +450,9 @@ export class GodsEyeView {
         this.renderTile(C, viewer, key, data);
         continue;
       }
-      const byTop = new Map<number, Uint8Array>();
       data.polys.forEach((p, i) => {
-        let rgba = byTop.get(p.top);
-        if (!rgba) {
-          rgba = C.ColorGeometryInstanceAttribute.toValue(this.buildingColor(C, p.top, this.mapStyle));
-          byTop.set(p.top, rgba);
-        }
         const attrs = prim.getGeometryInstanceAttributes(i);
-        if (attrs) attrs.color = rgba;
+        if (attrs) attrs.color = C.ColorGeometryInstanceAttribute.toValue(this.buildingColor(C, p, this.mapStyle));
       });
     }
     viewer.scene.requestRender();
@@ -465,17 +470,85 @@ export class GodsEyeView {
     this.recolorTiles(C, viewer);
   }
 
+  /** Late-afternoon sun at the map's longitude: long shadows-free shading that gives buildings form. */
+  private setGoldenHour(C: CesiumNS, viewer: import('cesium').Viewer): void {
+    const now = new Date();
+    const utcHour = (((16.5 - this.opts.lon / 15) % 24) + 24) % 24;
+    const t = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) + utcHour * 3_600_000;
+    viewer.clock.currentTime = C.JulianDate.fromDate(new Date(t));
+    viewer.clock.shouldAnimate = false;
+  }
+
   private placeCamera(C: CesiumNS, viewer: import('cesium').Viewer): void {
     const { lat, lon, zoom } = this.opts;
     const height = zoomToHeight(zoom, lat, this.stage.clientHeight || window.innerHeight);
-    const target = C.Cartesian3.fromDegrees(lon, lat, 0);
-    // Match the 2D map first (straight down), then tilt into the oblique "god's eye" angle.
+    // Match the 2D map first (straight down), then drop into a low, cinematic oblique.
     viewer.camera.setView({ destination: C.Cartesian3.fromDegrees(lon, lat, height), orientation: { heading: 0, pitch: -C.Math.PI_OVER_TWO, roll: 0 } });
-    viewer.camera.flyToBoundingSphere(new C.BoundingSphere(target, 0), {
-      duration: 2.2,
-      // Zoomed in: low oblique over the city. Zoomed far out: stay wide, since 2 km over open ocean is blank.
-      offset: new C.HeadingPitchRange(0, C.Math.toRadians(-40), Math.min(Math.max(height * 0.85, 400), zoom >= 7 ? 3500 : 300_000)),
-    });
+    void (async () => {
+      let ground = 0;
+      try {
+        ground = (await C.sampleTerrainMostDetailed(viewer.terrainProvider, [C.Cartographic.fromDegrees(lon, lat)]))[0]?.height ?? 0;
+      } catch {
+        /* flat terrain */
+      }
+      if (this.closed || viewer.isDestroyed()) return;
+      const close = zoom >= 7 || ground > 3; // land under the crosshair: go cinematic; open water: stay wide
+      const target = C.Cartesian3.fromDegrees(lon, lat, ground + (close ? 25 : 0));
+      const range = close ? 650 : Math.min(Math.max(height * 0.85, 400), 300_000);
+      const pitch = C.Math.toRadians(close ? -17 : -40);
+      viewer.camera.flyToBoundingSphere(new C.BoundingSphere(target, 0), {
+        duration: 2.6,
+        offset: new C.HeadingPitchRange(0, pitch, range),
+        complete: () => this.startOrbit(C, viewer, target, 0, pitch, range),
+      });
+    })();
+  }
+
+  /** Slow cinematic orbit around a point; any mouse/touch input hands control back. */
+  private startOrbit(C: CesiumNS, viewer: import('cesium').Viewer, target: import('cesium').Cartesian3, heading: number, pitch: number, range: number): void {
+    if (this.closed || viewer.isDestroyed()) return;
+    this.orbitOff?.();
+    const { scene, canvas } = viewer;
+    scene.requestRenderMode = false;
+    let h = heading;
+    let last = performance.now();
+    const tick = () => {
+      const now = performance.now();
+      h += ((now - last) / 1000) * 0.045;
+      last = now;
+      viewer.camera.lookAt(target, new C.HeadingPitchRange(h, pitch, range));
+    };
+    const stop = () => this.orbitOff?.();
+    scene.preRender.addEventListener(tick);
+    canvas.addEventListener('pointerdown', stop, { once: true });
+    canvas.addEventListener('wheel', stop, { once: true, passive: true });
+    this.orbitBtn?.setAttribute('aria-pressed', 'true');
+    this.orbitOff = () => {
+      this.orbitOff = null;
+      canvas.removeEventListener('pointerdown', stop);
+      canvas.removeEventListener('wheel', stop);
+      if (viewer.isDestroyed()) return;
+      scene.preRender.removeEventListener(tick);
+      viewer.camera.lookAtTransform(C.Matrix4.IDENTITY);
+      scene.requestRenderMode = true;
+      scene.requestRender();
+      this.orbitBtn?.setAttribute('aria-pressed', 'false');
+    };
+  }
+
+  private toggleOrbit(): void {
+    const C = this.cesium;
+    const viewer = this.viewer;
+    if (!C || !viewer || viewer.isDestroyed()) return;
+    if (this.orbitOff) {
+      this.orbitOff();
+      return;
+    }
+    const { scene, camera, canvas } = viewer;
+    const mid = new C.Cartesian2(canvas.clientWidth / 2, canvas.clientHeight / 2);
+    const hit = scene.pickPosition(mid) ?? camera.pickEllipsoid(mid, scene.globe.ellipsoid);
+    if (!hit) return;
+    this.startOrbit(C, viewer, hit, camera.heading, camera.pitch, C.Cartesian3.distance(camera.positionWC, hit));
   }
 
   private currentView(): { lat: number; lon: number; zoom: number } {
@@ -595,13 +668,21 @@ export class GodsEyeView {
       });
       return b;
     });
+    const orbit = document.createElement('button');
+    orbit.type = 'button';
+    orbit.className = 'gev-btn';
+    orbit.textContent = 'Cinematic';
+    orbit.title = 'Slow orbit camera';
+    orbit.setAttribute('aria-pressed', 'false');
+    orbit.addEventListener('click', () => this.toggleOrbit());
+    this.orbitBtn = orbit;
     const exit = document.createElement('button');
     exit.type = 'button';
     exit.className = 'gev-btn';
     exit.textContent = 'Exit ✕';
     exit.title = 'Back to the map (Esc)';
     exit.addEventListener('click', () => this.close());
-    bar.append(title, spacer, ...styleBtns, sep, ...looks, exit);
+    bar.append(title, spacer, orbit, ...styleBtns, sep, ...looks, exit);
     return bar;
   }
 
