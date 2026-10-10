@@ -270,7 +270,6 @@ const LAYER_ZOOM_THRESHOLDS: Partial<Record<keyof MapLayers, { minZoom: number; 
   datacenters: { minZoom: 5 },
   irradiators: { minZoom: 4 },
   spaceports: { minZoom: 3 },
-  airports: { minZoom: 2 },
   gulfInvestments: { minZoom: 2, showLabels: 5 },
 };
 // Export for external use
