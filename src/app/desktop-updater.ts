@@ -98,9 +98,8 @@ export class DesktopUpdater implements AppModule {
         return;
       }
 
-      const releaseUrl = typeof data.url === 'string' && data.url
-        ? data.url
-        : 'https://github.com/koala73/worldmonitor/releases/latest';
+      if (typeof data.url !== 'string' || !data.url) return;
+      const releaseUrl = data.url;
       this.logUpdaterOutcome('update_available', { current, remote, dismissed: false });
       trackUpdateShown(current, remote);
       await this.showUpdateToast(remote, releaseUrl);

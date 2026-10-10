@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { ArrowRight, Github } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { WiredBadge } from '../components/WiredBadge';
 import { t } from '../i18n';
 import { DASHBOARD_PATH } from '../routes';
@@ -161,15 +161,6 @@ export const Hero = () => (
       >
         <WiredBadge />
         <span>{t('welcome.hero.trustUsers')}</span>
-        <span aria-hidden="true" className="text-wm-border">|</span>
-        <a
-          href="https://github.com/koala73/worldmonitor"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1.5 hover:text-wm-text transition-colors"
-        >
-          <Github className="w-3.5 h-3.5" aria-hidden="true" /> {t('welcome.hero.trustOpenSource')}
-        </a>
         <span aria-hidden="true" className="text-wm-border">|</span>
         {/* Builder self-identification cue — surface names stay untranslated. */}
         <a href="#agents" className="hover:text-wm-text transition-colors">
