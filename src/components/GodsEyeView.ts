@@ -175,22 +175,35 @@ export class GodsEyeView {
         creditContainer: document.createElement('div'), // our own attribution line below replaces Cesium's widget
         requestRenderMode: true,
         maximumRenderTimeChange: Number.POSITIVE_INFINITY,
-        msaaSamples: 1,
+        msaaSamples: 4,
       }));
       const { scene } = viewer;
       scene.globe.depthTestAgainstTerrain = true;
-      scene.globe.maximumScreenSpaceError = 3;
+      scene.globe.maximumScreenSpaceError = 1.6;
       scene.globe.tileCacheSize = 400;
       scene.postProcessStages.fxaa.enabled = false;
       scene.highDynamicRange = false;
       scene.globe.enableLighting = true;
       scene.globe.showGroundAtmosphere = true;
       scene.fog.enabled = true;
+      viewer.shadows = true;
+      scene.globe.shadows = Cesium.ShadowMode.RECEIVE_ONLY;
+      scene.shadowMap.softShadows = true;
+      scene.shadowMap.size = 2048;
+      scene.shadowMap.maximumDistance = 2500;
+      scene.shadowMap.darkness = 0.5;
+      const ao = scene.postProcessStages.ambientOcclusion;
+      ao.enabled = true;
+      ao.uniforms.intensity = 2.2;
+      ao.uniforms.bias = 0.12;
+      ao.uniforms.lengthCap = 0.03;
+      ao.uniforms.stepSize = 1.8;
+      ao.uniforms.blurStepSize = 0.9;
       scene.screenSpaceCameraController.minimumZoomDistance = 12;
       if (viewer.camera.frustum instanceof Cesium.PerspectiveFrustum) viewer.camera.frustum.fov = Cesium.Math.toRadians(52);
       this.setGoldenHour(Cesium, viewer);
       viewer.useBrowserRecommendedResolution = false;
-      viewer.resolutionScale = Math.min(1, 1.5 / (window.devicePixelRatio || 1));
+      viewer.resolutionScale = Math.min(1, 2 / (window.devicePixelRatio || 1));
       this.baseLayer = viewer.imageryLayers.get(0) ?? null;
       void this.addStreetLayer(Cesium, viewer);
       void this.addReferenceLayers(Cesium, viewer);
@@ -435,7 +448,7 @@ export class GodsEyeView {
         attributes: { color: C.ColorGeometryInstanceAttribute.fromColor(this.buildingColor(C, p, this.mapStyle)) },
       });
     });
-    const prim = new C.Primitive({ geometryInstances: instances, appearance: new C.PerInstanceColorAppearance({ flat: false, translucent: false, closed: true }), asynchronous: true, releaseGeometryInstances: true });
+    const prim = new C.Primitive({ geometryInstances: instances, appearance: new C.PerInstanceColorAppearance({ flat: false, translucent: false, closed: true }), asynchronous: true, releaseGeometryInstances: true, shadows: C.ShadowMode.ENABLED });
     viewer.scene.primitives.add(prim);
     this.tilePrims.set(key, prim);
     viewer.scene.requestRender();
