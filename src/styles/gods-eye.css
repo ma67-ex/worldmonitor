@@ -1,8 +1,8 @@
 /* God's Eye View: entry chip + Cesium overlay. Layered over the map container. */
 .gev-entry {
   position: absolute;
-  left: 10px;
-  bottom: 44px;
+  right: 8px;
+  top: 112px;
   z-index: 500;
   display: flex;
   align-items: center;
@@ -16,7 +16,8 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
-  opacity: 0.85;
+  border-color: var(--green);
+  opacity: 1;
   transition: border-color 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
 }
 .gev-entry:hover { border-color: var(--green); opacity: 1; }

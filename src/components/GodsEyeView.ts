@@ -473,8 +473,8 @@ export class GodsEyeView {
     viewer.camera.setView({ destination: C.Cartesian3.fromDegrees(lon, lat, height), orientation: { heading: 0, pitch: -C.Math.PI_OVER_TWO, roll: 0 } });
     viewer.camera.flyToBoundingSphere(new C.BoundingSphere(target, 0), {
       duration: 2.2,
-      // Zoomed in already: descend to a low oblique so the 3D city is actually visible.
-      offset: new C.HeadingPitchRange(0, C.Math.toRadians(-40), zoom >= 8 ? Math.min(Math.max(height * 0.85, 400), 3500) : Math.max(height * 0.85, 400)),
+      // Always descend to a low oblique so the 3D city is visible.
+      offset: new C.HeadingPitchRange(0, C.Math.toRadians(-40), Math.min(Math.max(height * 0.85, 400), 3500)),
     });
   }
 
