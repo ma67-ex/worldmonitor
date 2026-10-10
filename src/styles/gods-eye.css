@@ -1,0 +1,60 @@
+/* God's Eye View: entry chip + Cesium overlay. Layered over the map container. */
+.gev-entry {
+  position: absolute;
+  left: 10px;
+  bottom: 44px;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: border-color 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+}
+.gev-entry:hover { border-color: var(--green); opacity: 1; }
+.gev-entry.gev-hint { border-color: var(--green); opacity: 1; box-shadow: 0 0 14px rgba(68, 255, 136, 0.35); }
+.gev-entry svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+
+.gev-root {
+  position: absolute;
+  inset: 0;
+  z-index: 900;
+  background: #000;
+  color: #d8f5e0;
+  font-size: 11px;
+  overflow: hidden;
+}
+.gev-stage, .gev-stage .cesium-viewer, .gev-stage .cesium-viewer-cesiumWidgetContainer, .gev-stage .cesium-widget { width: 100%; height: 100%; }
+.gev-stage .cesium-widget canvas { transition: filter 0.3s ease; }
+.gev-credits { position: absolute; left: 8px; bottom: 4px; max-width: 62%; font-size: 9px; line-height: 1.3; opacity: 0.85; z-index: 3; text-shadow: 0 0 3px #000, 0 0 6px #000; }
+.gev-credits a { color: inherit; }
+.gev-credits .cesium-credit-logoContainer, .gev-credits .cesium-credit-expand-link { display: none !important; }
+.gev-credits .cesium-credit-textContainer { display: inline !important; }
+.gev-stage[data-look="nvg"] .cesium-widget canvas { filter: grayscale(1) sepia(1) hue-rotate(55deg) saturate(4) brightness(1.25) contrast(1.25); }
+.gev-stage[data-look="flir"] .cesium-widget canvas { filter: url(#gev-flir); }
+.gev-stage[data-look="crt"] .cesium-widget canvas { filter: saturate(1.4) contrast(1.15) brightness(1.05) hue-rotate(-8deg); }
+.gev-stage[data-look="noir"] .cesium-widget canvas { filter: grayscale(1) contrast(1.35); }
+.gev-scan { position: absolute; inset: 0; z-index: 2; pointer-events: none; display: none;
+  background: repeating-linear-gradient(to bottom, rgba(0,0,0,0.28) 0, rgba(0,0,0,0.28) 1px, transparent 1px, transparent 3px);
+  box-shadow: inset 0 0 120px rgba(0,0,0,0.65); }
+.gev-root[data-look="crt"] .gev-scan { display: block; }
+.gev-bar { position: absolute; top: 10px; left: 10px; right: 10px; z-index: 4; display: flex; gap: 6px; align-items: center; pointer-events: none; }
+.gev-bar > * { pointer-events: auto; }
+.gev-title { padding: 6px 10px; background: rgba(0,0,0,0.6); border: 1px solid var(--border); letter-spacing: 0.14em; text-transform: uppercase; }
+.gev-spacer { flex: 1; pointer-events: none !important; }
+.gev-btn { padding: 6px 10px; background: rgba(0,0,0,0.6); border: 1px solid var(--border); color: inherit; font: inherit; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+.gev-btn:hover, .gev-btn[aria-pressed="true"] { border-color: var(--green); color: var(--green); }
+.gev-hud { position: absolute; right: 10px; bottom: 10px; z-index: 4; padding: 6px 10px; background: rgba(0,0,0,0.6); border: 1px solid var(--border); font-variant-numeric: tabular-nums; line-height: 1.5; text-align: right; }
+.gev-status { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; letter-spacing: 0.2em; text-transform: uppercase; background: #000; transition: opacity 0.4s ease; }
+.gev-status[hidden] { display: flex; opacity: 0; pointer-events: none; }
+@media (max-width: 640px) { .gev-title { display: none; } }
+.gev-sep { width: 1px; align-self: stretch; background: var(--border); margin: 0 4px; pointer-events: none !important; }
+@media (max-width: 900px) { .gev-bar { flex-wrap: wrap; } }

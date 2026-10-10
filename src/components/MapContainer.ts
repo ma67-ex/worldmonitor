@@ -16,6 +16,8 @@ import { isProTierResolved } from '@/services/widget-store';
 import type { MapComponent, MapComponentOptions } from './Map';
 import type { DeckGLMap, DeckMapView, CountryClickPayload } from './DeckGLMap';
 import type { GlobeMap } from './GlobeMap';
+import { GodsEyeEntry } from './GodsEyeEntry';
+import type { GodsEyePoint } from './GodsEyeView';
 import type {
   MapLayers,
   Hotspot,
@@ -192,6 +194,7 @@ export class MapContainer {
   private layerReadyState = new Map<keyof MapLayers, boolean>();
   private cachedScenarioState: ScenarioVisualState | null | undefined;
   private escalationGettersRequested = false;
+  private godsEye: GodsEyeEntry | null = null;
 
   // ─── Callback cache (survives map mode switches) ───────────────────────────
   private cachedOnStateChanged: ((state: MapContainerState) => void) | null = null;
@@ -396,12 +399,42 @@ export class MapContainer {
     }
   }
 
+  /** God's Eye View entry (desktop WebGL only). Re-attached after every renderer swap. */
+  private attachGodsEye(): void {
+    if (this.isMobile || this.destroyed || !this.hasGlobeSupport()) return;
+    this.godsEye ??= new GodsEyeEntry(this.container, {
+      getView: () => {
+        const c = this.getCenter();
+        return c ? { ...c, zoom: this.getState().zoom } : null;
+      },
+      getPoints: () => this.collectGodsEyePoints(),
+      restoreView: (lat, lon, zoom) => { this.setCenter(lat, lon, zoom); },
+    });
+    this.godsEye.onZoom(this.getState().zoom);
+  }
+
+  private collectGodsEyePoints(): GodsEyePoint[] {
+    const pts: GodsEyePoint[] = [];
+    for (const a of (this.cachedAircraftPositions ?? []).slice(0, 400)) {
+      pts.push({ id: a.icao24, lat: a.lat, lon: a.lon, altM: a.altitudeFt * 0.3048, label: a.callsign || a.icao24, kind: 'aircraft' });
+    }
+    for (const f of (this.cachedMilitaryFlights ?? []).slice(0, 300)) {
+      pts.push({ id: f.id, lat: f.lat, lon: f.lon, altM: f.altitude * 0.3048, label: f.callsign || f.hexCode, kind: 'military', size: 8 });
+    }
+    for (const q of (this.cachedEarthquakes ?? []).slice(0, 200)) {
+      if (!q.location) continue;
+      pts.push({ id: q.id, lat: q.location.latitude, lon: q.location.longitude, label: `M${q.magnitude.toFixed(1)} ${q.place}`, kind: 'quake', size: 5 + q.magnitude * 2 });
+    }
+    return pts;
+  }
+
   private markRendererReady(token: number): void {
     // Renderer initialization can overlap a runtime mode switch. Only the
     // currently selected generation may publish readiness; otherwise an old
     // async renderer could wake callers that are waiting on its replacement.
     if (!this.isCurrentRendererInit(token)) return;
     this.rendererReady = true;
+    this.attachGodsEye();
     this.rendererDemandRequested = false;
     this.releaseRendererDemand = null;
     // Replay viewport commands before resolving readiness so callers waiting to
@@ -1394,13 +1427,18 @@ export class MapContainer {
 
   public onStateChanged(callback: (state: MapContainerState) => void): void {
     this.cachedOnStateChanged = callback;
-    if (this.useGlobe) { this.globeMap?.onStateChanged(callback); return; }
+    // Single-slot renderer callback: fan out so God's Eye can follow zoom without displacing the app's handler.
+    const notify = (state: MapContainerState) => {
+      callback(state);
+      this.godsEye?.onZoom(state.zoom);
+    };
+    if (this.useGlobe) { this.globeMap?.onStateChanged(notify); return; }
     if (this.useDeckGL) {
       this.deckGLMap?.setOnStateChange((state) => {
-        callback({ ...state, view: state.view as MapView });
+        notify({ ...state, view: state.view as MapView });
       });
     } else {
-      this.svgMap?.onStateChanged(callback);
+      this.svgMap?.onStateChanged(notify);
     }
   }
 
@@ -1705,6 +1743,8 @@ export class MapContainer {
     this.rendererDemandCleanup = null;
     this.globeInitToken++;
     this.rendererInitToken++;
+    this.godsEye?.destroy();
+    this.godsEye = null;
     this.globeMap?.destroy();
     this.deckGLMap?.destroy();
     this.svgMap?.destroy();

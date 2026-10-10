@@ -5,3 +5,4 @@
 - [NSE equity data layer](2026-09-24-nse-equity-data-layer.md) — India terminal seeding: probe from the prod runner, XBRL is the real source, rotation + skipWhenEmpty per-company keys
 - [docs:check drift vs a dirty tree](2026-09-24-docs-stats-drift-dirty-tree.md) — take count baselines from HEAD in a scratch worktree, not from a tree carrying another session's uncommitted work
 - [Congress/POTUS/Mining panels](2026-09-30-static-json-panels-from-open-datasets.md) — no free API exists; slim kadoa + CNN static files via build script, refresh with a GH Action
+- [Embed Cesium God's Eye View](2026-10-09-embed-cesium-gods-eye-view.md) — lazy overlay, self-hosted /cesium assets for strict-dynamic CSP, keyless because of VITE_ secret policy

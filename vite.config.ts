@@ -2,7 +2,8 @@ import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import type { OutputBundle } from 'rollup';
 import { resolve, dirname, extname } from 'path';
-import { mkdir, readFile, writeFile } from 'fs/promises';
+import { cp, mkdir, readFile, writeFile } from 'fs/promises';
+import { createReadStream, existsSync, statSync } from 'fs';
 import { brotliCompress } from 'zlib';
 import { promisify } from 'util';
 import pkg from './package.json';
@@ -78,6 +79,7 @@ const LAZY_HTML_PRELOAD_CHUNKS = [
   'deck-stack',
   'protomaps',
   'h3-js',
+  'cesium',
   'MapContainer',
   'UnifiedSettings',
   'settings-window',
@@ -194,6 +196,34 @@ function panelChunkForComponentId(id: string): PanelManualChunkName | null {
   const chunkName = PANEL_SUPPORT_CLUSTER[panelKey] ?? PANEL_CLUSTER[panelKey];
   if (chunkName) return chunkName;
   throw new Error(`[manualChunks] Unassigned panel component ${panelKey}. Add it to PANEL_CLUSTER or PANEL_SUPPORT_CLUSTER in vite.config.ts.`);
+}
+
+// God's Eye View (Cesium) loads workers/textures/widgets from CESIUM_BASE_URL (/cesium/).
+// Serve them from node_modules in dev and copy them into the build output.
+// Nothing here touches index.html: Cesium itself is only ever dynamically imported.
+function cesiumAssetsPlugin(): Plugin {
+  const root = resolve(__dirname, 'node_modules/cesium/Build/Cesium');
+  const dirs = ['Workers', 'ThirdParty', 'Assets'];
+  let outDir = 'dist';
+  return {
+    name: 'wm-cesium-assets',
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir);
+    },
+    configureServer(server) {
+      server.middlewares.use('/cesium', (req, res, next) => {
+        const rel = decodeURIComponent((req.url ?? '').split('?')[0]);
+        const file = resolve(root, '.' + rel);
+        if (!file.startsWith(root) || !existsSync(file) || !statSync(file).isFile()) return next();
+        res.setHeader('Content-Type', extname(file) === '.js' ? 'text/javascript' : 'application/octet-stream');
+        createReadStream(file).pipe(res);
+      });
+    },
+    async closeBundle() {
+      if (!existsSync(root)) return;
+      for (const d of dirs) await cp(resolve(root, d), resolve(outDir, 'cesium', d), { recursive: true });
+    },
+  };
 }
 
 function brotliPrecompressPlugin(): Plugin {
@@ -1058,6 +1088,7 @@ export default defineConfig(({ mode }) => {
           });
         },
       },
+      cesiumAssetsPlugin(),
       htmlVariantPlugin(activeMeta, activeVariant, isDesktopBuild),
       !isDesktopBuild && dashboardHtmlOutputPlugin(),
       // Variant subdomain SEO pages only make sense on the web deployment,
@@ -1143,6 +1174,9 @@ export default defineConfig(({ mode }) => {
             // each SW update after a blog deploy. Blog pages fetch their own
             // images on demand; the dashboard never needs them.
             'blog/**',
+            // Cesium runtime assets + chunk for God's Eye View: multi-MB, opt-in only.
+            'cesium/**',
+            '**/cesium-*.js',
           ],
           // globe.gl + three.js grows main bundle past the 2 MiB default limit
           maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
@@ -1316,6 +1350,10 @@ export default defineConfig(({ mode }) => {
               }
               if (id.includes('/h3-js/')) {
                 return 'h3-js';
+              }
+              // God's Eye View (src/components/GodsEyeView.ts) only; reached via dynamic import.
+              if (id.includes('/cesium/') || id.includes('/@cesium/')) {
+                return 'cesium';
               }
               if (
                 id.includes('/@deck.gl/')
