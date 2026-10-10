@@ -102,6 +102,10 @@ const SOURCE_DOMAIN_OVERRIDES = new Map([
   // make this entry classify via a "market"-ish path match.
   ['Barchart', 'finance'],
   ['Hyperliquid', 'finance'],
+  // God's Eye View map tiles/terrain (src/components/GodsEyeView.ts).
+  ['services.arcgisonline.com', 'environment'],
+  ['terrain.reearth.land', 'environment'],
+  ['tile.openstreetmap.org', 'environment'],
   ['api.rainviewer.com', 'environment'],
   ['apewisdom.io', 'finance'],
   ['api.scrapecreators.com', 'news'],
@@ -250,6 +254,9 @@ const SOURCE_NAME_OVERRIDES = new Map([
   ['news.usni.org', 'USNI News'],
   ['news.ycombinator.com', 'Hacker News'],
   ['nominatim.openstreetmap.org', 'OpenStreetMap Nominatim'],
+  ['services.arcgisonline.com', 'Esri ArcGIS Online'],
+  ['terrain.reearth.land', 'Re:Earth Terrain (Mapterhorn)'],
+  ['tile.openstreetmap.org', 'OpenStreetMap Tiles'],
   ['otx.alienvault.com', 'AlienVault Open Threat Exchange'],
   ['overpass-api.de', 'OpenStreetMap Overpass API'],
   ['patents.google.com', 'Google Patents'],
